@@ -1,5 +1,6 @@
 import aiosqlite
 import hashlib
+import re
 from app.config import DB_PATH
 
 
@@ -340,6 +341,11 @@ async def get_history(
         if role == "assistant":
             # 回复目标已在消息元数据和群摘要中，不能把内部标签放进
             # assistant 正文，否则模型会学着逐字复述到公开回复。
+            if platform == "telegram":
+                content = re.sub(
+                    r"^\s*\[萤\s*->\s*成员#[0-9a-f]{10}\]\s*",
+                    "", content,
+                )
             history.append({
                 "role": "assistant",
                 "content": content,

@@ -217,6 +217,9 @@ def _reply_target_identity(replied, chat_id):
 
     replied_user = getattr(replied, "from_user", None)
     if not replied_user:
+        sender_chat = getattr(replied, "sender_chat", None)
+        if sender_chat:
+            return f"sender_chat:{sender_chat.id}", sender_chat.title or "群频道"
         return None, None
 
     if getattr(replied_user, "username", None) == "GroupAnonymousBot":
@@ -224,9 +227,8 @@ def _reply_target_identity(replied, chat_id):
             getattr(replied, "author_signature", None)
             or ""
         ).strip()
-        anon_tag = signature or "anonymous_admin"
         return (
-            f"anon:{chat_id}:{anon_tag}",
+            f"anon:{chat_id}:message:{replied.message_id}",
             (
                 f"匿名管理员（{signature}）"
                 if signature
@@ -250,7 +252,8 @@ async def _archive_group_input(message, user, chat, content):
     display = user.full_name
     if username == "GroupAnonymousBot":
         signature = (getattr(message, "author_signature", None) or "").strip()
-        uid = f"anon:{chat.id}:{signature or 'anonymous_admin'}"
+        # A signature is a display label, not a verified person identity.
+        uid = f"anon:{chat.id}:message:{message.message_id}"
         username = None
         display = f"匿名管理员（{signature}）" if signature else "匿名管理员"
     person = await get_or_create_person(
@@ -271,8 +274,30 @@ async def archive_group_command(update: Update, context: ContextTypes.DEFAULT_TY
     message = update.effective_message
     chat = update.effective_chat
     user = update.effective_user
+    if not user and message and message.sender_chat:
+        sender = message.sender_chat
+        user = SimpleNamespace(
+            id=f"sender_chat:{sender.id}",
+            username=sender.username,
+            full_name=sender.title or "群频道",
+        )
     if message and chat and user and message.text:
         await _archive_group_input(message, user, chat, message.text)
+
+
+async def archive_group_sender_chat_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Archive channel-sent group text that has no effective Telegram user."""
+    message = update.effective_message
+    chat = update.effective_chat
+    if not message or not chat or update.effective_user or not message.sender_chat:
+        return
+    sender = message.sender_chat
+    user = SimpleNamespace(
+        id=f"sender_chat:{sender.id}",
+        username=sender.username,
+        full_name=sender.title or "群频道",
+    )
+    await _archive_group_input(message, user, chat, message.text or "")
 
 
 async def archive_group_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -784,7 +809,7 @@ async def should_reply_group(
     if not message or not user or not chat:
         return False
 
-    if user.is_bot:
+    if user.is_bot and user.username != "GroupAnonymousBot":
         return False
 
     me = await context.bot.get_me()
@@ -1540,8 +1565,8 @@ async def handle_text(
 
     # ===== 当前说话者的稳定身份 =====
     # Telegram 匿名管理员会统一显示为 GroupAnonymousBot，
-    # 无法可靠还原真实账号。至少按“当前群 + 匿名签名”隔离，
-    # 避免不同群的匿名管理员被错误合并成同一个人。
+    # 无法可靠还原真实账号；匿名签名也不能证明是同一个人。
+    # 每条匿名消息独立编号，避免合并不同管理员。
     is_group = chat.type in (
         "group",
         "supergroup"
@@ -1560,9 +1585,8 @@ async def handle_text(
             or ""
         ).strip()
 
-        anon_tag = signature or "anonymous_admin"
         speaker_user_id = (
-            f"anon:{chat.id}:{anon_tag}"
+            f"anon:{chat.id}:message:{message.message_id}"
         )
         speaker_username = None
         speaker_display_name = (
@@ -1863,7 +1887,7 @@ async def handle_text(
 
         # 只有萤真正参与普通群聊消息时，
         # 才计入与该成员的关系互动。
-        if mode == "off" and not debug:
+        if mode == "off" and not debug and user.username != "GroupAnonymousBot":
             try:
                 await register_interaction(
                     person_id=person["person_id"],
@@ -3231,7 +3255,11 @@ def build_application():
         group=-1,
     )
     app.add_handler(
-        MessageHandler(filters.ChatType.GROUPS & ~filters.TEXT & ~filters.PHOTO & ~filters.Sticker.ALL, archive_group_other),
+        MessageHandler(filters.ChatType.GROUPS & filters.TEXT & ~filters.COMMAND, archive_group_sender_chat_text),
+        group=-1,
+    )
+    app.add_handler(
+        MessageHandler(filters.ChatType.GROUPS & ~filters.TEXT, archive_group_other),
         group=-1,
     )
 
