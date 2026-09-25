@@ -9,6 +9,22 @@ def group_identity_tag(chat_id, user_id):
     return "成员#" + hashlib.blake2s(raw, digest_size=5).hexdigest()
 
 
+async def get_group_public_usernames(platform, chat_id, limit=30):
+    """Public @handles seen speaking in this one group; no private/chat cross-read."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            """SELECT DISTINCT i.username FROM messages m
+               JOIN identities i ON i.platform=m.platform
+                AND i.platform_user_id=m.user_id
+               WHERE m.platform=? AND m.chat_id=? AND m.role='user'
+                AND i.username IS NOT NULL AND i.username!='GroupAnonymousBot'
+               ORDER BY i.username LIMIT ?""",
+            (str(platform), str(chat_id), int(limit)),
+        )
+        rows = await cur.fetchall()
+    return [row[0] for row in rows if row[0]]
+
+
 SCHEMA = """
 PRAGMA journal_mode=WAL;
 
@@ -322,13 +338,11 @@ async def get_history(
         # 群聊里必须保留“谁在说、在回复谁”，否则多人并行聊天
         # 很容易把不同人的上下文串在一起。
         if role == "assistant":
-            target = (
-                f"[萤 -> {group_identity_tag(chat_id, reply_to_user_id)}] "
-                if platform == "telegram" and reply_to_user_id else ""
-            )
+            # 回复目标已在消息元数据和群摘要中，不能把内部标签放进
+            # assistant 正文，否则模型会学着逐字复述到公开回复。
             history.append({
                 "role": "assistant",
-                "content": target + content,
+                "content": content,
             })
         else:
             if (
