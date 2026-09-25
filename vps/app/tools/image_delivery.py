@@ -29,8 +29,9 @@ class FoundImage:
 
 def image_query(text: str) -> str | None:
     text = str(text or "").strip()
-    if text.lower().startswith("/image "):
-        return text[7:].strip()[:100] or None
+    command = re.match(r"^/image(?:@[A-Za-z0-9_]+)?(?:\s+|(?=[\u4e00-\u9fff]))(.+)$", text, re.I)
+    if command:
+        return command.group(1).strip()[:100] or None
     if not re.match(r"^(给我发|发我|发张|来张|找张|找一张|搜一张|给我看张)", text):
         return None
     if not any(word in text for word in ("图", "照片", "壁纸")):

@@ -520,11 +520,12 @@ async def send_panel(message, user, chat, person=None):
     owner = is_owner("telegram", user.id)
     lines = [
         "萤的指令与任务面板",
-        "指令：/commands 全部指令｜/help 用法｜/time 时间",
-        "功能：/search 搜索｜/image 找图｜/me 身份",
+        "全部指令：/commands",
+        "查时间：/time｜查身份：/me",
+        "搜索：/search 关键词｜发图：/image 关键词",
     ]
     if owner:
-        lines.append("状态：/status 萤现在的状态｜/private 隐私模式")
+        lines.append("萤的状态：/status｜隐私模式：/private status")
     if chat.type == "private":
         if person is None:
             person = await get_or_create_person(
@@ -2972,8 +2973,10 @@ async def handle_text(
 【本轮：轻量即时聊天】
 这是很简单的日常对话，不需要解释、总结或复盘上下文。
 
-默认用一两句有内容的自然话，通常约20～80个汉字；重要问题按实际需要展开。
+默认用一两句有内容的自然话，通常约15～65个汉字；重要问题按实际需要展开。
 日常闲聊不用为了字数重复废话。
+回答当前感受时，直接说感受；不要自顾自写一段生活小剧场或反问对方是不是不对劲。
+状态只写“正在洗漱”时，不能由此推断洗到一半、水凉了、被人拽过来等细节。
 
 禁止：
 - 复述“刚刚你问我……”
