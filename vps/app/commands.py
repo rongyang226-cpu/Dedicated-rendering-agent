@@ -1,12 +1,13 @@
 """TG 与手机端共用的中文指令说明。"""
 
-COMMAND_MANUAL_VERSION = "1.1"
+COMMAND_MANUAL_VERSION = "1.2"
 
 
 COMMANDS = [
     {"name": "/start", "title": "开始", "category": "基础", "description": "启动萤并显示简要入口。", "platforms": ["telegram", "mobile"], "owner": False, "usage": "/start"},
     {"name": "/help", "title": "帮助", "category": "基础", "description": "查看常用指令；/help all 查看全部，/help 指令名 查看详细说明。", "platforms": ["telegram", "mobile"], "owner": False, "usage": "/help [all|指令名]"},
     {"name": "/commands", "title": "全部指令", "category": "基础", "description": "打开完整指令表，是 /help all 的快捷入口。", "platforms": ["telegram", "mobile"], "owner": False, "usage": "/commands"},
+    {"name": "/panel", "title": "指令与任务面板", "category": "基础", "description": "查看可用指令；私聊还会列出自己的未完成提醒。", "platforms": ["telegram"], "owner": False, "usage": "/panel"},
     {"name": "/search", "title": "联网搜索", "category": "联网", "description": "使用 VPS 本机搜索查网页，并附真实来源；失败会明确说明。", "platforms": ["telegram", "mobile"], "owner": False, "usage": "/search 关键词"},
     {"name": "/image", "title": "发图片", "category": "图片", "description": "从联网结果查找可打开的图片并真实发送；发送萤的虚拟立绘可用 /image 萤。", "platforms": ["telegram", "mobile"], "owner": False, "usage": "/image 关键词"},
     {"name": "/status", "title": "状态", "category": "基础", "description": "查看萤自身状态、活动、心情、精力、位置、穿着以及双时区时间。", "platforms": ["telegram", "mobile"], "owner": True, "usage": "/status"},
@@ -73,7 +74,7 @@ def help_text(platform: str, owner: bool = False, query: str | None = None, full
         return detail or "没找到这条指令。发 /commands 看完整指令表。"
     items = _visible(platform, owner)
     if not full:
-        common = {"/help", "/commands", "/status", "/time", "/me", "/reset", "/search", "/image"}
+        common = {"/help", "/commands", "/panel", "/status", "/time", "/me", "/reset", "/search", "/image"}
         if platform == "telegram":
             common |= {"/chess", "/chess_status", "/chess_stop"}
             if owner:

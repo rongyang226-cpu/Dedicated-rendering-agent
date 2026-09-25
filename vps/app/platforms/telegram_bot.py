@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from datetime import datetime, timezone, timedelta
 
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -366,9 +366,9 @@ def clean_chat_output(text: str) -> str:
     """清理聊天输出里的空格、空行和常见中文标点噪音。"""
     text = (text or "").replace("\r\n", "\n").strip()
 
-    # 中文字符之间多余空格
+    # Remove model-inserted spaces around Chinese punctuation, too.
     text = re.sub(
-        r'(?<=[\u4e00-\u9fff])[ \t]+(?=[\u4e00-\u9fff])',
+        r'(?<=[\u4e00-\u9fff，。！？、；：])[ \t]+(?=[\u4e00-\u9fff，。！？、；：])',
         '',
         text
     )
@@ -422,11 +422,23 @@ def finish_cat_paragraphs(text: str) -> str:
                 continue
             trailing = block[len(block.rstrip()):]
             trimmed = block.rstrip()
+            trimmed = re.sub(r"[，,；;]\s*喵$", "喵", trimmed)
             if not trimmed.endswith("喵"):
-                trimmed = trimmed.rstrip("。！？!?.，,；; ")
-                trimmed += "，喵"
+                trimmed = trimmed.rstrip("，,；; ")
+                trimmed += "喵"
             result.append(trimmed + trailing)
     return "".join(result)
+
+
+def split_tg_reply(text: str) -> list[str]:
+    """Use at most two bubbles when a long answer has a natural paragraph break."""
+    blocks = re.split(r"\n\s*\n", text.strip())
+    if len(text) < 180 or len(blocks) < 2 or "```" in text:
+        return [text]
+    middle = len(text) // 2
+    cuts = [i for i in range(1, len(blocks))]
+    cut = min(cuts, key=lambda i: abs(len("\n\n".join(blocks[:i])) - middle))
+    return ["\n\n".join(blocks[:cut]), "\n\n".join(blocks[cut:])]
 
 
 async def reply_cat(message, text, **kwargs):
@@ -502,6 +514,46 @@ async def cmd_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply_cat(update.message,
         help_text("telegram", is_owner("telegram", user.id), full=True)
     )
+
+
+async def send_panel(message, user, chat, person=None):
+    owner = is_owner("telegram", user.id)
+    lines = [
+        "萤的指令与任务面板",
+        "指令：/commands 全部指令｜/help 用法｜/time 时间",
+        "功能：/search 搜索｜/image 找图｜/me 身份",
+    ]
+    if owner:
+        lines.append("状态：/status 萤现在的状态｜/private 隐私模式")
+    if chat.type == "private":
+        if person is None:
+            person = await get_or_create_person(
+                platform="telegram", user_id=user.id,
+                username=user.username, display_name=user.full_name,
+            )
+        reminders = await find_open_reminders(person["person_id"])
+        lines.append("未完成提醒：")
+        if reminders:
+            from app.tools.time_tool import local_zone
+            for event in reminders[:5]:
+                due = event.get("due_at")
+                when = datetime.fromisoformat(due).astimezone(local_zone()).strftime("%m-%d %H:%M") if due else "时间未定"
+                lines.append(f"• {when} {event['title']}")
+            if len(reminders) > 5:
+                lines.append("更多提醒：发送‘我的提醒’")
+        else:
+            lines.append("暂无")
+    else:
+        lines.append("个人提醒只在各自私聊中显示。")
+    await reply_cat(message, "\n".join(lines))
+
+
+async def cmd_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user, chat, message = update.effective_user, update.effective_chat, update.message
+    if not user or not chat or not message:
+        return
+    await audit("telegram", user.id, "/panel", True)
+    await send_panel(message, user, chat)
 
 
 async def cmd_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1676,6 +1728,10 @@ async def handle_text(
                 message,
                 "你想查哪个群里已发言成员的公开用户名？我只能按实际收到的群消息整理，不能凭空列出所有群成员。",
             )
+        return
+
+    if re.fullmatch(r"(?:我)?(?:看|看看|打开|查看|给我看看)?(?:一下)?(?:指令|命令|任务)?面板[。！!？?]?", text):
+        await send_panel(message, user, chat, person)
         return
 
     # 非 OWNER 仍保持朋友边界；OWNER 的恋人身份由程序验证。
@@ -2935,6 +2991,14 @@ async def handle_text(
 更自然：没想干嘛。陪你待会儿呗。
 """
 
+        system_prompt += """
+【说话方式】
+- 像即时聊天那样接住这一句，不写成报告，不机械地把地点、时间、衣服和房间清单全念一遍。
+- 不用“我这边……你那边……”反复并列说明；只提这次问题真正需要的信息。
+- 不凭空接“上次你又……”之类没有记录的共同经历。被纠正时承认不确定，先问清楚变化在哪里。
+- 中文标点旁不要插空格；允许一到两条消息，短回复尽量只发一条。每段结尾自然带喵。
+"""
+
         # Keep stable persona and scene rules together as a cacheable prefix.
         # The live clock, relationship state and memory remain authoritative.
         system_prompt += "\n\n" + dynamic_context
@@ -3000,24 +3064,22 @@ async def handle_text(
     if not outgoing_answer:
         return
 
-    sent = await reply_cat(message, outgoing_answer)
+    bubbles = split_tg_reply(outgoing_answer)
+    sent_messages = []
+    for bubble in bubbles:
+        sent_messages.append(await reply_cat(message, bubble))
 
     # 普通模式：只记录真正发送成功的回复。
     if mode == "off" and not debug:
         try:
-            await save_message(
-                "telegram",
-                chat.id,
-                0,
-                "ying",
-                "assistant",
-                outgoing_answer,
-                person_id=person["person_id"],
-                message_id=sent.message_id,
-                reply_to_message_id=message.message_id,
-                reply_to_user_id=speaker_user_id,
-                reply_to_name=speaker_display_name,
-            )
+            for bubble, sent in zip(bubbles, sent_messages):
+                await save_message(
+                    "telegram", chat.id, 0, "ying", "assistant", bubble,
+                    person_id=person["person_id"], message_id=sent.message_id,
+                    reply_to_message_id=message.message_id,
+                    reply_to_user_id=speaker_user_id,
+                    reply_to_name=speaker_display_name,
+                )
         except Exception:
             # Telegram 已经发送成功。
             # 存档失败只记录错误，不能让整个 update 再次失败，
@@ -3242,12 +3304,26 @@ async def cmd_chess_status(
         )
 
 
+async def setup_bot_commands(app):
+    try:
+        await app.bot.set_my_commands([
+            BotCommand("panel", "指令与任务面板"),
+            BotCommand("commands", "全部指令"),
+            BotCommand("help", "帮助"),
+            BotCommand("time", "两地时间"),
+            BotCommand("me", "我的身份"),
+        ])
+    except Exception:
+        log.exception("Telegram command menu update failed")
+
+
 def build_application():
     app = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
         .proxy(TELEGRAM_PROXY_URL)
         .get_updates_proxy(TELEGRAM_PROXY_URL)
+        .post_init(setup_bot_commands)
         .build()
     )
 
@@ -3273,6 +3349,7 @@ def build_application():
 
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("commands", cmd_commands))
+    app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CommandHandler("image", cmd_image))
     app.add_handler(CommandHandler("search", cmd_search))
     app.add_handler(CommandHandler("time", cmd_time))
