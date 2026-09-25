@@ -2944,7 +2944,8 @@ async def handle_text(
             system_prompt,
             history,
             model_user_text,
-            max_tokens=(140 if is_casual else 500)
+            max_tokens=(140 if is_casual else 500),
+            temperature=0.6,
         )
 
         if (

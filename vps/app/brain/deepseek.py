@@ -62,7 +62,8 @@ async def chat(
     system_prompt: str,
     history: list,
     user_text: str,
-    max_tokens: int = 500
+    max_tokens: int = 500,
+    temperature: float = 1.1,
 ) -> str:
 
     messages = [
@@ -91,7 +92,7 @@ async def chat(
     payload = {
         "model": DEEPSEEK_MODEL,
         "messages": messages,
-        "temperature": 1.1,
+        "temperature": temperature,
         "max_tokens": max_tokens,
     }
 
