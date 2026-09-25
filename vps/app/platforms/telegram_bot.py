@@ -525,7 +525,9 @@ async def send_panel(message, user, chat, person=None):
         "搜索：/search 关键词｜发图：/image 关键词",
     ]
     if owner:
-        lines.append("萤的状态：/status｜隐私模式：/private status")
+        lines.append("萤的状态：/status")
+        if chat.type == "private":
+            lines.append("隐私模式：/private status")
     if chat.type == "private":
         if person is None:
             person = await get_or_create_person(
@@ -728,6 +730,10 @@ async def cmd_private(
         await reply_cat(update.message,
             "这个你不能用。"
         )
+        return
+
+    if chat.type != "private":
+        await reply_cat(update.message, "隐私模式只在私聊可用。")
         return
 
     arg = (
@@ -1437,6 +1443,9 @@ from app.activity.diary import read_today_daily_diary
 
 async def _send_requested_image(message, query: str):
     found = await find_image(query)
+    if not found:
+        # Image endpoints occasionally fail on the first network attempt.
+        found = await find_image(query)
     if not found:
         await reply_cat(message, "这次没找到能正常打开的图片。你换个关键词，我再找。")
         return
