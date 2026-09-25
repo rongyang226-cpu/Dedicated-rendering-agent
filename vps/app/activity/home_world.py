@@ -31,6 +31,7 @@ async def init_home_world_db():
                 wall_color TEXT NOT NULL DEFAULT '暖白色',
                 desk_style TEXT NOT NULL DEFAULT '浅木色书桌',
                 bed_style TEXT NOT NULL DEFAULT '浅色床铺',
+                residence_note TEXT NOT NULL DEFAULT '',
 
                 updated_at TEXT NOT NULL
             )
@@ -68,6 +69,11 @@ async def init_home_world_db():
         if "bed_style" not in columns:
             await db.execute(
                 "ALTER TABLE home_world ADD COLUMN bed_style TEXT NOT NULL DEFAULT '浅色床铺'"
+            )
+
+        if "residence_note" not in columns:
+            await db.execute(
+                "ALTER TABLE home_world ADD COLUMN residence_note TEXT NOT NULL DEFAULT ''"
             )
 
         if "current_entertainment_mode" not in columns:
@@ -123,6 +129,7 @@ async def get_home_world():
                 wall_color,
                 desk_style,
                 bed_style,
+                residence_note,
                 current_entertainment_mode,
                 current_entertainment_detail,
                 current_entertainment_session,
@@ -149,10 +156,11 @@ async def get_home_world():
         "wall_color": row[9],
         "desk_style": row[10],
         "bed_style": row[11],
-        "current_entertainment_mode": row[12],
-        "current_entertainment_detail": row[13],
-        "current_entertainment_session": row[14],
-        "updated_at": row[15],
+        "residence_note": row[12],
+        "current_entertainment_mode": row[13],
+        "current_entertainment_detail": row[14],
+        "current_entertainment_session": row[15],
+        "updated_at": row[16],
 
         "tokyo_time": tokyo_now.isoformat(),
         "zhengzhou_time": zhengzhou_now.isoformat(),

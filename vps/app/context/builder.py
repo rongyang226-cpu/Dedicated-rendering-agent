@@ -536,6 +536,7 @@ def render_context(ctx: dict) -> str:
         f"书桌：{world['desk_style']}",
         f"床铺：{world['bed_style']}",
         f"窗外：{world['window_view']}",
+        f"住所沿革：{ctx['world'].get('residence_note') or '未记录'}",
         "- 这是萤自己的固定虚拟住所；OWNER 不自动居住在这里。",
         "",
         "【东京持续小世界】",
