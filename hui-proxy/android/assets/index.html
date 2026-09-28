@@ -66,7 +66,7 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⚙</span>内核</button>
 </div></div></section>
 <section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
-<div class="notice">支持本机导入 JSON / YAML，文件只存在应用私有空间。尚未做格式解析与内核连接校验。</div><div id="profiles"></div></div>
+<div class="notice">文件保存在应用私有空间。JSON 仅检查语法；YAML 先存为草稿。所有配置必须经过核心检查才能连接。</div><div id="profiles"></div></div>
 <div class="card glass"><h2>订阅与节点</h2><div class="notice">订阅更新、节点测速与自动切换会在连接层完成后启用，避免将未验证的节点显示为可用。</div></div></section>
 <section id="rules" class="tab"><div class="card glass"><h2>详细分流</h2><div class="notice">每组规则会针对当前内核生成配置；无法等价实现的规则必须明确提示。</div></div>
 <details class="glass" open><summary>基础分流</summary><div class="details-body">
@@ -108,15 +108,15 @@ function refreshFromNative(){
   document.getElementById('rulesSource').value=s.rules;
   document.getElementById('selected-engine').textContent=labels[s.engine]||'未选择内核';
   const chosen=s.profiles.find(p=>p.id===s.active);
-  document.getElementById('selected-profile').textContent=chosen?chosen.name:'未选择配置';
+  document.getElementById('selected-profile').textContent=chosen?chosen.name+' · 待内核验证':'未选择配置';
   const box=document.getElementById('profiles');box.replaceChildren();
   if(!s.profiles.length){let msg=document.createElement('div');msg.className='caption';msg.style.padding='20px 0';msg.textContent='还没有导入配置';box.append(msg)}
   for(const p of s.profiles){
     const card=document.createElement('div');card.className='profile'+(p.id===s.active?' selected':'');
     const title=document.createElement('strong');title.textContent=p.name;card.append(title);
-    const note=document.createElement('div');note.className='caption';note.textContent=(p.id===s.active?'已选择 · ':'')+Math.max(1,Math.round(p.size/1024))+' KB';card.append(note);
+    const note=document.createElement('div');note.className='caption';note.textContent=(p.id===s.active?'已选草稿 · ':'')+(p.check||'未检查')+' · '+Math.max(1,Math.round(p.size/1024))+' KB';card.append(note);
     const actions=document.createElement('div');actions.className='actions';
-    const pick=document.createElement('button');pick.className='button small';pick.textContent='选择';pick.onclick=()=>Hui.activate(p.id);
+    const pick=document.createElement('button');pick.className='button small';pick.textContent='选为草稿';pick.onclick=()=>Hui.activate(p.id);
     const del=document.createElement('button');del.className='button small';del.textContent='删除';del.onclick=()=>{if(confirm('删除本机配置“'+p.name+'”？'))Hui.delete(p.id)};
     actions.append(pick,del);card.append(actions);box.append(card)
   }

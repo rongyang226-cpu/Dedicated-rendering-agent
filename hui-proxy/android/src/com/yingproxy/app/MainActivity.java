@@ -16,6 +16,7 @@ import android.webkit.WebSettings;
 import android.graphics.Color;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
@@ -83,12 +84,15 @@ public final class MainActivity extends Activity {
                 obj.put("id", id);
                 obj.put("name", prefs.getString("profile_" + id, id));
                 obj.put("size", file.length());
+                obj.put("check", prefs.getString("profile_check_" + id, "旧配置未检查"));
                 items.put(obj);
             }
             out.put("profiles", items);
             out.put("ready", false);
             out.put("status", "尚未接入 VPN 与代理内核");
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            return "{\"engine\":\"SING_BOX\",\"dns\":\"BUILT_IN\",\"rules\":\"BUILT_IN\",\"mode\":\"RULE\",\"udp\":\"PROXY\",\"active\":\"\",\"profiles\":[],\"ready\":false,\"status\":\"无法读取本机配置\"}";
+        }
         return out.toString();
     }
 
@@ -120,9 +124,8 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void delete(String id) {
             if (id != null && id.matches("[0-9]+\\.(yaml|yml|json)")) {
                 File file = new File(profileDir(), id);
-                if (file.isFile()) {
-                    file.delete();
-                    SharedPreferences.Editor edit = prefs.edit().remove("profile_" + id);
+                if (file.isFile() && file.delete()) {
+                    SharedPreferences.Editor edit = prefs.edit().remove("profile_" + id).remove("profile_check_" + id);
                     if (id.equals(prefs.getString("active", ""))) edit.remove("active");
                     edit.apply();
                 }
@@ -149,27 +152,47 @@ public final class MainActivity extends Activity {
             display.toLowerCase(java.util.Locale.ROOT).endsWith(".yml") ? ".yml" : "";
         if (suffix.isEmpty()) { toast("仅支持 JSON 或 YAML 配置"); return; }
         if (display.length() > 64) display = display.substring(0, 64);
-        String id = Long.toString(System.currentTimeMillis()) + suffix;
+        final String safeDisplay = display;
+        new Thread(() -> importSelected(uri, safeDisplay, suffix), "hui-profile-import").start();
+    }
+
+    private void importSelected(Uri uri, String display, String suffix) {
+        String id = Long.toString(System.currentTimeMillis()) +
+            Long.toString(Math.abs(System.nanoTime() % 100000)) + suffix;
         File dst = new File(profileDir(), id);
-        int size = 0;
-        try (InputStream in = getContentResolver().openInputStream(uri);
-             FileOutputStream out = new FileOutputStream(dst)) {
-            if (in == null) throw new IllegalArgumentException("无法读取文件");
-            byte[] buffer = new byte[8192];
-            int n;
-            while ((n = in.read(buffer)) != -1) {
-                size += n;
-                if (size > MAX_CONFIG_BYTES) throw new IllegalArgumentException("配置超过 1 MB");
-                out.write(buffer, 0, n);
+        File pending = null;
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) throw new IllegalArgumentException("无法读取文件");
+                byte[] buffer = new byte[8192];
+                int n;
+                while ((n = in.read(buffer)) != -1) {
+                    if (bytes.size() + n > MAX_CONFIG_BYTES)
+                        throw new IllegalArgumentException("配置超过 1 MB");
+                    bytes.write(buffer, 0, n);
+                }
             }
-            if (size == 0) throw new IllegalArgumentException("空配置");
-            prefs.edit().putString("profile_" + id, display).putString("active", id).apply();
-            toast("配置已导入，连接内核尚未接入");
-        } catch (Exception e) {
-            dst.delete();
+            byte[] contents = bytes.toByteArray();
+            String inspection = ProfileInspector.inspect(contents, suffix);
+            pending = File.createTempFile("import-", ".tmp", profileDir());
+            try (FileOutputStream out = new FileOutputStream(pending)) {
+                out.write(contents);
+                out.getFD().sync();
+            }
+            if (dst.exists() || !pending.renameTo(dst))
+                throw new IllegalStateException("保存配置失败");
+            prefs.edit().putString("profile_" + id, display)
+                .putString("profile_check_" + id, inspection).apply();
+            toast("已保存为草稿；尚不能用于连接");
+        } catch (IllegalArgumentException e) {
             toast("导入失败：" + e.getMessage());
+        } catch (Exception e) {
+            toast("导入失败：无法读取或保存文件");
+        } finally {
+            if (pending != null) pending.delete();
+            update();
         }
-        update();
     }
 
     private void toast(String message) {
