@@ -46,3 +46,5 @@ __pycache__/
 /hui-proxy/nekobox/local.properties
 
 /hui-proxy/nekobox/libcore/gomobile/
+
+/hui-proxy/nekobox/.kotlin/
