@@ -32,3 +32,15 @@ Thumbs.db
 /out/
 __pycache__/
 *.pyc
+
+# Hui NekoBox local toolchains and pinned upstream core checkouts
+/hui-proxy/sing-box/
+/hui-proxy/libneko/
+/hui-proxy/nekobox/.gradle/
+/hui-proxy/nekobox/build/
+/hui-proxy/nekobox/buildSrc/build/
+/hui-proxy/nekobox/app/build/
+/hui-proxy/nekobox/app/libs/
+/hui-proxy/nekobox/libcore/.build/
+/hui-proxy/nekobox/libcore/libcore.aar
+/hui-proxy/nekobox/local.properties
