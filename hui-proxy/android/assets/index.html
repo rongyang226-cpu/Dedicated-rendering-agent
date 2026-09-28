@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#221c25"><title>绘</title>
+<style>
+:root{color-scheme:light;--ink:#242d3d;--muted:#536072;--line:rgba(255,255,255,.73);--rose:#ae5c81;--glass:rgba(255,255,255,.17)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","Microsoft Yahei",sans-serif;color:var(--ink)}
+body:before{content:"";position:fixed;inset:0;z-index:-2;background:#cab9bd url("background.webp") center center/cover no-repeat;transform:translateZ(0)}
+body:after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(23,15,29,.08),rgba(255,255,255,.025) 45%,rgba(22,15,27,.12));pointer-events:none}
+button,select{font:inherit}button{cursor:pointer}
+main{position:relative;z-index:2;padding:14px 14px calc(100px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto}
+.glass{background:var(--glass);border:1.5px solid var(--line);border-radius:28px;backdrop-filter:blur(11px) saturate(1.33);-webkit-backdrop-filter:blur(11px) saturate(1.33);box-shadow:inset 0 1px 1px rgba(255,255,255,.72),0 12px 30px rgba(60,27,46,.14)}
+header{display:flex;align-items:center;gap:12px;padding:13px 15px;margin-bottom:13px}
+.avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 3px 11px rgba(55,29,46,.2)}
+h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0}
+.caption{font-size:12px;color:var(--muted);line-height:1.5}
+.headline{flex:1}.tag{padding:7px 10px;border:1px solid rgba(255,255,255,.65);border-radius:16px;background:rgba(255,255,255,.33);font-size:12px;font-weight:650}
+.card{padding:18px;margin:12px 0}
+.hero{min-height:190px;display:flex;flex-direction:column;justify-content:space-between}
+.eyebrow{font-weight:700;color:#905b75;font-size:12px;letter-spacing:.08em}
+.hero-status{font-size:31px;font-weight:800;margin:5px 0 2px}.hero-note{font-size:13px;color:#3e4550}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row.wrap{flex-wrap:wrap}.row + .row{margin-top:12px}
+.button{border:1px solid rgba(255,255,255,.7);border-radius:17px;background:rgba(255,255,255,.31);padding:11px 14px;color:var(--ink);font-weight:700}
+.button.primary{background:linear-gradient(135deg,rgba(169,77,120,.84),rgba(100,76,143,.72));color:white;box-shadow:0 5px 15px rgba(116,53,96,.18)}
+.button:disabled{opacity:.65;cursor:default}.button.small{font-size:12px;padding:8px 10px}
+.notice{margin-top:10px;padding:11px 13px;border:1px solid rgba(255,255,255,.6);border-radius:17px;background:rgba(255,255,255,.23);color:#394456;font-size:13px;line-height:1.55}
+.status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.metric{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:10px 9px;background:rgba(255,255,255,.16);min-height:67px}
+.metric b{display:block;font-size:16px;margin-top:7px}.metric span{font-size:11px;color:#536073}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.quick .tile{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:76px;text-align:center;color:var(--ink);border:1px solid rgba(255,255,255,.65);border-radius:18px;background:rgba(255,255,255,.19);padding:11px 4px;font-size:12px}
+.glyph{font-size:23px;line-height:1;color:#a65a80}
+.field{margin:13px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+.field select{appearance:none;width:100%;border-radius:17px;border:1px solid rgba(255,255,255,.73);padding:12px 40px 12px 14px;background:rgba(255,255,255,.33);color:#293346;outline:none}
+.selectbox{position:relative}.selectbox:after{content:"⌄";position:absolute;right:15px;top:7px;font-size:22px;pointer-events:none;color:#6d5970}
+.mini{font-size:11px;color:#415064;line-height:1.55;margin-top:6px}
+.profile{padding:13px;margin:9px 0;border-radius:18px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.19)}
+.profile strong{font-size:14px;word-break:break-all}.profile .caption{margin:4px 0}
+.profile .actions{display:flex;gap:7px;margin-top:10px}.profile.selected{border-color:#f7d5e6;background:rgba(255,255,255,.31)}
+.tab{display:none}.tab.active{display:block}
+details{margin:9px 0;overflow:hidden}details summary{list-style:none;padding:17px 16px;cursor:pointer;font-weight:750;display:flex;justify-content:space-between}details summary:after{content:"⌄";color:#a45b82}details[open] summary:after{transform:rotate(180deg)}details summary::-webkit-details-marker{display:none}
+.details-body{padding:0 16px 15px}
+.rule{padding:10px 0;border-top:1px solid rgba(255,255,255,.37);font-size:13px}
+.rule small{display:block;color:var(--muted);margin-top:4px;line-height:1.4}
+footer{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:7px 8px max(7px,env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.68);border-bottom:0;border-radius:22px 22px 0 0;background:rgba(255,255,255,.28);backdrop-filter:blur(17px) saturate(1.3);-webkit-backdrop-filter:blur(17px) saturate(1.3);box-shadow:0 -5px 23px rgba(43,25,38,.11)}
+nav{max-width:680px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+nav button{border:0;border-radius:15px;background:transparent;min-height:51px;color:#4f5c69;font-size:11px}
+nav button i{display:block;font-style:normal;font-size:20px;line-height:1.25}
+nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750}
+.petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.petal{position:absolute;top:-24px;opacity:.6;display:block;background:#f5b4ca;clip-path:ellipse(42% 55% at 55% 50%);animation:fall linear infinite;filter:blur(.2px)}
+@keyframes fall{to{transform:translate3d(110px,110vh,0) rotate(540deg)}}
+@media(prefers-reduced-motion:reduce){.petal{display:none}*{scroll-behavior:auto!important}}
+@media(max-width:360px){.quick{gap:5px}.quick .tile{font-size:11px}main{padding-left:10px;padding-right:10px}}
+</style></head><body><div class="petals" id="petals" aria-hidden="true"></div><main>
+<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘</h1><span class="caption">独立代理客户端 · 本机配置</span></div><span class="tag">未连接</span></header>
+<section id="home" class="tab active">
+<div class="card glass hero"><div><div class="eyebrow">HUI · CONNECT</div><div class="hero-status">等待连接</div><div class="hero-note" id="hero-note">VPN 与内核尚未接入</div></div>
+<div class="row"><div><strong id="selected-engine">sing-box</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" disabled>连接尚未开放</button></div></div>
+<div class="card glass"><h2>连接概况</h2><div class="status-grid">
+<div class="metric"><span>实时上传</span><b>—</b></div><div class="metric"><span>实时下载</span><b>—</b></div><div class="metric"><span>连接延迟</span><b>—</b></div></div>
+<div class="notice">需要先完成内核与安卓 VPN 联调；这里不会显示虚假的已连接状态或流量。</div></div>
+<div class="card glass"><h2>快捷入口</h2><div class="quick">
+<button class="tile" onclick="switchTab('nodes')"><span class="glyph">◇</span>节点</button>
+<button class="tile" onclick="switchTab('rules')"><span class="glyph">≋</span>分流</button>
+<button class="tile" onclick="switchTab('settings')"><span class="glyph">⌁</span>DNS</button>
+<button class="tile" onclick="switchTab('settings')"><span class="glyph">⚙</span>内核</button>
+</div></div></section>
+<section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
+<div class="notice">支持本机导入 JSON / YAML，文件只存在应用私有空间。尚未做格式解析与内核连接校验。</div><div id="profiles"></div></div>
+<div class="card glass"><h2>订阅与节点</h2><div class="notice">订阅更新、节点测速与自动切换会在连接层完成后启用，避免将未验证的节点显示为可用。</div></div></section>
+<section id="rules" class="tab"><div class="card glass"><h2>详细分流</h2><div class="notice">每组规则会针对当前内核生成配置；无法等价实现的规则必须明确提示。</div></div>
+<details class="glass" open><summary>基础分流</summary><div class="details-body">
+<div class="rule"><strong>国内流量</strong><small>国内域名与 IP 直连，DNS 按境内解析</small></div>
+<div class="rule"><strong>海外流量</strong><small>走当前节点或节点组，远端 DNS 随规则分流</small></div>
+<div class="rule"><strong>局域网</strong><small>私网与本地设备可单独设为直连</small></div>
+</div></details>
+<details class="glass"><summary>独立策略组</summary><div class="details-body">
+<div class="rule">AI 服务<small>按域名与应用单独选节点组</small></div>
+<div class="rule">游戏<small>支持 UDP 策略与独立节点</small></div>
+<div class="rule">视频<small>按服务设置地区及节点组</small></div>
+<div class="rule">自定义域名与应用<small>精确覆盖默认规则</small></div>
+</div></details>
+<details class="glass"><summary>流量安全</summary><div class="details-body">
+<div class="rule">IPv6<small>默认不启用，启用时同步接管路由和 DNS</small></div>
+<div class="rule">UDP / QUIC<small>代理或阻断，不静默改为直连</small></div>
+<div class="rule">断线阻断<small>需配合安卓的始终开启 VPN 与无 VPN 禁网</small></div>
+</div></details></section>
+<section id="settings" class="tab"><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
+<div class="selectbox"><select id="engine" onchange="option('engine',this.value)"><option value="SING_BOX">sing-box</option><option value="MIHOMO">Mihomo · Clash Meta</option><option value="XRAY">Xray</option></select></div><div class="mini">切换时只允许一个 VPN 和一个内核运行。当前版本尚未接入。</div></div>
+<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" onchange="option('mode',this.value)"><option value="RULE">规则分流</option><option value="GLOBAL">全局代理</option><option value="DIRECT">全局直连</option></select></div></div></div>
+<div class="card glass"><h2>DNS 与防泄漏</h2>
+<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" onchange="option('dns',this.value)"><option value="BUILT_IN">软件内置 DNS</option><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
+<div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" onchange="option('rules',this.value)"><option value="BUILT_IN">软件内置规则</option><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
+<div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" onchange="option('udp',this.value)"><option value="PROXY">跟随分流规则</option><option value="BLOCK">阻断 UDP</option></select></div></div>
+<div class="notice">导入配置缺少所选 DNS 或规则时会拒绝连接；不会退回系统 DNS。需在真机验证浏览器安全 DNS、IPv4/IPv6 和 UDP 出口。</div></div></section>
+</main><footer><nav>
+<button class="active" data-tab="home" onclick="switchTab('home')"><i>⌂</i>首页</button>
+<button data-tab="nodes" onclick="switchTab('nodes')"><i>◇</i>节点</button>
+<button data-tab="rules" onclick="switchTab('rules')"><i>≋</i>规则</button>
+<button data-tab="settings" onclick="switchTab('settings')"><i>⚙</i>设置</button>
+</nav></footer><script>
+const labels={SING_BOX:'sing-box',MIHOMO:'Mihomo',XRAY:'Xray'};
+function switchTab(name){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===name));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));window.scrollTo(0,0)}
+function option(key,value){Hui.setOption(key,value)}
+function refreshFromNative(){
+  let s;try{s=JSON.parse(Hui.getState())}catch(e){return}
+  for(const key of ['engine','dns','mode','udp']){let el=document.getElementById(key);if(el)el.value=s[key]}
+  document.getElementById('rulesSource').value=s.rules;
+  document.getElementById('selected-engine').textContent=labels[s.engine]||'未选择内核';
+  const chosen=s.profiles.find(p=>p.id===s.active);
+  document.getElementById('selected-profile').textContent=chosen?chosen.name:'未选择配置';
+  const box=document.getElementById('profiles');box.replaceChildren();
+  if(!s.profiles.length){let msg=document.createElement('div');msg.className='caption';msg.style.padding='20px 0';msg.textContent='还没有导入配置';box.append(msg)}
+  for(const p of s.profiles){
+    const card=document.createElement('div');card.className='profile'+(p.id===s.active?' selected':'');
+    const title=document.createElement('strong');title.textContent=p.name;card.append(title);
+    const note=document.createElement('div');note.className='caption';note.textContent=(p.id===s.active?'已选择 · ':'')+Math.max(1,Math.round(p.size/1024))+' KB';card.append(note);
+    const actions=document.createElement('div');actions.className='actions';
+    const pick=document.createElement('button');pick.className='button small';pick.textContent='选择';pick.onclick=()=>Hui.activate(p.id);
+    const del=document.createElement('button');del.className='button small';del.textContent='删除';del.onclick=()=>{if(confirm('删除本机配置“'+p.name+'”？'))Hui.delete(p.id)};
+    actions.append(pick,del);card.append(actions);box.append(card)
+  }
+}
+window.handleBack=function(){if(document.querySelector('.tab.active')?.id==='home')return 'exit';switchTab('home');return 'home'};
+refreshFromNative();
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let root=document.getElementById('petals');for(let i=0;i<7;i++){let p=document.createElement('span');p.className='petal';p.style.left=(i*17%91)+'%';p.style.width=(8+i%3*3)+'px';p.style.height=(12+i%3*4)+'px';p.style.animationDuration=(13+i*1.9)+'s';p.style.animationDelay=(-i*2.3)+'s';root.append(p)}}
+</script></body></html>
