@@ -21,7 +21,7 @@ h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19p
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row.wrap{flex-wrap:wrap}.row + .row{margin-top:12px}
 .button{border:1px solid rgba(255,255,255,.7);border-radius:17px;background:rgba(255,255,255,.31);padding:11px 14px;color:var(--ink);font-weight:700}
 .button.primary{background:linear-gradient(135deg,rgba(169,77,120,.84),rgba(100,76,143,.72));color:white;box-shadow:0 5px 15px rgba(116,53,96,.18)}
-.button:disabled{opacity:.65;cursor:default}.button.small{font-size:12px;padding:8px 10px}
+.button:disabled,select:disabled{opacity:.65;cursor:default}.button.small{font-size:12px;padding:8px 10px}
 .notice{margin-top:10px;padding:11px 13px;border:1px solid rgba(255,255,255,.6);border-radius:17px;background:rgba(255,255,255,.23);color:#394456;font-size:13px;line-height:1.55}
 .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .metric{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:10px 9px;background:rgba(255,255,255,.16);min-height:67px}
@@ -61,9 +61,9 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <div class="notice">需要先完成内核与安卓 VPN 联调；这里不会显示虚假的已连接状态或流量。</div></div>
 <div class="card glass"><h2>快捷入口</h2><div class="quick">
 <button class="tile" onclick="switchTab('nodes')"><span class="glyph">◇</span>节点</button>
-<button class="tile" onclick="switchTab('rules')"><span class="glyph">≋</span>分流</button>
-<button class="tile" onclick="switchTab('settings')"><span class="glyph">⌁</span>DNS</button>
-<button class="tile" onclick="switchTab('settings')"><span class="glyph">⚙</span>内核</button>
+<button class="tile" disabled title="分流尚未接入"><span class="glyph">≋</span>分流</button>
+<button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⌁</span>DNS</button>
+<button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⚙</span>内核</button>
 </div></div></section>
 <section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
 <div class="notice">支持本机导入 JSON / YAML，文件只存在应用私有空间。尚未做格式解析与内核连接校验。</div><div id="profiles"></div></div>
@@ -86,18 +86,18 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <div class="rule">断线阻断<small>需配合安卓的始终开启 VPN 与无 VPN 禁网</small></div>
 </div></details></section>
 <section id="settings" class="tab"><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
-<div class="selectbox"><select id="engine" onchange="option('engine',this.value)"><option value="SING_BOX">sing-box</option><option value="MIHOMO">Mihomo · Clash Meta</option><option value="XRAY">Xray</option></select></div><div class="mini">切换时只允许一个 VPN 和一个内核运行。当前版本尚未接入。</div></div>
-<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" onchange="option('mode',this.value)"><option value="RULE">规则分流</option><option value="GLOBAL">全局代理</option><option value="DIRECT">全局直连</option></select></div></div></div>
+<div class="selectbox"><select id="engine" disabled title="代理核心尚未接入" onchange="option('engine',this.value)"><option value="SING_BOX">sing-box</option><option value="MIHOMO">Mihomo · Clash Meta</option><option value="XRAY">Xray</option></select></div><div class="mini">切换时只允许一个 VPN 和一个内核运行。当前版本尚未接入。</div></div>
+<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" disabled title="代理核心尚未接入" onchange="option('mode',this.value)"><option value="RULE">规则分流</option><option value="GLOBAL">全局代理</option><option value="DIRECT">全局直连</option></select></div></div></div>
 <div class="card glass"><h2>DNS 与防泄漏</h2>
-<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" onchange="option('dns',this.value)"><option value="BUILT_IN">软件内置 DNS</option><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
-<div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" onchange="option('rules',this.value)"><option value="BUILT_IN">软件内置规则</option><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
-<div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" onchange="option('udp',this.value)"><option value="PROXY">跟随分流规则</option><option value="BLOCK">阻断 UDP</option></select></div></div>
+<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" disabled title="代理核心尚未接入" onchange="option('dns',this.value)"><option value="BUILT_IN">软件内置 DNS</option><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
+<div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" disabled title="代理核心尚未接入" onchange="option('rules',this.value)"><option value="BUILT_IN">软件内置规则</option><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
+<div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" disabled title="代理核心尚未接入" onchange="option('udp',this.value)"><option value="PROXY">跟随分流规则</option><option value="BLOCK">阻断 UDP</option></select></div></div>
 <div class="notice">导入配置缺少所选 DNS 或规则时会拒绝连接；不会退回系统 DNS。需在真机验证浏览器安全 DNS、IPv4/IPv6 和 UDP 出口。</div></div></section>
 </main><footer><nav>
 <button class="active" data-tab="home" onclick="switchTab('home')"><i>⌂</i>首页</button>
 <button data-tab="nodes" onclick="switchTab('nodes')"><i>◇</i>节点</button>
-<button data-tab="rules" onclick="switchTab('rules')"><i>≋</i>规则</button>
-<button data-tab="settings" onclick="switchTab('settings')"><i>⚙</i>设置</button>
+<button data-tab="rules" disabled title="分流尚未接入"><i>≋</i>规则</button>
+<button data-tab="settings" disabled title="代理核心尚未接入"><i>⚙</i>设置</button>
 </nav></footer><script>
 const labels={SING_BOX:'sing-box',MIHOMO:'Mihomo',XRAY:'Xray'};
 function switchTab(name){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===name));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));window.scrollTo(0,0)}

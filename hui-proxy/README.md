@@ -1,7 +1,7 @@
 # 莹代理 · Android 独立工程
 
 状态：连接层设计与安全策略校验已开始；已有可安装的界面与本机配置预览 APK（/opt/ying-proxy-android/out/Hui.apk）；尚未接入 VPN 或任何内核，不具备代理连接能力。
-此目录与 /opt/ying 下的莹机器人/后台完全独立。不要把“已配置”显示成“已连接”。
+此模块位于莹的现有 GitHub 仓库 hui-proxy 分支；与莹宝应用分包，与现有后台共享节点和账号接口。不要把“已配置”显示成“已连接”。
 
 ## 架构
 - 安卓原生 VpnService 唯一负责 VPN 授权、TUN、前台服务、套接字 protect、网络切换和断线状态。
@@ -26,3 +26,6 @@
 - 支持本机导入、选择和删除 JSON/YAML 配置；导入仅检查扩展名与 1MB 上限，尚未校验内容格式。
 - 内核、DNS、分流和 UDP 选项已提供界面与本地设置；只有完成 VpnService 与核心适配后才能生效。
 - 编译：bash scripts/build.sh；签名密钥保存在 secrets/（严禁发布），OUT/Hui.apk 为签名包。
+
+## 分支预览下载
+[下载绘 v0.1.0 界面预览 APK](https://github.com/rongyang226-cpu/yingbao/raw/refs/heads/hui-proxy/dist/Hui-v0.1.0-preview.apk)。**仅展示 UI 与本机配置存取，不能代理上网。** 尚未接入的设置在此包中已禁用；正式代理版本需完成 P0 真机验证后再发布。
