@@ -44,3 +44,5 @@ __pycache__/
 /hui-proxy/nekobox/libcore/.build/
 /hui-proxy/nekobox/libcore/libcore.aar
 /hui-proxy/nekobox/local.properties
+
+/hui-proxy/nekobox/libcore/gomobile/
