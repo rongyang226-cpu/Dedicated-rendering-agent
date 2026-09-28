@@ -7,8 +7,13 @@
         android:title="@string/update_all_subscription"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_add_subscription"
+        android:icon="@drawable/ic_file_cloud_queue"
+        android:title="@string/hui_add_subscription"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_new_group"
         android:icon="@drawable/ic_av_playlist_add"
         android:title="@string/group_create"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
 </menu>

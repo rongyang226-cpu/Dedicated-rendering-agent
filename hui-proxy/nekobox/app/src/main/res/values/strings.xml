@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="hui_add_subscription">添加订阅</string>
+    <string name="hui_subscription_url">订阅地址（HTTPS 或 HTTP）</string>
+    <string name="hui_import_subscription">下载并导入节点</string>
     <string name="app_name" translatable="false">绘</string>
     <string name="app_name_long" translatable="false">绘 · 代理客户端</string>
     <string name="app_desc">The universal proxy toolchain for Android, written in Kotlin.</string>

@@ -7,6 +7,10 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.text.InputType
+import java.net.URI
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
@@ -109,6 +113,8 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_add_subscription -> showQuickSubscription()
+
             R.id.action_new_group -> {
                 startActivity(Intent(context, GroupSettingsActivity::class.java))
             }
@@ -128,6 +134,45 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
             }
         }
         return true
+    }
+
+    private fun showQuickSubscription() {
+        val field = EditText(requireContext()).apply {
+            hint = getString(R.string.hui_subscription_url)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+        }
+        val padding = (20 * resources.displayMetrics.density).toInt()
+        val holder = FrameLayout(requireContext()).apply {
+            setPadding(padding, 0, padding, 0)
+            addView(field)
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.hui_add_subscription)
+            .setView(holder)
+            .setNegativeButton(R.string.no, null)
+            .setPositiveButton(R.string.hui_import_subscription) { _, _ ->
+                val url = field.text.toString().trim()
+                val parsed = runCatching { URI(url) }.getOrNull()
+                if (parsed == null || parsed.host.isNullOrBlank() ||
+                    parsed.scheme?.lowercase(Locale.ROOT) !in listOf("https", "http")) {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setMessage("请输入完整的 HTTP 或 HTTPS 订阅地址")
+                        .setPositiveButton(R.string.yes, null).show()
+                } else {
+                    runOnDefaultDispatcher {
+                        val subscription = SubscriptionBean().apply {
+                            link = url
+                            applyDefaultValues()
+                        }
+                        val group = GroupManager.createGroup(ProxyGroup(
+                            name = parsed.host, type = GroupType.SUBSCRIPTION,
+                            subscription = subscription
+                        ))
+                        GroupUpdater.startUpdate(group, true)
+                    }
+                }
+            }.show()
     }
 
     private lateinit var selectedGroup: ProxyGroup
