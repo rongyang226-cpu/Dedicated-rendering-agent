@@ -1,0 +1,30 @@
+name: Publish Hui preview
+
+on:
+  push:
+    branches: [hui-proxy]
+    paths:
+      - ".github/workflows/hui-preview-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and publish signed preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          apk=dist/Hui-v0.1.1-preview.apk
+          test -s "$apk"
+          printf '%s  %s\n' '0d7e98030d9d9afd8dd4fc8ffd001a39738177554d48d03b7b3209283138c2dd' "$apk" | sha256sum -c -
+          tag=hui-v0.1.1-preview
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --title "绘 v0.1.1 预览（不能代理）" --prerelease --notes "界面及配置导入预览版，只支持本机配置草稿。未接入 Android VPNService 和手机端代理内核，不能代理上网；连接入口保持禁用。"
+          fi
+          gh release upload "$tag" "$apk" --clobber
