@@ -32,11 +32,12 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         getWindow().setStatusBarColor(Color.rgb(32, 28, 37));
-        getWindow().setNavigationBarColor(Color.rgb(174, 151, 158));
+        getWindow().setNavigationBarColor(Color.rgb(202, 185, 189));
+        getWindow().getDecorView().setBackgroundColor(Color.rgb(202, 185, 189));
         if (android.os.Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
         prefs = getSharedPreferences("hui_local_settings", MODE_PRIVATE);
         web = new WebView(this);
-        web.setBackgroundColor(Color.rgb(54, 42, 52));
+        web.setBackgroundColor(Color.rgb(202, 185, 189));
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(false);
@@ -202,6 +203,14 @@ public final class MainActivity extends Activity {
         web.evaluateJavascript("window.handleBack && window.handleBack()", value -> {
             if ("\"exit\"".equals(value)) finish();
         });
+    }
+    @Override protected void onPause() {
+        if (web != null) web.onPause();
+        super.onPause();
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        if (web != null) web.onResume();
     }
     @Override protected void onDestroy() {
         if (web != null) { web.removeJavascriptInterface("Hui"); web.destroy(); }
