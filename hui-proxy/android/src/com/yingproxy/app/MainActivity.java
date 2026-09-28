@@ -25,10 +25,12 @@ import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import io.github.oviron.libmihomo.Clash;
 
 public final class MainActivity extends Activity {
     private static final int IMPORT_REQUEST = 115;
     private static final int BACKGROUND_REQUEST = 116;
+    private static final int VPN_PERMISSION_REQUEST = 117;
     private static final int MAX_CONFIG_BYTES = 1024 * 1024;
     private static final int MAX_BACKGROUND_BYTES = 16 * 1024 * 1024;
     private static final String ASSET_URL = "file:///android_asset/index.html";
@@ -44,6 +46,7 @@ public final class MainActivity extends Activity {
         prefs = getSharedPreferences("hui_local_settings", MODE_PRIVATE);
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(202, 185, 189));
+        web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(false);
@@ -91,11 +94,11 @@ public final class MainActivity extends Activity {
         JSONObject out = new JSONObject();
         JSONArray items = new JSONArray();
         try {
-            out.put("engine", prefs.getString("engine", "SING_BOX"));
-            out.put("dns", prefs.getString("dns", "BUILT_IN"));
-            out.put("rules", prefs.getString("rules", "BUILT_IN"));
-            out.put("mode", prefs.getString("mode", "RULE"));
-            out.put("udp", prefs.getString("udp", "PROXY"));
+            out.put("engine", "MIHOMO");
+            out.put("dns", "IMPORTED");
+            out.put("rules", "IMPORTED");
+            out.put("mode", "IMPORTED");
+            out.put("udp", "IMPORTED");
             out.put("active", prefs.getString("active", ""));
             File[] files = profileDir().listFiles();
             if (files != null) for (File file : files) {
@@ -113,23 +116,45 @@ public final class MainActivity extends Activity {
             out.put("backgroundVersion", prefs.getLong("background_version", 0));
             android.app.ActivityManager manager = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
             out.put("lowMemory", manager != null && manager.isLowRamDevice());
-            out.put("ready", false);
-            out.put("status", "尚未接入 VPN 与代理内核");
+            String selected = prefs.getString("active", "");
+            boolean ready = selected.matches("[0-9]+\\.(yaml|yml)")
+                && new File(profileDir(), selected).isFile();
+            String vpn = prefs.getString("vpn_status", "STOPPED");
+            if ("RUNNING".equals(vpn) && !HuiVpnService.isRunning()) vpn = "STOPPED";
+            out.put("ready", ready);
+            out.put("vpn", vpn);
+            out.put("status", "STOPPED".equals(vpn) ? "未连接" : prefs.getString("vpn_message", "未连接"));
+            if ("RUNNING".equals(vpn) && Clash.INSTANCE.isLoaded()) {
+                try { out.put("traffic", new JSONObject(Clash.INSTANCE.getTraffic())); }
+                catch (Exception ignored) { /* Keep unknown values blank rather than show estimates. */ }
+            }
         } catch (Exception e) {
-            return "{\"engine\":\"SING_BOX\",\"dns\":\"BUILT_IN\",\"rules\":\"BUILT_IN\",\"mode\":\"RULE\",\"udp\":\"PROXY\",\"active\":\"\",\"profiles\":[],\"ready\":false,\"status\":\"无法读取本机配置\"}";
+            return "{\"engine\":\"MIHOMO\",\"dns\":\"BUILT_IN\",\"rules\":\"BUILT_IN\",\"mode\":\"RULE\",\"udp\":\"PROXY\",\"active\":\"\",\"profiles\":[],\"ready\":false,\"vpn\":\"ERROR\",\"status\":\"无法读取本机配置\"}";
         }
         return out.toString();
     }
 
     public final class Bridge {
         @JavascriptInterface public String getState() { return state(); }
+        @JavascriptInterface public void connect() {
+            runOnUiThread(() -> {
+                String id = prefs.getString("active", "");
+                if (!id.matches("[0-9]+\\.(yaml|yml)") || !new File(profileDir(), id).isFile()) {
+                    toast("先导入并选中 Mihomo YAML 配置"); return;
+                }
+                Intent permission = android.net.VpnService.prepare(MainActivity.this);
+                if (permission != null) startActivityForResult(permission, VPN_PERMISSION_REQUEST);
+                else startVpn();
+            });
+        }
+        @JavascriptInterface public void disconnect() {
+            runOnUiThread(() -> {
+                startService(new Intent(MainActivity.this, HuiVpnService.class).setAction(HuiVpnService.STOP));
+                update();
+            });
+        }
         @JavascriptInterface public void setOption(String key, String value) {
-            boolean ok = false;
-            if ("engine".equals(key)) ok = "SING_BOX".equals(value) || "MIHOMO".equals(value) || "XRAY".equals(value);
-            if ("dns".equals(key) || "rules".equals(key)) ok = "BUILT_IN".equals(value) || "IMPORTED".equals(value);
-            if ("mode".equals(key)) ok = "RULE".equals(value) || "GLOBAL".equals(value) || "DIRECT".equals(value);
-            if ("udp".equals(key)) ok = "PROXY".equals(value) || "BLOCK".equals(value);
-            if (ok) prefs.edit().putString(key, value).apply();
+            toast("此设置尚未接入内核，当前按导入配置执行");
             update();
         }
         @JavascriptInterface public void importProfile() {
@@ -159,11 +184,13 @@ public final class MainActivity extends Activity {
             }, "hui-background-reset").start();
         }
         @JavascriptInterface public void activate(String id) {
+            if (HuiVpnService.isRunning()) { toast("请先断开 VPN 再切换配置"); return; }
             if (id != null && id.matches("[0-9]+\\.(yaml|yml|json)") && new File(profileDir(), id).isFile())
                 prefs.edit().putString("active", id).apply();
             update();
         }
         @JavascriptInterface public void delete(String id) {
+            if (HuiVpnService.isRunning()) { toast("请先断开 VPN 再删除配置"); return; }
             if (id != null && id.matches("[0-9]+\\.(yaml|yml|json)")) {
                 File file = new File(profileDir(), id);
                 if (file.isFile() && file.delete()) {
@@ -186,6 +213,11 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int req, int result, Intent data) {
         super.onActivityResult(req, result, data);
+        if (req == VPN_PERMISSION_REQUEST) {
+            if (result == RESULT_OK && android.net.VpnService.prepare(this) == null) startVpn();
+            else { prefs.edit().putString("vpn_status", "ERROR").putString("vpn_message", "VPN 权限被拒绝").apply(); update(); }
+            return;
+        }
         if (req == BACKGROUND_REQUEST) {
             if (result == RESULT_OK && data != null && data.getData() != null) {
                 Uri selected = data.getData();
@@ -203,6 +235,13 @@ public final class MainActivity extends Activity {
         if (display.length() > 64) display = display.substring(0, 64);
         final String safeDisplay = display;
         new Thread(() -> importSelected(uri, safeDisplay, suffix), "hui-profile-import").start();
+    }
+
+    private void startVpn() {
+        Intent intent = new Intent(this, HuiVpnService.class).setAction(HuiVpnService.START);
+        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
+        else startService(intent);
+        update();
     }
 
     private void importBackground(Uri uri) {
@@ -282,7 +321,7 @@ public final class MainActivity extends Activity {
                 throw new IllegalStateException("保存配置失败");
             prefs.edit().putString("profile_" + id, display)
                 .putString("profile_check_" + id, inspection).apply();
-            toast("已保存为草稿；尚不能用于连接");
+            toast("已保存；YAML 会在连接前由内核校验");
         } catch (IllegalArgumentException e) {
             toast("导入失败：" + e.getMessage());
         } catch (Exception e) {

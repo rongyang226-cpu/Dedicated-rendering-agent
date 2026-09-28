@@ -2,13 +2,13 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#221c25"><title>绘</title>
 <style>
-:root{color-scheme:light;--ink:#242d3d;--muted:#536072;--line:rgba(255,255,255,.73);--rose:#ae5c81;--glass:rgba(255,255,255,.17)}
+:root{color-scheme:light;--ink:#253142;--muted:#485265;--line:rgba(255,255,255,.82);--rose:#a96387;--glass:linear-gradient(140deg,rgba(255,255,255,.28),rgba(255,255,255,.10) 48%,rgba(255,255,255,.19))}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;min-height:100vh;min-height:100dvh;background:#cab9bd;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","Microsoft Yahei",sans-serif;color:var(--ink)}
-body:before{content:"";position:fixed;inset:0;z-index:0;background:#cab9bd var(--wallpaper,url("background.webp")) center center/cover no-repeat;pointer-events:none}
+body:before{content:"";position:fixed;inset:0;z-index:0;background:#cab9bd var(--wallpaper,url("background.webp")) center center/cover no-repeat;pointer-events:none;transform:translateZ(0)}
 body:after{content:"";position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(23,15,29,.08),rgba(255,255,255,.025) 45%,rgba(22,15,27,.12));pointer-events:none}
 button,select{font:inherit}button{cursor:pointer}
 main{position:relative;z-index:2;padding:14px 14px calc(100px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto}
-.glass{background:var(--glass);border:1.5px solid var(--line);border-radius:28px;backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2);box-shadow:inset 0 1px 1px rgba(255,255,255,.72),0 12px 30px rgba(60,27,46,.14)}
+.glass{background:var(--glass);border:1.5px solid var(--line);border-radius:25px;backdrop-filter:blur(2px) saturate(1.05);-webkit-backdrop-filter:blur(2px) saturate(1.05);box-shadow:inset 0 1px rgba(255,255,255,.90),0 15px 38px rgba(24,27,37,.17)}
 header{display:flex;align-items:center;gap:12px;padding:13px 15px;margin-bottom:13px}
 .avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 3px 11px rgba(55,29,46,.2)}
 h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0}
@@ -27,9 +27,9 @@ h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19p
 .metric{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:10px 9px;background:rgba(255,255,255,.16);min-height:67px}
 .metric b{display:block;font-size:16px;margin-top:7px}.metric span{font-size:11px;color:#536073}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.quick .tile{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:76px;text-align:center;color:var(--ink);border:1px solid rgba(255,255,255,.65);border-radius:18px;background:rgba(255,255,255,.19);padding:11px 4px;font-size:12px}
+.quick .tile{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:76px;text-align:center;color:var(--ink);border:1px solid rgba(255,255,255,.82);border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(255,255,255,.10));box-shadow:inset 0 1px rgba(255,255,255,.83);padding:11px 4px;font-size:12px}
 .glyph{font-size:23px;line-height:1;color:#a65a80}
-.field{margin:13px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+.field{margin:10px 0;padding:12px;border:1px solid rgba(255,255,255,.80);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.09));box-shadow:inset 0 1px rgba(255,255,255,.84)}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
 .field select{appearance:none;width:100%;border-radius:17px;border:1px solid rgba(255,255,255,.73);padding:12px 40px 12px 14px;background:rgba(255,255,255,.33);color:#293346;outline:none}
 .selectbox{position:relative}.selectbox:after{content:"⌄";position:absolute;right:15px;top:7px;font-size:22px;pointer-events:none;color:#6d5970}
 .mini{font-size:11px;color:#415064;line-height:1.55;margin-top:6px}
@@ -39,9 +39,9 @@ h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19p
 .tab{display:none}.tab.active{display:block}
 details{margin:9px 0;overflow:hidden}details summary{list-style:none;padding:17px 16px;cursor:pointer;font-weight:750;display:flex;justify-content:space-between}details summary:after{content:"⌄";color:#a45b82}details[open] summary:after{transform:rotate(180deg)}details summary::-webkit-details-marker{display:none}
 .details-body{padding:0 16px 15px}
-.rule{padding:10px 0;border-top:1px solid rgba(255,255,255,.37);font-size:13px}
+.rule{padding:12px;margin:9px 0;border:1px solid rgba(255,255,255,.82);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.25),rgba(255,255,255,.09));font-size:13px}
 .rule small{display:block;color:var(--muted);margin-top:4px;line-height:1.4}
-footer{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:7px 8px max(7px,env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.68);border-bottom:0;border-radius:22px 22px 0 0;background:rgba(255,255,255,.28);backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);box-shadow:0 -5px 23px rgba(43,25,38,.11)}
+footer{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:7px 8px max(7px,env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.76);border-bottom:0;border-radius:22px 22px 0 0;background:linear-gradient(130deg,rgba(255,255,255,.53),rgba(255,255,255,.26));backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 -5px 23px rgba(43,25,38,.11)}
 nav{max-width:680px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 nav button{border:0;border-radius:15px;background:transparent;min-height:51px;color:#4f5c69;font-size:11px}
 nav button i{display:block;font-style:normal;font-size:20px;line-height:1.25}
@@ -53,13 +53,13 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 @media(prefers-reduced-motion:reduce){.petal{display:none}*{scroll-behavior:auto!important}.glass,footer{background:rgba(255,255,255,.39);backdrop-filter:none;-webkit-backdrop-filter:none}}
 @media(max-width:360px){.quick{gap:5px}.quick .tile{font-size:11px}main{padding-left:10px;padding-right:10px}}
 </style></head><body><div class="petals" id="petals" aria-hidden="true"></div><main>
-<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘</h1><span class="caption">代理客户端 · 本机配置</span></div><span class="tag">未连接</span></header>
+<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘 <small style="font-size:12px">0.32</small></h1><span class="caption">代理客户端 · 本机配置</span></div><span class="tag" id="vpn-tag">未连接</span></header>
 <section id="home" class="tab active">
-<div class="card glass hero"><div><div class="eyebrow">HUI · CONNECT</div><div class="hero-status">等待连接</div><div class="hero-note" id="hero-note">VPN 与内核尚未接入</div></div>
-<div class="row"><div><strong id="selected-engine">sing-box</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" disabled>连接尚未开放</button></div></div>
+<div class="card glass hero"><div><div class="eyebrow">HUI · CONNECT</div><div class="hero-status" id="vpn-title">未连接</div><div class="hero-note" id="hero-note">先导入并选中 Mihomo YAML 配置</div></div>
+<div class="row"><div><strong id="selected-engine">Mihomo</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" id="connect-button" disabled onclick="connectOrDisconnect()">选择配置</button></div></div>
 <div class="card glass"><h2>连接概况</h2><div class="status-grid">
-<div class="metric"><span>实时上传</span><b>—</b></div><div class="metric"><span>实时下载</span><b>—</b></div><div class="metric"><span>连接延迟</span><b>—</b></div></div>
-<div class="notice">需要先完成内核与安卓 VPN 联调；这里不会显示虚假的已连接状态或流量。</div></div>
+<div class="metric"><span>实时上传</span><b id="traffic-up">—</b></div><div class="metric"><span>实时下载</span><b id="traffic-down">—</b></div><div class="metric"><span>连接延迟</span><b>—</b></div></div>
+<div class="notice">连接前由 Mihomo 校验配置。建立 VPN 后仍请核对公网出口与 DNS；未取得内核数据时不显示虚假的延迟或流量。</div></div>
 <div class="card glass"><h2>快捷入口</h2><div class="quick">
 <button class="tile" onclick="switchTab('nodes')"><span class="glyph">◇</span>节点</button>
 <button class="tile" disabled title="分流尚未接入"><span class="glyph">≋</span>分流</button>
@@ -67,7 +67,7 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⚙</span>内核</button>
 </div></div></section>
 <section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
-<div class="notice">文件保存在应用私有空间。JSON 仅检查语法；YAML 先存为草稿。所有配置必须经过核心检查才能连接。</div><div id="profiles"></div></div>
+<div class="notice">文件保存在应用私有空间。Mihomo YAML 在连接前由内核检查；JSON 仅保存为草稿，尚不能连接。</div><div id="profiles"></div></div>
 <div class="card glass"><h2>订阅与节点</h2><div class="notice">订阅更新、节点测速与自动切换会在连接层完成后启用，避免将未验证的节点显示为可用。</div></div></section>
 <section id="rules" class="tab"><div class="card glass"><h2>详细分流</h2><div class="notice">每组规则会针对当前内核生成配置；无法等价实现的规则必须明确提示。</div></div>
 <details class="glass" open><summary>基础分流</summary><div class="details-body">
@@ -87,12 +87,12 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <div class="rule">断线阻断<small>需配合安卓的始终开启 VPN 与无 VPN 禁网</small></div>
 </div></details></section>
 <section id="settings" class="tab"><div class="card glass"><h2>外观</h2><div class="caption">背景保存在本机，可随时更换或恢复默认。</div><div class="row wrap" style="margin-top:12px"><button class="button" onclick="Hui.chooseBackground()">从相册选择背景</button><button class="button" onclick="Hui.resetBackground()">恢复默认</button></div></div><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
-<div class="selectbox"><select id="engine" disabled title="代理核心尚未接入" onchange="option('engine',this.value)"><option value="SING_BOX">sing-box</option><option value="MIHOMO">Mihomo · Clash Meta</option><option value="XRAY">Xray</option></select></div><div class="mini">切换时只允许一个 VPN 和一个内核运行。当前版本尚未接入。</div></div>
-<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" disabled title="代理核心尚未接入" onchange="option('mode',this.value)"><option value="RULE">规则分流</option><option value="GLOBAL">全局代理</option><option value="DIRECT">全局直连</option></select></div></div></div>
+<div class="selectbox"><select id="engine" disabled title="当前只支持 Mihomo" onchange="option('engine',this.value)"><option value="MIHOMO">Mihomo · Clash Meta</option></select></div><div class="mini">当前仅启用 Mihomo，sing-box 适配和真机联调完成后再开放。</div></div>
+<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" disabled title="当前由导入配置控制" onchange="option('mode',this.value)"><option value="IMPORTED">由导入配置决定</option></select></div></div></div>
 <div class="card glass"><h2>DNS 与防泄漏</h2>
-<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" disabled title="代理核心尚未接入" onchange="option('dns',this.value)"><option value="BUILT_IN">软件内置 DNS</option><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
-<div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" disabled title="代理核心尚未接入" onchange="option('rules',this.value)"><option value="BUILT_IN">软件内置规则</option><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
-<div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" disabled title="代理核心尚未接入" onchange="option('udp',this.value)"><option value="PROXY">跟随分流规则</option><option value="BLOCK">阻断 UDP</option></select></div></div>
+<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" disabled title="当前由导入配置控制" onchange="option('dns',this.value)"><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
+<div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" disabled title="当前由导入配置控制" onchange="option('rules',this.value)"><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
+<div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" disabled title="当前由导入配置控制" onchange="option('udp',this.value)"><option value="IMPORTED">由导入配置决定</option></select></div></div>
 <div class="notice">导入配置缺少所选 DNS 或规则时会拒绝连接；不会退回系统 DNS。需在真机验证浏览器安全 DNS、IPv4/IPv6 和 UDP 出口。</div></div></section>
 </main><footer><nav>
 <button class="active" data-tab="home" onclick="switchTab('home')"><i>⌂</i>首页</button>
@@ -101,16 +101,31 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <button data-tab="settings" onclick="switchTab('settings')"><i>⚙</i>设置</button>
 </nav></footer><script>
 const labels={SING_BOX:'sing-box',MIHOMO:'Mihomo',XRAY:'Xray'};
+let currentState={}, lastWallpaper='', lastProfiles='';
+function connectOrDisconnect(){if(currentState.vpn==='RUNNING'||currentState.vpn==='STARTING')Hui.disconnect();else Hui.connect()}
 function switchTab(name){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===name));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));window.scrollTo(0,0)}
 function option(key,value){Hui.setOption(key,value)}
+function speed(value){if(typeof value!=='number'||value<0||!Number.isFinite(value))return '—';if(value<1024)return Math.round(value)+' B/s';if(value<1048576)return (value/1024).toFixed(1)+' KB/s';return (value/1048576).toFixed(1)+' MB/s'}
 function refreshFromNative(){
   let s;try{s=JSON.parse(Hui.getState())}catch(e){return}
-  document.documentElement.style.setProperty('--wallpaper',s.customBackground?'url("custom-background.webp?v='+encodeURIComponent(s.backgroundVersion)+'")':s.lowMemory?'url("background-lite.webp")':'url("background.webp")');
+  currentState=s;
+  const wallpaper=s.customBackground?'url("custom-background.webp?v='+encodeURIComponent(s.backgroundVersion)+'")':s.lowMemory?'url("background-lite.webp")':'url("background.webp")';
+  if(wallpaper!==lastWallpaper){document.documentElement.style.setProperty('--wallpaper',wallpaper);lastWallpaper=wallpaper}
   for(const key of ['engine','dns','mode','udp']){let el=document.getElementById(key);if(el)el.value=s[key]}
   document.getElementById('rulesSource').value=s.rules;
   document.getElementById('selected-engine').textContent=labels[s.engine]||'未选择内核';
+  const status=s.vpn||'STOPPED',live=status==='RUNNING',pending=status==='STARTING';
+  document.getElementById('traffic-up').textContent=live?speed(s.traffic?.up):'—';
+  document.getElementById('traffic-down').textContent=live?speed(s.traffic?.down):'—';
+  const title=live?'VPN 已建立':pending?'正在连接':status==='ERROR'?'连接失败':'未连接';
+  document.getElementById('vpn-title').textContent=title;
+  document.getElementById('vpn-tag').textContent=live?'待核验':pending?'连接中':status==='ERROR'?'失败':'未连接';
+  document.getElementById('hero-note').textContent=s.status||'先导入并选中 Mihomo YAML 配置';
+  const button=document.getElementById('connect-button');button.disabled=!s.ready&&!live&&!pending;
+  button.textContent=live||pending?'断开':s.ready?'连接':'选择配置';
   const chosen=s.profiles.find(p=>p.id===s.active);
   document.getElementById('selected-profile').textContent=chosen?chosen.name+' · 待内核验证':'未选择配置';
+  const signature=JSON.stringify([s.profiles,s.active]);if(signature===lastProfiles)return;lastProfiles=signature;
   const box=document.getElementById('profiles');box.replaceChildren();
   if(!s.profiles.length){let msg=document.createElement('div');msg.className='caption';msg.style.padding='20px 0';msg.textContent='还没有导入配置';box.append(msg)}
   for(const p of s.profiles){
@@ -126,5 +141,6 @@ function refreshFromNative(){
 window.handleBack=function(){if(document.querySelector('.tab.active')?.id==='home')return 'exit';switchTab('home');return 'home'};
 refreshFromNative();
 document.addEventListener('visibilitychange',()=>document.documentElement.classList.toggle('ui-suspended',document.hidden));
+setInterval(()=>{if(!document.hidden)refreshFromNative()},5000);
 if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let root=document.getElementById('petals');for(let i=0;i<7;i++){let p=document.createElement('span');p.className='petal';p.style.left=(i*17%91)+'%';p.style.width=(8+i%3*3)+'px';p.style.height=(12+i%3*4)+'px';p.style.animationDuration=(13+i*1.9)+'s';p.style.animationDelay=(-i*2.3)+'s';root.append(p)}}
 </script></body></html>
