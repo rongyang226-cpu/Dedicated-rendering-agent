@@ -39,7 +39,7 @@ final class ProfileInspector {
             return "JSON 已完成语法检查，仍待内核验证";
         }
         if (".yaml".equals(suffix) || ".yml".equals(suffix))
-            return "YAML 仅存为草稿，尚未解析和验证";
+            return "YAML 已导入；连接前由 Mihomo 校验";
         throw new IllegalArgumentException("不支持的配置格式");
     }
 }

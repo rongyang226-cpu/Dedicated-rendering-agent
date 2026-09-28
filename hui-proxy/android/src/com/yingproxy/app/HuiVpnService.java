@@ -104,11 +104,8 @@ public final class HuiVpnService extends VpnService {
                 if (off != bytes.length) throw new IllegalStateException("配置读取不完整");
                 yaml = new String(bytes, StandardCharsets.UTF_8);
             }
-            // Do not expose an imported controller or LAN listener from the phone.
-            if (yaml.matches("(?s).*?(?m)^\\s*(allow-lan\\s*:\\s*(true|yes|on)|external-controller\\s*:|external-ui\\s*:).*"))
-                throw new IllegalArgumentException("导入配置包含外网控制入口或局域网监听，请先移除");
             if (!yaml.contains("proxies:") && !yaml.contains("proxy-providers:"))
-                throw new IllegalArgumentException("配置缺少 DNS 或节点/代理提供者");
+                throw new IllegalArgumentException("配置缺少节点或代理提供者");
             yaml = ConfigOverrides.apply(yaml, prefs.getString("mode", "RULE"),
                 prefs.getString("dns", "IMPORTED"),
                 !"IMPORTED".equals(prefs.getString("dns", "IMPORTED")) && prefs.getBoolean("dns_follow_rules", false));

@@ -27,6 +27,9 @@ import java.net.URL;
 import java.net.InetAddress;
 import java.util.Locale;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import io.github.oviron.libmihomo.Clash;
@@ -48,6 +51,12 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setBackgroundColor(Color.rgb(202, 185, 189));
         if (android.os.Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
         prefs = getSharedPreferences("hui_local_settings", MODE_PRIVATE);
+        // Migrate the old test build's persisted DIRECT default once, preserving later choices.
+        if (!prefs.getBoolean("rule_default_migrated", false)) {
+            SharedPreferences.Editor migration = prefs.edit().putBoolean("rule_default_migrated", true);
+            if ("DIRECT".equals(prefs.getString("mode", "RULE"))) migration.putString("mode", "RULE");
+            migration.apply();
+        }
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(202, 185, 189));
         web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
@@ -84,6 +93,23 @@ public final class MainActivity extends Activity {
 
     private void update() {
         runOnUiThread(() -> web.evaluateJavascript("window.refreshFromNative && window.refreshFromNative()", null));
+    }
+
+    private JSONObject coreAction(String method, String data) throws Exception {
+        if (!HuiVpnService.isRunning() || !Clash.INSTANCE.isLoaded())
+            throw new IllegalStateException("请先连接 VPN 才能读取实时节点");
+        CountDownLatch ready = new CountDownLatch(1);
+        AtomicReference<String> response = new AtomicReference<>();
+        Clash.INSTANCE.invokeAction(new JSONObject().put("id", method).put("method", method)
+            .put("data", data).toString(), value -> { response.set(value); ready.countDown(); });
+        if (!ready.await(12, TimeUnit.SECONDS)) throw new IllegalStateException("内核响应超时");
+        JSONObject result = new JSONObject(response.get());
+        if (result.optInt("code", -1) != 0) throw new IllegalStateException("内核拒绝操作");
+        return result;
+    }
+
+    private void nodeEvent(String function, JSONObject data) {
+        runOnUiThread(() -> web.evaluateJavascript("window." + function + " && window." + function + "(" + data + ")", null));
     }
 
     private File profileDir() {
@@ -142,6 +168,45 @@ public final class MainActivity extends Activity {
 
     public final class Bridge {
         @JavascriptInterface public String getState() { return state(); }
+        @JavascriptInterface public void loadNodes() {
+            new Thread(() -> {
+                try {
+                    JSONObject response = coreAction("getProxies", "");
+                    String raw = response.optString("data", "");
+                    JSONObject proxies = new JSONObject(raw).optJSONObject("proxies");
+                    if (proxies == null) throw new IllegalStateException("内核未返回节点");
+                    nodeEvent("onNodeSnapshot", new JSONObject().put("proxies", proxies));
+                } catch (Exception e) { nodeFailure(e); }
+            }, "hui-node-snapshot").start();
+        }
+        @JavascriptInterface public void selectNode(String group, String name) {
+            new Thread(() -> {
+                try {
+                    if (group == null || name == null || group.length() > 256 || name.length() > 256)
+                        throw new IllegalArgumentException("节点名称无效");
+                    coreAction("changeProxy", new JSONObject().put("group-name", group)
+                        .put("proxy-name", name).toString());
+                    loadNodes();
+                } catch (Exception e) { nodeFailure(e); }
+            }, "hui-select-node").start();
+        }
+        @JavascriptInterface public void testNode(String name) {
+            new Thread(() -> {
+                try {
+                    if (name == null || name.length() > 256) throw new IllegalArgumentException("节点名称无效");
+                    JSONObject params = new JSONObject().put("proxy-name", name)
+                        .put("test-url", "https://www.gstatic.com/generate_204").put("timeout", 5000);
+                    JSONObject response = coreAction("testDelay", params.toString());
+                    nodeEvent("onNodeDelay", new JSONObject().put("name", name)
+                        .put("delay", response.optInt("data", -1)));
+                } catch (Exception e) { nodeFailure(e); }
+            }, "hui-test-node").start();
+        }
+        private void nodeFailure(Exception e) {
+            String message = e instanceof IllegalArgumentException ? e.getMessage() : "内核操作失败，请查看连接状态";
+            try { nodeEvent("onNodeError", new JSONObject().put("message", message)); }
+            catch (Exception ignored) { }
+        }
         @JavascriptInterface public void connect() {
             runOnUiThread(() -> {
                 String id = prefs.getString("active", "");
@@ -406,8 +471,11 @@ public final class MainActivity extends Activity {
                 out.getFD().sync();
             }
             if (dst.exists() || !pending.renameTo(dst)) throw new IllegalStateException("保存配置失败");
-            prefs.edit().putString("profile_" + id, display).putString("profile_check_" + id, inspection).apply();
-            toast("配置已保存；连接前由内核校验");
+            SharedPreferences.Editor saved = prefs.edit().putString("profile_" + id, display)
+                .putString("profile_check_" + id, inspection);
+            if (!".json".equals(suffix) && prefs.getString("active", "").isEmpty()) saved.putString("active", id);
+            saved.apply();
+            toast("配置已导入" + (".json".equals(suffix) ? "，JSON 目前无法连接" : "；可返回首页连接，连接前由内核校验"));
         } finally { if (pending != null) pending.delete(); }
     }
 

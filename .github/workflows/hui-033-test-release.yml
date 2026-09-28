@@ -1,0 +1,23 @@
+name: Hui 0.32.3 Android test release
+on:
+  push:
+    tags:
+      - 'hui-v0.32.3-test'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check signed APK
+        run: |
+          test -s dist/Hui-v0.32.3-test.apk
+          sha256sum dist/Hui-v0.32.3-test.apk
+      - name: Publish test build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/Hui-v0.32.3-test.apk \
+            --title '绘 0.32.3 · Android 测试版' --prerelease \
+            --notes-file hui-proxy/RELEASE_0.32.3_TEST.md

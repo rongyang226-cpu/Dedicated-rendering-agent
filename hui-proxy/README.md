@@ -1,4 +1,4 @@
-# 绘 · Android VPN 客户端 0.32.2
+# 绘 · Android VPN 客户端 0.32.3
 
 分支：`hui-proxy`。原 Android 桌宠模块及莹宝 APK 已从此分支移除；绘沿用包名 `com.yingbao.app`。VPS 上的机器人与后台仍在运行，不属于 Android 客户端删除范围。
 
