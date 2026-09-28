@@ -22,6 +22,10 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.FileInputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.InetAddress;
+import java.util.Locale;
 import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -100,6 +104,7 @@ public final class MainActivity extends Activity {
             out.put("mode", prefs.getString("mode", "RULE"));
             out.put("udp", "IMPORTED");
             out.put("dnsStrict", prefs.getBoolean("dns_strict", true));
+            out.put("dnsFollowRules", prefs.getBoolean("dns_follow_rules", false));
             out.put("active", prefs.getString("active", ""));
             File[] files = profileDir().listFiles();
             if (files != null) for (File file : files) {
@@ -130,7 +135,7 @@ public final class MainActivity extends Activity {
                 catch (Exception ignored) { /* Keep unknown values blank rather than show estimates. */ }
             }
         } catch (Exception e) {
-            return "{\"engine\":\"MIHOMO\",\"dns\":\"IMPORTED\",\"rules\":\"IMPORTED\",\"mode\":\"RULE\",\"udp\":\"IMPORTED\",\"dnsStrict\":true,\"active\":\"\",\"profiles\":[],\"ready\":false,\"vpn\":\"ERROR\",\"status\":\"无法读取本机配置\"}";
+            return "{\"engine\":\"MIHOMO\",\"dns\":\"IMPORTED\",\"rules\":\"IMPORTED\",\"mode\":\"RULE\",\"udp\":\"IMPORTED\",\"dnsStrict\":true,\"dnsFollowRules\":false,\"active\":\"\",\"profiles\":[],\"ready\":false,\"vpn\":\"ERROR\",\"status\":\"无法读取本机配置\"}";
         }
         return out.toString();
     }
@@ -164,6 +169,9 @@ public final class MainActivity extends Activity {
                 prefs.edit().putString("dns", value).apply();
             } else if ("dnsStrict".equals(key) && ("true".equals(value) || "false".equals(value))) {
                 prefs.edit().putBoolean("dns_strict", Boolean.parseBoolean(value)).apply();
+            } else if ("dnsFollowRules".equals(key) && ("true".equals(value) || "false".equals(value))
+                && !"IMPORTED".equals(prefs.getString("dns", "IMPORTED"))) {
+                prefs.edit().putBoolean("dns_follow_rules", Boolean.parseBoolean(value)).apply();
             } else {
                 toast("此选项尚未接入内核");
             }
@@ -177,6 +185,60 @@ public final class MainActivity extends Activity {
                 pick.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"application/json", "text/plain", "application/x-yaml", "application/yaml", "application/octet-stream"});
                 startActivityForResult(pick, IMPORT_REQUEST);
             });
+        }
+        @JavascriptInterface public void importUrl(String raw) {
+            if (raw == null || raw.length() > 2048) { toast("链接长度无效"); return; }
+            new Thread(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    URL url = new URL(raw.trim());
+                    if (!"https".equalsIgnoreCase(url.getProtocol()) || url.getUserInfo() != null || url.getPort() != -1)
+                        throw new IllegalArgumentException("只接受标准 HTTPS 配置链接");
+                    String host = url.getHost().toLowerCase(Locale.ROOT);
+                    if (host.isEmpty() || host.equals("localhost") || host.endsWith(".localhost") || host.endsWith(".local"))
+                        throw new IllegalArgumentException("不能访问本机地址");
+                    for (InetAddress address : InetAddress.getAllByName(host)) {
+                        byte[] ip = address.getAddress();
+                        if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+                            || address.isSiteLocalAddress() || address.isMulticastAddress()
+                            || (ip.length == 16 && (ip[0] & 0xfe) == 0xfc)
+                            || (ip.length == 4 && (ip[0] & 0xff) == 100 && (ip[1] & 0xc0) == 64))
+                            throw new IllegalArgumentException("不能访问本地网络地址");
+                    }
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setInstanceFollowRedirects(false);
+                    connection.setConnectTimeout(10000);
+                    connection.setReadTimeout(12000);
+                    connection.setRequestProperty("Accept", "text/yaml, application/yaml, text/plain, */*");
+                    int status = connection.getResponseCode();
+                    if (status != 200) throw new IllegalArgumentException("服务器返回 HTTP " + status + "（跳转链接请使用最终地址）");
+                    if (connection.getContentLengthLong() > MAX_CONFIG_BYTES) throw new IllegalArgumentException("配置超过 1 MB");
+                    try (InputStream in = connection.getInputStream()) {
+                        saveProfile(readLimited(in), "HTTPS 导入 · " + host, ".yaml");
+                    }
+                } catch (IllegalArgumentException e) {
+                    toast("链接导入失败：" + e.getMessage());
+                } catch (javax.net.ssl.SSLException e) {
+                    toast("链接导入失败：TLS 连接失败");
+                } catch (java.net.SocketTimeoutException e) {
+                    toast("链接导入失败：连接超时");
+                } catch (java.net.UnknownHostException e) {
+                    toast("链接导入失败：DNS 解析失败");
+                } catch (Exception e) {
+                    toast("链接导入失败：下载或保存配置失败");
+                } finally { if (connection != null) connection.disconnect(); update(); }
+            }, "hui-url-import").start();
+        }
+        @JavascriptInterface public void importText(String raw) {
+            if (raw == null || raw.getBytes(StandardCharsets.UTF_8).length > MAX_CONFIG_BYTES) {
+                toast("配置不能为空或超过 1 MB"); return;
+            }
+            new Thread(() -> {
+                try { saveProfile(raw.getBytes(StandardCharsets.UTF_8), "粘贴的 YAML", ".yaml"); }
+                catch (IllegalArgumentException e) { toast("导入失败：" + e.getMessage()); }
+                catch (Exception e) { toast("导入失败：无法保存配置"); }
+                finally { update(); }
+            }, "hui-text-import").start();
         }
         @JavascriptInterface public void chooseBackground() {
             runOnUiThread(() -> {
@@ -306,42 +368,47 @@ public final class MainActivity extends Activity {
     }
 
     private void importSelected(Uri uri, String display, String suffix) {
-        String id = Long.toString(System.currentTimeMillis()) +
-            Long.toString(Math.abs(System.nanoTime() % 100000)) + suffix;
-        File dst = new File(profileDir(), id);
-        File pending = null;
         try {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             try (InputStream in = getContentResolver().openInputStream(uri)) {
                 if (in == null) throw new IllegalArgumentException("无法读取文件");
-                byte[] buffer = new byte[8192];
-                int n;
-                while ((n = in.read(buffer)) != -1) {
-                    if (bytes.size() + n > MAX_CONFIG_BYTES)
-                        throw new IllegalArgumentException("配置超过 1 MB");
-                    bytes.write(buffer, 0, n);
-                }
+                saveProfile(readLimited(in), display, suffix);
             }
-            byte[] contents = bytes.toByteArray();
-            String inspection = ProfileInspector.inspect(contents, suffix);
-            pending = File.createTempFile("import-", ".tmp", profileDir());
-            try (FileOutputStream out = new FileOutputStream(pending)) {
-                out.write(contents);
-                out.getFD().sync();
-            }
-            if (dst.exists() || !pending.renameTo(dst))
-                throw new IllegalStateException("保存配置失败");
-            prefs.edit().putString("profile_" + id, display)
-                .putString("profile_check_" + id, inspection).apply();
-            toast("已保存；YAML 会在连接前由内核校验");
         } catch (IllegalArgumentException e) {
             toast("导入失败：" + e.getMessage());
         } catch (Exception e) {
             toast("导入失败：无法读取或保存文件");
         } finally {
-            if (pending != null) pending.delete();
             update();
         }
+    }
+
+    private byte[] readLimited(InputStream in) throws Exception {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int n;
+        while ((n = in.read(buffer)) != -1) {
+            if (bytes.size() + n > MAX_CONFIG_BYTES) throw new IllegalArgumentException("配置超过 1 MB");
+            bytes.write(buffer, 0, n);
+        }
+        return bytes.toByteArray();
+    }
+
+    private void saveProfile(byte[] contents, String display, String suffix) throws Exception {
+        String inspection = ProfileInspector.inspect(contents, suffix);
+        String id = Long.toString(System.currentTimeMillis()) +
+            Long.toString(Math.abs(System.nanoTime() % 100000)) + suffix;
+        File dst = new File(profileDir(), id);
+        File pending = null;
+        try {
+            pending = File.createTempFile("import-", ".tmp", profileDir());
+            try (FileOutputStream out = new FileOutputStream(pending)) {
+                out.write(contents);
+                out.getFD().sync();
+            }
+            if (dst.exists() || !pending.renameTo(dst)) throw new IllegalStateException("保存配置失败");
+            prefs.edit().putString("profile_" + id, display).putString("profile_check_" + id, inspection).apply();
+            toast("配置已保存；连接前由内核校验");
+        } finally { if (pending != null) pending.delete(); }
     }
 
     private void toast(String message) {

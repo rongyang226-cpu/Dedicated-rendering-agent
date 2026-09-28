@@ -110,7 +110,8 @@ public final class HuiVpnService extends VpnService {
             if (!yaml.contains("proxies:") && !yaml.contains("proxy-providers:"))
                 throw new IllegalArgumentException("配置缺少 DNS 或节点/代理提供者");
             yaml = ConfigOverrides.apply(yaml, prefs.getString("mode", "RULE"),
-                prefs.getString("dns", "IMPORTED"));
+                prefs.getString("dns", "IMPORTED"),
+                !"IMPORTED".equals(prefs.getString("dns", "IMPORTED")) && prefs.getBoolean("dns_follow_rules", false));
             Clash core = Clash.INSTANCE;
             core.load(getApplicationInfo().nativeLibraryDir);
             if (core.bridgeABI() != Clash.EXPECTED_BRIDGE_ABI)

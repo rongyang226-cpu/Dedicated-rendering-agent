@@ -14,7 +14,7 @@ final class ConfigOverrides {
 
     private ConfigOverrides() {}
 
-    static String apply(String source, String mode, String dnsChoice) {
+    static String apply(String source, String mode, String dnsChoice, boolean dnsFollowRules) {
         if (!"RULE".equals(mode) && !"GLOBAL".equals(mode) && !"DIRECT".equals(mode))
             throw new IllegalArgumentException("无效的路由模式");
         if (!"IMPORTED".equals(dnsChoice) && !"ALI_DOH".equals(dnsChoice) && !"CF_DOH".equals(dnsChoice))
@@ -43,13 +43,15 @@ final class ConfigOverrides {
         int end = next.find(bodyStart) ? next.start() : yaml.length();
         if (DNS.matcher(yaml.substring(end)).find()) throw new IllegalArgumentException("配置包含重复的顶层 DNS");
         if ("IMPORTED".equals(dnsChoice)) {
+            if (dnsFollowRules) throw new IllegalArgumentException("沿用导入 DNS 时，请在原配置内调整 respect-rules");
             if (!DNS_ENABLED.matcher(yaml.substring(bodyStart, end)).find())
                 throw new IllegalArgumentException("导入配置必须开启 dns.enable 才能接管 VPN DNS");
         } else {
             String endpoint = "ALI_DOH".equals(dnsChoice) ? "https://223.5.5.5/dns-query" : "https://1.1.1.1/dns-query";
             String replacement = "dns:\n  enable: true\n  ipv6: false\n  enhanced-mode: fake-ip\n"
                 + "  fake-ip-range: 198.18.0.1/16\n  nameserver:\n    - " + endpoint + "\n"
-                + "  proxy-server-nameserver:\n    - " + endpoint + "\n";
+                + "  proxy-server-nameserver:\n    - " + endpoint + "\n"
+                + (dnsFollowRules ? "  respect-rules: true\n" : "  respect-rules: false\n");
             yaml = yaml.substring(0, start) + replacement + yaml.substring(end);
         }
         return "mode: " + mode.toLowerCase(Locale.ROOT) + "\ntun:\n  enable: false\n" + yaml;
