@@ -4,7 +4,7 @@
 <style>
 :root{color-scheme:light;--ink:#242d3d;--muted:#536072;--line:rgba(255,255,255,.73);--rose:#ae5c81;--glass:rgba(255,255,255,.17)}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;min-height:100vh;min-height:100dvh;background:#cab9bd;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","Microsoft Yahei",sans-serif;color:var(--ink)}
-body:before{content:"";position:fixed;inset:0;z-index:0;background:#cab9bd url("background.webp") center center/cover no-repeat;pointer-events:none}
+body:before{content:"";position:fixed;inset:0;z-index:0;background:#cab9bd var(--wallpaper,url("background.webp")) center center/cover no-repeat;pointer-events:none}
 body:after{content:"";position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(23,15,29,.08),rgba(255,255,255,.025) 45%,rgba(22,15,27,.12));pointer-events:none}
 button,select{font:inherit}button{cursor:pointer}
 main{position:relative;z-index:2;padding:14px 14px calc(100px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto}
@@ -53,7 +53,7 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 @media(prefers-reduced-motion:reduce){.petal{display:none}*{scroll-behavior:auto!important}.glass,footer{background:rgba(255,255,255,.39);backdrop-filter:none;-webkit-backdrop-filter:none}}
 @media(max-width:360px){.quick{gap:5px}.quick .tile{font-size:11px}main{padding-left:10px;padding-right:10px}}
 </style></head><body><div class="petals" id="petals" aria-hidden="true"></div><main>
-<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘</h1><span class="caption">独立代理客户端 · 本机配置</span></div><span class="tag">未连接</span></header>
+<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘</h1><span class="caption">代理客户端 · 本机配置</span></div><span class="tag">未连接</span></header>
 <section id="home" class="tab active">
 <div class="card glass hero"><div><div class="eyebrow">HUI · CONNECT</div><div class="hero-status">等待连接</div><div class="hero-note" id="hero-note">VPN 与内核尚未接入</div></div>
 <div class="row"><div><strong id="selected-engine">sing-box</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" disabled>连接尚未开放</button></div></div>
@@ -63,7 +63,7 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <div class="card glass"><h2>快捷入口</h2><div class="quick">
 <button class="tile" onclick="switchTab('nodes')"><span class="glyph">◇</span>节点</button>
 <button class="tile" disabled title="分流尚未接入"><span class="glyph">≋</span>分流</button>
-<button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⌁</span>DNS</button>
+<button class="tile" onclick="switchTab('settings')"><span class="glyph">✿</span>背景</button>
 <button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⚙</span>内核</button>
 </div></div></section>
 <section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
@@ -86,7 +86,7 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <div class="rule">UDP / QUIC<small>代理或阻断，不静默改为直连</small></div>
 <div class="rule">断线阻断<small>需配合安卓的始终开启 VPN 与无 VPN 禁网</small></div>
 </div></details></section>
-<section id="settings" class="tab"><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
+<section id="settings" class="tab"><div class="card glass"><h2>外观</h2><div class="caption">背景保存在本机，可随时更换或恢复默认。</div><div class="row wrap" style="margin-top:12px"><button class="button" onclick="Hui.chooseBackground()">从相册选择背景</button><button class="button" onclick="Hui.resetBackground()">恢复默认</button></div></div><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
 <div class="selectbox"><select id="engine" disabled title="代理核心尚未接入" onchange="option('engine',this.value)"><option value="SING_BOX">sing-box</option><option value="MIHOMO">Mihomo · Clash Meta</option><option value="XRAY">Xray</option></select></div><div class="mini">切换时只允许一个 VPN 和一个内核运行。当前版本尚未接入。</div></div>
 <div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" disabled title="代理核心尚未接入" onchange="option('mode',this.value)"><option value="RULE">规则分流</option><option value="GLOBAL">全局代理</option><option value="DIRECT">全局直连</option></select></div></div></div>
 <div class="card glass"><h2>DNS 与防泄漏</h2>
@@ -98,13 +98,14 @@ nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750
 <button class="active" data-tab="home" onclick="switchTab('home')"><i>⌂</i>首页</button>
 <button data-tab="nodes" onclick="switchTab('nodes')"><i>◇</i>节点</button>
 <button data-tab="rules" disabled title="分流尚未接入"><i>≋</i>规则</button>
-<button data-tab="settings" disabled title="代理核心尚未接入"><i>⚙</i>设置</button>
+<button data-tab="settings" onclick="switchTab('settings')"><i>⚙</i>设置</button>
 </nav></footer><script>
 const labels={SING_BOX:'sing-box',MIHOMO:'Mihomo',XRAY:'Xray'};
 function switchTab(name){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===name));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));window.scrollTo(0,0)}
 function option(key,value){Hui.setOption(key,value)}
 function refreshFromNative(){
   let s;try{s=JSON.parse(Hui.getState())}catch(e){return}
+  document.documentElement.style.setProperty('--wallpaper',s.customBackground?'url("custom-background.webp?v='+encodeURIComponent(s.backgroundVersion)+'")':s.lowMemory?'url("background-lite.webp")':'url("background.webp")');
   for(const key of ['engine','dns','mode','udp']){let el=document.getElementById(key);if(el)el.value=s[key]}
   document.getElementById('rulesSource').value=s.rules;
   document.getElementById('selected-engine').textContent=labels[s.engine]||'未选择内核';

@@ -13,18 +13,24 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
+import android.webkit.WebResourceResponse;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class MainActivity extends Activity {
     private static final int IMPORT_REQUEST = 115;
+    private static final int BACKGROUND_REQUEST = 116;
     private static final int MAX_CONFIG_BYTES = 1024 * 1024;
+    private static final int MAX_BACKGROUND_BYTES = 16 * 1024 * 1024;
     private static final String ASSET_URL = "file:///android_asset/index.html";
     private WebView web;
     private SharedPreferences prefs;
@@ -51,6 +57,18 @@ public final class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return !ASSET_URL.equals(request.getUrl().toString());
             }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                Uri url = request.getUrl();
+                if ("file".equals(url.getScheme()) && "/android_asset/custom-background.webp".equals(url.getPath())) {
+                    try {
+                        File image = backgroundFile();
+                        if (image.isFile()) return new WebResourceResponse("image/webp", null, new FileInputStream(image));
+                    } catch (Exception ignored) { }
+                    return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found",
+                        java.util.Collections.emptyMap(), new java.io.ByteArrayInputStream(new byte[0]));
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
         });
         web.addJavascriptInterface(new Bridge(), "Hui");
         setContentView(web);
@@ -66,6 +84,8 @@ public final class MainActivity extends Activity {
         if (!dir.exists()) dir.mkdirs();
         return dir;
     }
+
+    private File backgroundFile() { return new File(getFilesDir(), "hui-background.webp"); }
 
     private String state() {
         JSONObject out = new JSONObject();
@@ -89,6 +109,10 @@ public final class MainActivity extends Activity {
                 items.put(obj);
             }
             out.put("profiles", items);
+            out.put("customBackground", backgroundFile().isFile());
+            out.put("backgroundVersion", prefs.getLong("background_version", 0));
+            android.app.ActivityManager manager = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            out.put("lowMemory", manager != null && manager.isLowRamDevice());
             out.put("ready", false);
             out.put("status", "尚未接入 VPN 与代理内核");
         } catch (Exception e) {
@@ -116,6 +140,23 @@ public final class MainActivity extends Activity {
                 pick.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"application/json", "text/plain", "application/x-yaml", "application/yaml", "application/octet-stream"});
                 startActivityForResult(pick, IMPORT_REQUEST);
             });
+        }
+        @JavascriptInterface public void chooseBackground() {
+            runOnUiThread(() -> {
+                Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                pick.setType("image/*");
+                pick.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(pick, BACKGROUND_REQUEST);
+            });
+        }
+        @JavascriptInterface public void resetBackground() {
+            new Thread(() -> {
+                if (backgroundFile().exists() && !backgroundFile().delete()) {
+                    toast("恢复默认背景失败"); return;
+                }
+                prefs.edit().putLong("background_version", System.currentTimeMillis()).apply();
+                update();
+            }, "hui-background-reset").start();
         }
         @JavascriptInterface public void activate(String id) {
             if (id != null && id.matches("[0-9]+\\.(yaml|yml|json)") && new File(profileDir(), id).isFile())
@@ -145,6 +186,13 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int req, int result, Intent data) {
         super.onActivityResult(req, result, data);
+        if (req == BACKGROUND_REQUEST) {
+            if (result == RESULT_OK && data != null && data.getData() != null) {
+                Uri selected = data.getData();
+                new Thread(() -> importBackground(selected), "hui-background-import").start();
+            }
+            return;
+        }
         if (req != IMPORT_REQUEST || result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         String display = fileName(uri);
@@ -155,6 +203,55 @@ public final class MainActivity extends Activity {
         if (display.length() > 64) display = display.substring(0, 64);
         final String safeDisplay = display;
         new Thread(() -> importSelected(uri, safeDisplay, suffix), "hui-profile-import").start();
+    }
+
+    private void importBackground(Uri uri) {
+        File pending = null;
+        Bitmap bitmap = null;
+        try {
+            byte[] bytes;
+            try (InputStream in = getContentResolver().openInputStream(uri);
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                if (in == null) throw new IllegalArgumentException("无法读取图片");
+                byte[] buffer = new byte[8192];
+                int n;
+                while ((n = in.read(buffer)) != -1) {
+                    if (out.size() + n > MAX_BACKGROUND_BYTES)
+                        throw new IllegalArgumentException("图片不能超过 16 MB");
+                    out.write(buffer, 0, n);
+                }
+                bytes = out.toByteArray();
+            }
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
+            if (opts.outWidth < 200 || opts.outHeight < 200 || opts.outWidth > 8192 || opts.outHeight > 8192)
+                throw new IllegalArgumentException("图片尺寸需在 200 至 8192 像素之间");
+            opts.inJustDecodeBounds = false;
+            opts.inSampleSize = 1;
+            while (opts.outWidth / opts.inSampleSize > 2160 || opts.outHeight / opts.inSampleSize > 3840)
+                opts.inSampleSize *= 2;
+            bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
+            if (bitmap == null) throw new IllegalArgumentException("不支持的图片格式");
+            pending = File.createTempFile("hui-background-", ".tmp", getFilesDir());
+            try (FileOutputStream output = new FileOutputStream(pending)) {
+                if (!bitmap.compress(Bitmap.CompressFormat.WEBP, 85, output))
+                    throw new IllegalArgumentException("无法转换图片");
+                output.getFD().sync();
+            }
+            File target = backgroundFile();
+            if (!pending.renameTo(target)) throw new IllegalStateException("保存背景失败");
+            prefs.edit().putLong("background_version", System.currentTimeMillis()).apply();
+            update();
+            toast("背景已更新");
+        } catch (IllegalArgumentException e) {
+            toast("背景导入失败：" + e.getMessage());
+        } catch (Exception e) {
+            toast("背景导入失败：无法读取或保存图片");
+        } finally {
+            if (bitmap != null) bitmap.recycle();
+            if (pending != null) pending.delete();
+        }
     }
 
     private void importSelected(Uri uri, String display, String suffix) {
