@@ -2,107 +2,86 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#221c25"><title>绘</title>
 <style>
-:root{color-scheme:light;--ink:#253142;--muted:#485265;--line:rgba(255,255,255,.82);--rose:#a96387;--glass:linear-gradient(140deg,rgba(255,255,255,.28),rgba(255,255,255,.10) 48%,rgba(255,255,255,.19))}
+:root{color-scheme:light;--ink:#152336;--muted:#304156;--line:rgba(255,255,255,.84);--rose:#854260;--glass:linear-gradient(145deg,rgba(255,255,255,.48),rgba(255,255,255,.24) 48%,rgba(255,255,255,.37))}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;min-height:100vh;min-height:100dvh;background:#cab9bd;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","Microsoft Yahei",sans-serif;color:var(--ink)}
 body:before{content:"";position:fixed;inset:0;z-index:0;background:#cab9bd var(--wallpaper,url("background.webp")) center center/cover no-repeat;pointer-events:none;transform:translateZ(0)}
-body:after{content:"";position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(23,15,29,.08),rgba(255,255,255,.025) 45%,rgba(22,15,27,.12));pointer-events:none}
+body:after{content:"";position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(20,19,34,.10),rgba(255,255,255,.015) 48%,rgba(30,21,37,.06));pointer-events:none}
 button,select{font:inherit}button{cursor:pointer}
-main{position:relative;z-index:2;padding:14px 14px calc(100px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto}
-.glass{background:var(--glass);border:1.5px solid var(--line);border-radius:25px;backdrop-filter:blur(2px) saturate(1.05);-webkit-backdrop-filter:blur(2px) saturate(1.05);box-shadow:inset 0 1px rgba(255,255,255,.90),0 15px 38px rgba(24,27,37,.17)}
-header{display:flex;align-items:center;gap:12px;padding:13px 15px;margin-bottom:13px}
+main{position:relative;z-index:2;padding:11px 12px calc(115px + env(safe-area-inset-bottom,0px));max-width:680px;margin:0 auto}
+.glass{background:var(--glass);border:1.5px solid var(--line);border-radius:25px;backdrop-filter:blur(4px) saturate(1.08);-webkit-backdrop-filter:blur(4px) saturate(1.08);box-shadow:inset 0 1px rgba(255,255,255,.95),inset 0 -1px rgba(255,255,255,.15),0 11px 29px rgba(24,27,37,.12)}
+header{display:flex;align-items:center;gap:11px;padding:11px 14px;margin-bottom:11px}
 .avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 3px 11px rgba(55,29,46,.2)}
 h1{font-size:27px;margin:0;line-height:1.1;letter-spacing:.07em}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0}
-.caption{font-size:12px;color:var(--muted);line-height:1.5}
+.caption{font-size:12px;color:var(--muted);line-height:1.5;font-weight:600}
 .headline{flex:1}.tag{padding:7px 10px;border:1px solid rgba(255,255,255,.65);border-radius:16px;background:rgba(255,255,255,.33);font-size:12px;font-weight:650}
-.card{padding:18px;margin:12px 0}
-.hero{min-height:190px;display:flex;flex-direction:column;justify-content:space-between}
+.card{padding:16px;margin:10px 0}
+.hero{min-height:158px;display:flex;flex-direction:column;justify-content:space-between}
 .eyebrow{font-weight:700;color:#905b75;font-size:12px;letter-spacing:.08em}
-.hero-status{font-size:31px;font-weight:800;margin:5px 0 2px}.hero-note{font-size:13px;color:#3e4550}
+.hero-status{font-size:30px;font-weight:800;margin:5px 0 2px}.hero-note{font-size:13px;color:#24364a;font-weight:600}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row.wrap{flex-wrap:wrap}.row + .row{margin-top:12px}
 .button{border:1px solid rgba(255,255,255,.7);border-radius:17px;background:rgba(255,255,255,.31);padding:11px 14px;color:var(--ink);font-weight:700}
 .button.primary{background:linear-gradient(135deg,rgba(169,77,120,.84),rgba(100,76,143,.72));color:white;box-shadow:0 5px 15px rgba(116,53,96,.18)}
 .button:disabled,select:disabled{opacity:.65;cursor:default}.button.small{font-size:12px;padding:8px 10px}
-.notice{margin-top:10px;padding:11px 13px;border:1px solid rgba(255,255,255,.6);border-radius:17px;background:rgba(255,255,255,.23);color:#394456;font-size:13px;line-height:1.55}
-.status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.metric{border:1px solid rgba(255,255,255,.6);border-radius:18px;padding:10px 9px;background:rgba(255,255,255,.16);min-height:67px}
-.metric b{display:block;font-size:16px;margin-top:7px}.metric span{font-size:11px;color:#536073}
-.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.quick .tile{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:76px;text-align:center;color:var(--ink);border:1px solid rgba(255,255,255,.82);border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(255,255,255,.10));box-shadow:inset 0 1px rgba(255,255,255,.83);padding:11px 4px;font-size:12px}
-.glyph{font-size:23px;line-height:1;color:#a65a80}
-.field{margin:10px 0;padding:12px;border:1px solid rgba(255,255,255,.80);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.09));box-shadow:inset 0 1px rgba(255,255,255,.84)}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
-.field select{appearance:none;width:100%;border-radius:17px;border:1px solid rgba(255,255,255,.73);padding:12px 40px 12px 14px;background:rgba(255,255,255,.33);color:#293346;outline:none}
+.notice{margin-top:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.76);border-radius:17px;background:linear-gradient(130deg,rgba(255,255,255,.42),rgba(255,255,255,.22));color:#243448;font-size:12px;line-height:1.5;font-weight:550}
+.status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.metric{border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:10px 9px;background:linear-gradient(125deg,rgba(255,255,255,.38),rgba(255,255,255,.17));min-height:67px;box-shadow:inset 0 1px rgba(255,255,255,.8)}
+.metric b{display:block;font-size:16px;margin-top:7px}.metric span{font-size:11px;color:#2b4054;font-weight:650}
+.mode-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mode-choices button{min-height:69px;border:1.5px solid rgba(255,255,255,.88);border-radius:19px;background:linear-gradient(135deg,rgba(255,255,255,.40),rgba(255,255,255,.16));color:var(--ink);font-size:15px;font-weight:750;box-shadow:inset 0 1px rgba(255,255,255,.86)}
+.mode-choices button.active{border-color:rgba(135,56,96,.78);background:linear-gradient(135deg,rgba(255,255,255,.63),rgba(224,171,197,.48));box-shadow:inset 0 1px white,0 5px 14px rgba(70,27,53,.16)}
+.mode-choices button:disabled{opacity:.7}
+.field{margin:10px 0;padding:12px;border:1px solid rgba(255,255,255,.86);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.46),rgba(255,255,255,.19));box-shadow:inset 0 1px rgba(255,255,255,.9)}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:7px}
+.field select{appearance:none;width:100%;border-radius:17px;border:1px solid rgba(255,255,255,.82);padding:12px 40px 12px 14px;background:rgba(255,255,255,.43);color:#17283a;outline:none;font-weight:650}
 .selectbox{position:relative}.selectbox:after{content:"⌄";position:absolute;right:15px;top:7px;font-size:22px;pointer-events:none;color:#6d5970}
 .mini{font-size:11px;color:#415064;line-height:1.55;margin-top:6px}
 .profile{padding:13px;margin:9px 0;border-radius:18px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.19)}
 .profile strong{font-size:14px;word-break:break-all}.profile .caption{margin:4px 0}
 .profile .actions{display:flex;gap:7px;margin-top:10px}.profile.selected{border-color:#f7d5e6;background:rgba(255,255,255,.31)}
 .tab{display:none}.tab.active{display:block}
-details{margin:9px 0;overflow:hidden}details summary{list-style:none;padding:17px 16px;cursor:pointer;font-weight:750;display:flex;justify-content:space-between}details summary:after{content:"⌄";color:#a45b82}details[open] summary:after{transform:rotate(180deg)}details summary::-webkit-details-marker{display:none}
-.details-body{padding:0 16px 15px}
-.rule{padding:12px;margin:9px 0;border:1px solid rgba(255,255,255,.82);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.25),rgba(255,255,255,.09));font-size:13px}
-.rule small{display:block;color:var(--muted);margin-top:4px;line-height:1.4}
-footer{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:7px 8px max(7px,env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.76);border-bottom:0;border-radius:22px 22px 0 0;background:linear-gradient(130deg,rgba(255,255,255,.53),rgba(255,255,255,.26));backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 -5px 23px rgba(43,25,38,.11)}
-nav{max-width:680px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-nav button{border:0;border-radius:15px;background:transparent;min-height:51px;color:#4f5c69;font-size:11px}
+footer{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:13px 10px max(10px,env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(219,195,203,.48) 43%,rgba(215,193,202,.75));pointer-events:none}
+nav{max-width:650px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:7px;border:1.5px solid rgba(255,255,255,.85);border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.52),rgba(255,255,255,.28));backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:inset 0 1px white,0 7px 22px rgba(38,25,37,.17);pointer-events:auto}
+nav button{border:1px solid rgba(255,255,255,.78);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.4),rgba(255,255,255,.17));min-height:54px;color:#243b4c;font-weight:700;font-size:11px}
 nav button i{display:block;font-style:normal;font-size:20px;line-height:1.25}
-nav button.active{color:#a94e7e;background:rgba(255,255,255,.46);font-weight:750}
+nav button.active{color:#743e63;background:linear-gradient(135deg,rgba(255,255,255,.79),rgba(244,204,221,.59));font-weight:800;box-shadow:inset 0 1px white,0 3px 10px rgba(91,42,69,.15)}
 .petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
 .petal{position:absolute;top:-24px;opacity:.6;display:block;background:#f5b4ca;clip-path:ellipse(42% 55% at 55% 50%);animation:fall linear infinite;filter:blur(.2px)}
 @keyframes fall{to{transform:translate3d(110px,110vh,0) rotate(540deg)}}
 .ui-suspended .petal{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.petal{display:none}*{scroll-behavior:auto!important}.glass,footer{background:rgba(255,255,255,.39);backdrop-filter:none;-webkit-backdrop-filter:none}}
-@media(max-width:360px){.quick{gap:5px}.quick .tile{font-size:11px}main{padding-left:10px;padding-right:10px}}
+@media(max-width:360px){.mode-choices{gap:5px}main{padding-left:10px;padding-right:10px}}
 </style></head><body><div class="petals" id="petals" aria-hidden="true"></div><main>
-<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘 <small style="font-size:12px">0.32</small></h1><span class="caption">代理客户端 · 本机配置</span></div><span class="tag" id="vpn-tag">未连接</span></header>
+<header class="glass"><img class="avatar" src="avatar.webp" alt=""><div class="headline"><h1>绘 <small style="font-size:12px">0.32.1</small></h1><span class="caption">代理客户端 · 本机配置</span></div><span class="tag" id="vpn-tag">未连接</span></header>
 <section id="home" class="tab active">
 <div class="card glass hero"><div><div class="eyebrow">HUI · CONNECT</div><div class="hero-status" id="vpn-title">未连接</div><div class="hero-note" id="hero-note">先导入并选中 Mihomo YAML 配置</div></div>
-<div class="row"><div><strong id="selected-engine">Mihomo</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" id="connect-button" disabled onclick="connectOrDisconnect()">选择配置</button></div></div>
+<div class="row"><div><strong id="selected-engine">Mihomo</strong><div class="caption" id="selected-profile">未选择配置</div></div><button class="button primary" id="connect-button" onclick="connectOrDisconnect()">选择配置</button></div></div>
 <div class="card glass"><h2>连接概况</h2><div class="status-grid">
-<div class="metric"><span>实时上传</span><b id="traffic-up">—</b></div><div class="metric"><span>实时下载</span><b id="traffic-down">—</b></div><div class="metric"><span>连接延迟</span><b>—</b></div></div>
-<div class="notice">连接前由 Mihomo 校验配置。建立 VPN 后仍请核对公网出口与 DNS；未取得内核数据时不显示虚假的延迟或流量。</div></div>
-<div class="card glass"><h2>快捷入口</h2><div class="quick">
-<button class="tile" onclick="switchTab('nodes')"><span class="glyph">◇</span>节点</button>
-<button class="tile" disabled title="分流尚未接入"><span class="glyph">≋</span>分流</button>
-<button class="tile" onclick="switchTab('settings')"><span class="glyph">✿</span>背景</button>
-<button class="tile" disabled title="代理核心尚未接入"><span class="glyph">⚙</span>内核</button>
-</div></div></section>
+<div class="metric"><span>实时上传</span><b id="traffic-up">—</b></div><div class="metric"><span>实时下载</span><b id="traffic-down">—</b></div></div>
+<div class="notice">连接前由 Mihomo 校验配置；VPN 建立后请核对公网出口与 DNS。</div></div>
+<div class="card glass"><h2>连接模式</h2><div class="mode-choices" role="group" aria-label="路由模式">
+<button data-mode="RULE" onclick="option('mode','RULE')">规则</button>
+<button data-mode="GLOBAL" onclick="option('mode','GLOBAL')">全局</button>
+<button data-mode="DIRECT" onclick="option('mode','DIRECT')">直连</button>
+</div><div class="mini">连接前选择；规则模式使用导入配置里的分流规则。</div></div></section>
 <section id="nodes" class="tab"><div class="card glass"><div class="row"><h2>我的配置</h2><button class="button small" onclick="Hui.importProfile()">导入文件 ＋</button></div>
 <div class="notice">文件保存在应用私有空间。Mihomo YAML 在连接前由内核检查；JSON 仅保存为草稿，尚不能连接。</div><div id="profiles"></div></div>
 <div class="card glass"><h2>订阅与节点</h2><div class="notice">订阅更新、节点测速与自动切换会在连接层完成后启用，避免将未验证的节点显示为可用。</div></div></section>
-<section id="rules" class="tab"><div class="card glass"><h2>详细分流</h2><div class="notice">每组规则会针对当前内核生成配置；无法等价实现的规则必须明确提示。</div></div>
-<details class="glass" open><summary>基础分流</summary><div class="details-body">
-<div class="rule"><strong>国内流量</strong><small>国内域名与 IP 直连，DNS 按境内解析</small></div>
-<div class="rule"><strong>海外流量</strong><small>走当前节点或节点组，远端 DNS 随规则分流</small></div>
-<div class="rule"><strong>局域网</strong><small>私网与本地设备可单独设为直连</small></div>
-</div></details>
-<details class="glass"><summary>独立策略组</summary><div class="details-body">
-<div class="rule">AI 服务<small>按域名与应用单独选节点组</small></div>
-<div class="rule">游戏<small>支持 UDP 策略与独立节点</small></div>
-<div class="rule">视频<small>按服务设置地区及节点组</small></div>
-<div class="rule">自定义域名与应用<small>精确覆盖默认规则</small></div>
-</div></details>
-<details class="glass"><summary>流量安全</summary><div class="details-body">
-<div class="rule">IPv6<small>默认不启用，启用时同步接管路由和 DNS</small></div>
-<div class="rule">UDP / QUIC<small>代理或阻断，不静默改为直连</small></div>
-<div class="rule">断线阻断<small>需配合安卓的始终开启 VPN 与无 VPN 禁网</small></div>
-</div></details></section>
 <section id="settings" class="tab"><div class="card glass"><h2>外观</h2><div class="caption">背景保存在本机，可随时更换或恢复默认。</div><div class="row wrap" style="margin-top:12px"><button class="button" onclick="Hui.chooseBackground()">从相册选择背景</button><button class="button" onclick="Hui.resetBackground()">恢复默认</button></div></div><div class="card glass"><h2>代理内核</h2><div class="field"><label for="engine">运行核心</label>
 <div class="selectbox"><select id="engine" disabled title="当前只支持 Mihomo" onchange="option('engine',this.value)"><option value="MIHOMO">Mihomo · Clash Meta</option></select></div><div class="mini">当前仅启用 Mihomo，sing-box 适配和真机联调完成后再开放。</div></div>
-<div class="field"><label for="mode">路由模式</label><div class="selectbox"><select id="mode" disabled title="当前由导入配置控制" onchange="option('mode',this.value)"><option value="IMPORTED">由导入配置决定</option></select></div></div></div>
+<div class="field"><label for="mode">连接模式</label><div class="selectbox"><select id="mode" onchange="option('mode',this.value)"><option value="RULE">规则</option><option value="GLOBAL">全局</option><option value="DIRECT">直连</option></select></div><div class="mini">连接前修改；选中的模式会写入 Mihomo 校验后的启动配置。</div></div></div>
 <div class="card glass"><h2>DNS 与防泄漏</h2>
-<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" disabled title="当前由导入配置控制" onchange="option('dns',this.value)"><option value="IMPORTED">使用导入配置的 DNS</option></select></div></div>
+<div class="field"><label for="dns">DNS 来源</label><div class="selectbox"><select id="dns" onchange="option('dns',this.value)"><option value="IMPORTED">使用导入配置的 DNS</option><option value="ALI_DOH">AliDNS · 加密 DNS</option><option value="CF_DOH">Cloudflare · 加密 DNS</option></select></div><div class="mini">加密 DNS 会替换导入配置中的 DNS 段；可能影响机场自带的专属解析。</div></div>
+<div class="field"><label for="dnsStrict">DNS 53 端口拦截</label><div class="selectbox"><select id="dnsStrict" onchange="option('dnsStrict',this.value)"><option value="true">严格拦截 · TUN 内全部 53 端口</option><option value="false">只拦截安卓系统 DNS 地址</option></select></div><div class="mini">仅能拦截 VPN 内的 53 端口；浏览器自身的加密 DNS 需在浏览器中设置。</div></div>
 <div class="field"><label for="rulesSource">规则来源</label><div class="selectbox"><select id="rulesSource" disabled title="当前由导入配置控制" onchange="option('rules',this.value)"><option value="IMPORTED">使用导入配置的规则</option></select></div></div>
 <div class="field"><label for="udp">UDP 策略</label><div class="selectbox"><select id="udp" disabled title="当前由导入配置控制" onchange="option('udp',this.value)"><option value="IMPORTED">由导入配置决定</option></select></div></div>
-<div class="notice">导入配置缺少所选 DNS 或规则时会拒绝连接；不会退回系统 DNS。需在真机验证浏览器安全 DNS、IPv4/IPv6 和 UDP 出口。</div></div></section>
+<div class="notice">改动在下次连接时生效。DNS 配置会经过 Mihomo 校验；实际出口与浏览器加密 DNS 仍需在手机上检查。</div></div></section>
 </main><footer><nav>
 <button class="active" data-tab="home" onclick="switchTab('home')"><i>⌂</i>首页</button>
 <button data-tab="nodes" onclick="switchTab('nodes')"><i>◇</i>节点</button>
-<button data-tab="rules" disabled title="分流尚未接入"><i>≋</i>规则</button>
 <button data-tab="settings" onclick="switchTab('settings')"><i>⚙</i>设置</button>
 </nav></footer><script>
 const labels={SING_BOX:'sing-box',MIHOMO:'Mihomo',XRAY:'Xray'};
 let currentState={}, lastWallpaper='', lastProfiles='';
-function connectOrDisconnect(){if(currentState.vpn==='RUNNING'||currentState.vpn==='STARTING')Hui.disconnect();else Hui.connect()}
+function connectOrDisconnect(){if(currentState.vpn==='RUNNING'||currentState.vpn==='STARTING')Hui.disconnect();else if(currentState.ready)Hui.connect();else switchTab('nodes')}
 function switchTab(name){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===name));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));window.scrollTo(0,0)}
 function option(key,value){Hui.setOption(key,value)}
 function speed(value){if(typeof value!=='number'||value<0||!Number.isFinite(value))return '—';if(value<1024)return Math.round(value)+' B/s';if(value<1048576)return (value/1024).toFixed(1)+' KB/s';return (value/1048576).toFixed(1)+' MB/s'}
@@ -112,16 +91,19 @@ function refreshFromNative(){
   const wallpaper=s.customBackground?'url("custom-background.webp?v='+encodeURIComponent(s.backgroundVersion)+'")':s.lowMemory?'url("background-lite.webp")':'url("background.webp")';
   if(wallpaper!==lastWallpaper){document.documentElement.style.setProperty('--wallpaper',wallpaper);lastWallpaper=wallpaper}
   for(const key of ['engine','dns','mode','udp']){let el=document.getElementById(key);if(el)el.value=s[key]}
+  document.getElementById('dnsStrict').value=String(s.dnsStrict!==false);
   document.getElementById('rulesSource').value=s.rules;
   document.getElementById('selected-engine').textContent=labels[s.engine]||'未选择内核';
   const status=s.vpn||'STOPPED',live=status==='RUNNING',pending=status==='STARTING';
+  for(const tile of document.querySelectorAll('[data-mode]')){tile.classList.toggle('active',tile.dataset.mode===s.mode);tile.disabled=live||pending}
+  for(const key of ['mode','dns','dnsStrict'])document.getElementById(key).disabled=live||pending;
   document.getElementById('traffic-up').textContent=live?speed(s.traffic?.up):'—';
   document.getElementById('traffic-down').textContent=live?speed(s.traffic?.down):'—';
   const title=live?'VPN 已建立':pending?'正在连接':status==='ERROR'?'连接失败':'未连接';
   document.getElementById('vpn-title').textContent=title;
   document.getElementById('vpn-tag').textContent=live?'待核验':pending?'连接中':status==='ERROR'?'失败':'未连接';
   document.getElementById('hero-note').textContent=s.status||'先导入并选中 Mihomo YAML 配置';
-  const button=document.getElementById('connect-button');button.disabled=!s.ready&&!live&&!pending;
+  const button=document.getElementById('connect-button');button.disabled=false;
   button.textContent=live||pending?'断开':s.ready?'连接':'选择配置';
   const chosen=s.profiles.find(p=>p.id===s.active);
   document.getElementById('selected-profile').textContent=chosen?chosen.name+' · 待内核验证':'未选择配置';

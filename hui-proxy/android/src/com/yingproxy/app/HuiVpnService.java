@@ -107,8 +107,10 @@ public final class HuiVpnService extends VpnService {
             // Do not expose an imported controller or LAN listener from the phone.
             if (yaml.matches("(?s).*?(?m)^\\s*(allow-lan\\s*:\\s*(true|yes|on)|external-controller\\s*:|external-ui\\s*:).*"))
                 throw new IllegalArgumentException("导入配置包含外网控制入口或局域网监听，请先移除");
-            if (!yaml.contains("dns:") || !yaml.contains("proxies:") && !yaml.contains("proxy-providers:"))
+            if (!yaml.contains("proxies:") && !yaml.contains("proxy-providers:"))
                 throw new IllegalArgumentException("配置缺少 DNS 或节点/代理提供者");
+            yaml = ConfigOverrides.apply(yaml, prefs.getString("mode", "RULE"),
+                prefs.getString("dns", "IMPORTED"));
             Clash core = Clash.INSTANCE;
             core.load(getApplicationInfo().nativeLibraryDir);
             if (core.bridgeABI() != Clash.EXPECTED_BRIDGE_ABI)
@@ -139,7 +141,8 @@ public final class HuiVpnService extends VpnService {
             if (Build.VERSION.SDK_INT >= 29) builder.setMetered(false);
             tun = builder.establish();
             if (tun == null) throw new IllegalStateException("安卓未能建立 VPN 接口");
-            core.startTUN(tun.getFd(), coreNetwork, "hui", "system", "172.19.0.1/30", "172.19.0.2", 1400);
+            String dnsHijack = prefs.getBoolean("dns_strict", true) ? "any" : "172.19.0.2";
+            core.startTUN(tun.getFd(), coreNetwork, "hui", "system", "172.19.0.1/30", dnsHijack, 1400);
             if (!wanted.get()) return;
             // startTUN may report failure only inside the native log; the UI remains explicit about this limit.
             running = true;

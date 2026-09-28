@@ -95,10 +95,11 @@ public final class MainActivity extends Activity {
         JSONArray items = new JSONArray();
         try {
             out.put("engine", "MIHOMO");
-            out.put("dns", "IMPORTED");
+            out.put("dns", prefs.getString("dns", "IMPORTED"));
             out.put("rules", "IMPORTED");
-            out.put("mode", "IMPORTED");
+            out.put("mode", prefs.getString("mode", "RULE"));
             out.put("udp", "IMPORTED");
+            out.put("dnsStrict", prefs.getBoolean("dns_strict", true));
             out.put("active", prefs.getString("active", ""));
             File[] files = profileDir().listFiles();
             if (files != null) for (File file : files) {
@@ -129,7 +130,7 @@ public final class MainActivity extends Activity {
                 catch (Exception ignored) { /* Keep unknown values blank rather than show estimates. */ }
             }
         } catch (Exception e) {
-            return "{\"engine\":\"MIHOMO\",\"dns\":\"BUILT_IN\",\"rules\":\"BUILT_IN\",\"mode\":\"RULE\",\"udp\":\"PROXY\",\"active\":\"\",\"profiles\":[],\"ready\":false,\"vpn\":\"ERROR\",\"status\":\"无法读取本机配置\"}";
+            return "{\"engine\":\"MIHOMO\",\"dns\":\"IMPORTED\",\"rules\":\"IMPORTED\",\"mode\":\"RULE\",\"udp\":\"IMPORTED\",\"dnsStrict\":true,\"active\":\"\",\"profiles\":[],\"ready\":false,\"vpn\":\"ERROR\",\"status\":\"无法读取本机配置\"}";
         }
         return out.toString();
     }
@@ -154,7 +155,18 @@ public final class MainActivity extends Activity {
             });
         }
         @JavascriptInterface public void setOption(String key, String value) {
-            toast("此设置尚未接入内核，当前按导入配置执行");
+            if (HuiVpnService.isRunning() || "STARTING".equals(prefs.getString("vpn_status", ""))) {
+                toast("请先断开 VPN 再修改网络设置"); update(); return;
+            }
+            if ("mode".equals(key) && ("RULE".equals(value) || "GLOBAL".equals(value) || "DIRECT".equals(value))) {
+                prefs.edit().putString("mode", value).apply();
+            } else if ("dns".equals(key) && ("IMPORTED".equals(value) || "ALI_DOH".equals(value) || "CF_DOH".equals(value))) {
+                prefs.edit().putString("dns", value).apply();
+            } else if ("dnsStrict".equals(key) && ("true".equals(value) || "false".equals(value))) {
+                prefs.edit().putBoolean("dns_strict", Boolean.parseBoolean(value)).apply();
+            } else {
+                toast("此选项尚未接入内核");
+            }
             update();
         }
         @JavascriptInterface public void importProfile() {

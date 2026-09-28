@@ -27,7 +27,7 @@ done
 "$TOOLS/aapt2" compile --dir "$APP/res" -o "$OUT/res.zip"
 "$TOOLS/aapt2" link -o "$OUT/unsigned.apk" -I "$JAR" --manifest "$APP/AndroidManifest.xml" --java "$OUT/gen" "$OUT/res.zip" --min-sdk-version 26 --target-sdk-version 35
 javac -source 8 -target 8 -encoding UTF-8 -cp "$JAR:$OUT/vendor/mihomo-classes.jar:$KOTLIN" -d "$OUT/classes" $(find "$OUT/gen" "$APP/src" -name '*.java')
-if ! timeout 150s "$TOOLS/d8" --min-api 26 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class') "$OUT/vendor/mihomo-classes.jar" "$KOTLIN" >"$OUT/d8.log" 2>&1; then
+if ! timeout 300s "$TOOLS/d8" --min-api 26 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class') "$OUT/vendor/mihomo-classes.jar" "$KOTLIN" >"$OUT/d8.log" 2>&1; then
  tail -50 "$OUT/d8.log"; exit 1
 fi
 echo "D8 complete (diagnostics: $OUT/d8.log)"
