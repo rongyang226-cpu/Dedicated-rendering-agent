@@ -520,8 +520,14 @@ class MainActivity : ThemedActivity(),
     }
 
     private fun requestCoreStart() {
-        val requested = CoreController.selected
+        val originallySelected = CoreController.selected
         lifecycleScope.launch {
+            val requested = withContext(Dispatchers.IO) {
+                CoreController.ensureUsableSelection(this@MainActivity)
+            }
+            if (requested != originallySelected) {
+                snackbar("${originallySelected.displayName} 没有可用配置，已自动切换到 ${requested.displayName}").show()
+            }
             changeState(BaseService.State.Connecting, animate = true)
             CoreController.stopAll(this@MainActivity)
             delay(250L)

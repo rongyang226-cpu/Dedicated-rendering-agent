@@ -890,7 +890,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 }
                 workers.joinAll()
-                GroupManager.postReload(groupId)
+                // Keep the current grid order/scroll position stable. Each profile update already
+                // refreshes its own row; a full group reload here caused visible jumping.
+                profiles.forEach { runCatching { ProfileManager.postUpdate(it.id) }.onFailure(Logs::w) }
             } catch (e: Throwable) {
                 Logs.w(e)
             } finally {
@@ -1380,6 +1382,9 @@ class ConfigurationFragment @JvmOverloads constructor(
             GroupManager.addListener(adapter!!)
             configurationListView.adapter = adapter
             configurationListView.setItemViewCacheSize(20)
+            // Latency refreshes should update text, not cross-fade/re-layout the entire card.
+            (configurationListView.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)
+                ?.supportsChangeAnimations = false
 
             if (!select) {
 

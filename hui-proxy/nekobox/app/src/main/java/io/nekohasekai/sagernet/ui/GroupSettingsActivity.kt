@@ -29,6 +29,7 @@ import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.widget.ListListener
 import io.nekohasekai.sagernet.widget.OutboundPreference
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import kotlinx.parcelize.Parcelize
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
 
@@ -316,6 +317,7 @@ class GroupSettingsActivity(
             super.onViewCreated(view, savedInstanceState)
 
             ViewCompat.setOnApplyWindowInsetsListener(listView, ListListener)
+            HuiVisuals.decoratePreferenceList(listView)
         }
 
         override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {

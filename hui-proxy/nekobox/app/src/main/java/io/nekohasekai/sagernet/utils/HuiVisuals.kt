@@ -210,6 +210,10 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        // Keep the large backdrop transform and petal rasterization on GPU-backed layers.
+        // This prevents RecyclerView/layout work from fighting the decorative animation.
+        wallpaper.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        ambient.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         if (!HuiVisuals.animationsEnabled(context)) return
         drift?.cancel()
         drift = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -235,6 +239,8 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
         drift?.cancel()
         drift = null
         ambient.stopMotion()
+        wallpaper.setLayerType(View.LAYER_TYPE_NONE, null)
+        ambient.setLayerType(View.LAYER_TYPE_NONE, null)
         super.onDetachedFromWindow()
     }
 }

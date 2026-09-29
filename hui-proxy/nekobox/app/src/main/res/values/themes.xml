@@ -182,7 +182,12 @@
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet">
+    <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">#D9FFFFFF</item>
+        <item name="colorOnSurface">@color/hui_ink</item>
+        <item name="android:textColorPrimary">@color/hui_ink</item>
+        <item name="android:textColorSecondary">@color/hui_ink_secondary</item>
+        <item name="shapeAppearanceOverlay">@style/HuiDialogShape</item>
         <item name="buttonBarPositiveButtonStyle">
             @style/Widget.MaterialComponents.Button.TextButton.Dialog.Primary
         </item>
@@ -192,6 +197,11 @@
         <item name="buttonBarNeutralButtonStyle">
             @style/Widget.MaterialComponents.Button.TextButton.Dialog.Flush.Primary
         </item>
+    </style>
+
+    <style name="HuiDialogShape" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
     </style>
 
     <style name="Widget.MaterialComponents.Button.TextButton.Dialog.Primary">

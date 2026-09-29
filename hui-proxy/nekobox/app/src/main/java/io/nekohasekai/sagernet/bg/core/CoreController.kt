@@ -29,6 +29,23 @@ object CoreController {
         CoreEngine.META -> MetaCoreManager.hasConfig(context)
     }
 
+    /** Prefer the user's selection, but never strand Connect on an empty core. */
+    fun ensureUsableSelection(context: Context): CoreEngine {
+        val current = selected
+        val currentUsable = when (current) {
+            CoreEngine.BOX -> BoxCoreManager.hasPreparedConfig(context) || DataStore.selectedProxy > 0L
+            CoreEngine.META -> MetaCoreManager.hasConfig(context)
+        }
+        if (currentUsable) return current
+
+        val fallback = when (current) {
+            CoreEngine.META -> if (BoxCoreManager.hasPreparedConfig(context) || DataStore.selectedProxy > 0L) CoreEngine.BOX else current
+            CoreEngine.BOX -> if (MetaCoreManager.hasConfig(context)) CoreEngine.META else current
+        }
+        if (fallback != current) DataStore.huiCoreEngine = fallback.id
+        return fallback
+    }
+
 
     suspend fun prepareSelected(context: Context): String = when (selected) {
         CoreEngine.BOX -> BoxCoreManager.prepareSelectedProfile(context)
@@ -49,6 +66,7 @@ object CoreController {
 
     suspend fun startSelectedAuthorized(context: Context, settleMillis: Long = 180L) {
         normalizeSelection()
+        ensureUsableSelection(context)
         stopAll(context)
         if (settleMillis > 0) delay(settleMillis)
         prepareSelected(context)

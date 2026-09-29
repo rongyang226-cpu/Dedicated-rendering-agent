@@ -1,8 +1,8 @@
-name: Hui 0.34.0 RC7 release
+name: Hui 0.34.0 RC8 release
 on:
   push:
     tags:
-      - 'hui-v0.34.0-rc7'
+      - 'hui-v0.34.0-rc8'
 permissions:
   contents: write
 jobs:
@@ -12,12 +12,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify RC APK
         run: |
-          test -s dist/Hui-v0.34.0-rc7.apk
-          (cd dist && sha256sum -c Hui-v0.34.0-rc7.sha256)
+          test -s dist/Hui-v0.34.0-rc8.apk
+          (cd dist && sha256sum -c Hui-v0.34.0-rc8.sha256)
       - name: Publish RC
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" dist/Hui-v0.34.0-rc7.apk dist/Hui-v0.34.0-rc7.sha256 \
-            --title '绘 0.34.0 · 交互与动画 RC7' --prerelease \
-            --notes-file hui-proxy/RELEASE_0.34.0_RC7.md
+          gh release create "${{ github.ref_name }}" dist/Hui-v0.34.0-rc8.apk dist/Hui-v0.34.0-rc8.sha256 \
+            --title '绘 0.34.0 · 真机兼容与玻璃统一 RC8' --prerelease \
+            --notes-file hui-proxy/RELEASE_0.34.0_RC8.md
