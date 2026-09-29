@@ -7,6 +7,8 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayoutMediator
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.databinding.LayoutToolsBinding
+import io.nekohasekai.sagernet.utils.HuiVisuals
+import kotlin.math.abs
 
 class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
 
@@ -23,10 +25,18 @@ class ToolsFragment : ToolbarFragment(R.layout.layout_tools) {
 
         TabLayoutMediator(binding.toolsTab, binding.toolsPager) { tab, position ->
             tab.text = tools[position].name()
-            tab.view.setOnLongClickListener { // clear toast
-                true
-            }
+            tab.view.setOnLongClickListener { true }
         }.attach()
+
+        val density = resources.displayMetrics.density
+        binding.toolsPager.setPageTransformer { page, position ->
+            val focus = 1f - abs(position).coerceAtMost(1f)
+            page.alpha = 0.82f + 0.18f * focus
+            page.translationX = -position * 12f * density
+        }
+        for (i in 0 until binding.toolsTab.tabCount) {
+            binding.toolsTab.getTabAt(i)?.view?.let(HuiVisuals::applyLiquidPress)
+        }
     }
 
     inner class ToolsAdapter(val tools: List<Fragment>) : FragmentStateAdapter(this) {

@@ -6,6 +6,7 @@ import android.view.View
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.databinding.LayoutNetworkBinding
 import io.nekohasekai.sagernet.ktx.app
+import io.nekohasekai.sagernet.utils.HuiVisuals
 
 class NetworkFragment : NamedFragment(R.layout.layout_network) {
 
@@ -15,6 +16,7 @@ class NetworkFragment : NamedFragment(R.layout.layout_network) {
         super.onViewCreated(view, savedInstanceState)
 
         val binding = LayoutNetworkBinding.bind(view)
+        HuiVisuals.applyLiquidPress(binding.stunTest)
         binding.stunTest.setOnClickListener {
             startActivity(Intent(requireContext(), StunActivity::class.java))
         }

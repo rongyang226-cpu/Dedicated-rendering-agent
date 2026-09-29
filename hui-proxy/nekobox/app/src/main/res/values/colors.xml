@@ -2,11 +2,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <color name="hui_fallback">#CAB9BD</color>
-    <color name="hui_glass_fill">#B8FFFFFF</color>
-    <color name="hui_glass_fill_pressed">#D2FFFFFF</color>
-    <color name="hui_edge">#FAFFFFFF</color>
-    <color name="hui_ink">#12141B</color>
+    <color name="hui_glass_fill">#70FFFFFF</color>
+    <color name="hui_glass_fill_pressed">#94FFFFFF</color>
+    <color name="hui_edge">#B8FFFFFF</color>
+    <color name="hui_ink">#15161D</color>
+    <color name="hui_ink_secondary">#C6262830</color>
+    <color name="hui_glass_soft">#4FFFFFFF</color>
+    <color name="hui_glass_strong">#82FFFFFF</color>
     <color name="hui_selected">#FFF36B9A</color>
+    <color name="hui_selected_surface">#3DFFE2EE</color>
     <integer-array name="material_colors">
         <item>@color/material_red_500</item>
         <item>@color/color_pink_ssr</item>

@@ -15,6 +15,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jakewharton.processphoenix.ProcessPhoenix
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.Executable
 import io.nekohasekai.sagernet.bg.core.CoreController
@@ -69,6 +70,12 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         super.onViewCreated(view, savedInstanceState)
 
         val binding = LayoutBackupBinding.bind(view)
+        listOf(
+            binding.resetSettings,
+            binding.actionExport,
+            binding.actionShare,
+            binding.actionImportFile
+        ).forEach(HuiVisuals::applyLiquidPress)
 
         binding.resetSettings.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.confirm)

@@ -1814,6 +1814,19 @@ class ConfigurationFragment @JvmOverloads constructor(
                         editButton.isEnabled = !started
                         removeButton.isEnabled = !started
                         selectedView.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+                        (view as? com.google.android.material.card.MaterialCardView)?.apply {
+                            setCardBackgroundColor(
+                                requireContext().getColour(
+                                    if (selected) R.color.hui_selected_surface else R.color.hui_glass_fill
+                                )
+                            )
+                            strokeColor = if (selected) {
+                                requireContext().getColorAttr(R.attr.colorAccent)
+                            } else {
+                                requireContext().getColour(R.color.hui_edge)
+                            }
+                            strokeWidth = dp(if (selected) 2 else 1)
+                        }
                     }
 
                     fun showShare(anchor: View) {

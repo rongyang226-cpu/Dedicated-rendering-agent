@@ -16,9 +16,14 @@
         android:id="@+id/tools_tab"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/hui_glass"
         android:elevation="0dp"
-        android:padding="6dp"
+        android:minHeight="56dp"
+        android:padding="5dp"
         app:tabBackground="@drawable/hui_glass_tab"
         app:tabIndicatorColor="@android:color/transparent"
         app:tabIndicatorHeight="0dp"
@@ -28,6 +33,7 @@
         app:tabPaddingEnd="10dp"
         app:tabRippleColor="?tabRippleColor"
         app:tabSelectedTextColor="?tabSelectedTextColor"
+        app:tabTextAppearance="@style/HuiTabTextAppearance"
         app:tabTextColor="?tabTextColor"
         app:tabUnboundedRipple="false" />
 
