@@ -42,10 +42,6 @@ class SagerNet : Application(),
         super.attachBaseContext(base)
 
         application = this
-        // One Go runtime per process: legacy libcore stays in :bg/main,
-        // modern SFA libbox is isolated in :box. This avoids gomobile ref collisions.
-        val runtimeProcess = JavaUtil.getProcessName()
-        System.setProperty("hui.go.runtime", if (runtimeProcess.endsWith(":box")) "box" else "gojni")
     }
 
     private val nativeInterface by lazy(LazyThreadSafetyMode.NONE) { NativeInterface() }
@@ -58,6 +54,9 @@ class SagerNet : Application(),
     override fun onCreate() {
         super.onCreate()
 
+        // Keep attachBaseContext identical to the RC3 startup path. Select the Go runtime
+        // only after Application is fully attached, before either gomobile runtime is touched.
+        System.setProperty("hui.go.runtime", if (process.endsWith(":box")) "box" else "gojni")
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler)
 
         if (isMainProcess || isBgProcess) {
