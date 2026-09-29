@@ -46,6 +46,7 @@ public final class MetaVpnService extends VpnService {
     private static final int NOTIFICATION = 47;
     private volatile boolean wanted;
     private volatile boolean running;
+    private volatile boolean preserveErrorOnDestroy;
     private Thread worker;
     private Thread trafficWorker;
     private ParcelFileDescriptor tun;
@@ -76,6 +77,7 @@ public final class MetaVpnService extends VpnService {
             if (nm != null) nm.createNotificationChannel(
                 new NotificationChannel(CHANNEL, "绘 · Meta", NotificationManager.IMPORTANCE_LOW));
         }
+        preserveErrorOnDestroy = false;
         writeStatus("STOPPED", "未连接", 0, 0, 0, 0);
     }
 
@@ -139,6 +141,7 @@ public final class MetaVpnService extends VpnService {
             if (!wanted) return;
 
             Builder builder = new Builder().setSession("绘 · Meta").setMtu(mtu)
+                .setBlocking(false)
                 .addAddress("172.19.0.1", 30)
                 .addDnsServer("172.19.0.2");
             applyVpnRoutes(builder);
@@ -155,6 +158,7 @@ public final class MetaVpnService extends VpnService {
             core.nativeStartTun(tun.getFd(), "system", gateway, portal, "0.0.0.0", network);
             if (!wanted) return;
             running = true;
+            preserveErrorOnDestroy = false;
             coreVersion = safeVersion();
             writeStatus("RUNNING", "Meta 已连接 · " + coreVersion, 0, 0, 0, 0);
             NotificationManager nm = getSystemService(NotificationManager.class);
@@ -162,6 +166,7 @@ public final class MetaVpnService extends VpnService {
             startTraffic(core);
         } catch (Throwable failure) {
             preserveError = true;
+            preserveErrorOnDestroy = true;
             String reason = failure.getMessage();
             if (reason == null || reason.length() > 180) reason = failure.getClass().getSimpleName();
             Log.e("HuiMeta", "core failure", failure);
@@ -422,6 +427,7 @@ public final class MetaVpnService extends VpnService {
     }
 
     private synchronized void stopCurrent(boolean preserveError) {
+        preserveErrorOnDestroy = preserveError;
         wanted = false;
         running = false;
         if (trafficWorker != null) trafficWorker.interrupt();
@@ -437,6 +443,6 @@ public final class MetaVpnService extends VpnService {
     }
 
     @Override public void onRevoke() { stopCurrent(false); super.onRevoke(); }
-    @Override public void onDestroy() { stopCurrent(false); super.onDestroy(); }
+    @Override public void onDestroy() { stopCurrent(preserveErrorOnDestroy); super.onDestroy(); }
     @Override public IBinder onBind(Intent intent) { return super.onBind(intent); }
 }

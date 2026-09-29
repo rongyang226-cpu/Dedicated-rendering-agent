@@ -29,6 +29,7 @@
         <item name="whiteOrTextPrimary">@color/hui_ink</item>
 
         <item name="android:windowBackground">@color/hui_fallback</item>
+        <item name="android:windowDisablePreview">true</item>
         <item name="materialCardViewStyle">@style/HuiGlassCard</item>
         <item name="colorSurface">#A6FFFFFF</item>
         <item name="android:colorBackground">#00FFFFFF</item>

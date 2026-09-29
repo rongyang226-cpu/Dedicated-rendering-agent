@@ -56,6 +56,7 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.bg.meta.MetaCoreManager
 import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.bg.core.CoreEngine
+import io.nekohasekai.sagernet.bg.core.CoreStatus
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
@@ -890,9 +891,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 }
                 workers.joinAll()
-                // Keep the current grid order/scroll position stable. Each profile update already
-                // refreshes its own row; a full group reload here caused visible jumping.
-                profiles.forEach { runCatching { ProfileManager.postUpdate(it.id) }.onFailure(Logs::w) }
+                // ProfileManager.updateProfile() already notified the visible row. Do not broadcast
+                // every result a second time; duplicate rebinds make a two-column grid visibly jump.
             } catch (e: Throwable) {
                 Logs.w(e)
             } finally {
@@ -1767,7 +1767,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             fun bind(proxyEntity: ProxyEntity, trafficData: TrafficData? = null) {
-                applyNodeLayout()
                 val pf = parentFragment as? ConfigurationFragment ?: return
 
                 entity = proxyEntity
@@ -1913,68 +1912,61 @@ class ConfigurationFragment @JvmOverloads constructor(
                     shareLayout.isGone = true
                 }
 
-                runOnDefaultDispatcher {
-                    val selected = (selectedItem?.id ?: DataStore.selectedProxy) == proxyEntity.id
-                    val coreStatus = CoreController.status(view.context.applicationContext)
-                    val started = selected && CoreController.selected == CoreEngine.BOX &&
-                        coreStatus.active && DataStore.currentProfile == proxyEntity.id
-                    onMainDispatcher {
-                        editButton.isEnabled = !started
-                        removeButton.isEnabled = !started
-                        selectedView.visibility = if (selected) View.VISIBLE else View.INVISIBLE
-                        (view as? com.google.android.material.card.MaterialCardView)?.apply {
-                            setCardBackgroundColor(
-                                requireContext().getColour(
-                                    if (selected) R.color.hui_selected_surface else R.color.hui_glass_fill
-                                )
+                // Binding happens on the UI thread. Reuse MainActivity's cached core snapshot instead
+                // of launching one coroutine + status-file read for every visible node card.
+                val selected = (selectedItem?.id ?: DataStore.selectedProxy) == proxyEntity.id
+                val coreStatus = (activity as? MainActivity)?.coreStatusSnapshot() ?: CoreStatus()
+                val started = selected && CoreController.selected == CoreEngine.BOX &&
+                    coreStatus.active && DataStore.currentProfile == proxyEntity.id
+                editButton.isEnabled = !started
+                removeButton.isEnabled = !started
+                selectedView.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+                (view as? com.google.android.material.card.MaterialCardView)?.apply {
+                    setCardBackgroundColor(
+                        requireContext().getColour(
+                            if (selected) R.color.hui_selected_surface else R.color.hui_glass_fill
+                        )
+                    )
+                    strokeColor = if (selected) {
+                        requireContext().getColorAttr(R.attr.colorAccent)
+                    } else {
+                        requireContext().getColour(R.color.hui_edge)
+                    }
+                    strokeWidth = dp(if (selected) 2 else 1)
+                }
+
+                fun showShare(anchor: View) {
+                    val popup = PopupMenu(requireContext(), anchor)
+                    popup.menuInflater.inflate(R.menu.profile_share_menu, popup.menu)
+
+                    when {
+                        !proxyEntity.haveStandardLink() -> {
+                            popup.menu.findItem(R.id.action_group_qr).subMenu?.removeItem(R.id.action_standard_qr)
+                            popup.menu.findItem(R.id.action_group_clipboard).subMenu?.removeItem(
+                                R.id.action_standard_clipboard
                             )
-                            strokeColor = if (selected) {
-                                requireContext().getColorAttr(R.attr.colorAccent)
-                            } else {
-                                requireContext().getColour(R.color.hui_edge)
-                            }
-                            strokeWidth = dp(if (selected) 2 else 1)
+                        }
+
+                        !proxyEntity.haveLink() -> {
+                            popup.menu.removeItem(R.id.action_group_qr)
+                            popup.menu.removeItem(R.id.action_group_clipboard)
                         }
                     }
 
-                    fun showShare(anchor: View) {
-                        val popup = PopupMenu(requireContext(), anchor)
-                        popup.menuInflater.inflate(R.menu.profile_share_menu, popup.menu)
-
-                        when {
-                            !proxyEntity.haveStandardLink() -> {
-                                popup.menu.findItem(R.id.action_group_qr).subMenu?.removeItem(R.id.action_standard_qr)
-                                popup.menu.findItem(R.id.action_group_clipboard).subMenu?.removeItem(
-                                    R.id.action_standard_clipboard
-                                )
-                            }
-
-                            !proxyEntity.haveLink() -> {
-                                popup.menu.removeItem(R.id.action_group_qr)
-                                popup.menu.removeItem(R.id.action_group_clipboard)
-                            }
-                        }
-
-                        if (proxyEntity.nekoBean != null) {
-                            popup.menu.removeItem(R.id.action_group_configuration)
-                        }
-
-                        popup.setOnMenuItemClickListener(this@ConfigurationHolder)
-                        popup.show()
+                    if (proxyEntity.nekoBean != null) {
+                        popup.menu.removeItem(R.id.action_group_configuration)
                     }
 
-                    if (!(select || proxyEntity.type == ProxyEntity.TYPE_CHAIN)) {
-                        onMainDispatcher {
-                            shareLayer.setBackgroundColor(Color.TRANSPARENT)
-                            shareButton.setImageResource(R.drawable.ic_social_share)
-                            shareButton.setColorFilter(Color.GRAY)
-                            shareButton.isVisible = true
+                    popup.setOnMenuItemClickListener(this@ConfigurationHolder)
+                    popup.show()
+                }
 
-                            shareLayout.setOnClickListener {
-                                showShare(it)
-                            }
-                        }
-                    }
+                if (!(select || proxyEntity.type == ProxyEntity.TYPE_CHAIN)) {
+                    shareLayer.setBackgroundColor(Color.TRANSPARENT)
+                    shareButton.setImageResource(R.drawable.ic_social_share)
+                    shareButton.setColorFilter(Color.GRAY)
+                    shareButton.isVisible = true
+                    shareLayout.setOnClickListener { showShare(it) }
                 }
 
             }

@@ -13,12 +13,18 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0.5dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@color/hui_edge" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/hui_glass"
+        android:padding="6dp">
 
         <com.blacksquircle.ui.editorkit.widget.TextProcessor
             android:id="@+id/editor"
@@ -42,23 +48,28 @@
         android:id="@+id/keyboard_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="2dp"
-        android:orientation="horizontal">
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/hui_glass"
+        android:elevation="0dp"
+        android:orientation="horizontal"
+        android:padding="4dp">
 
         <ImageView
             android:id="@+id/action_tab"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?primaryOrTextPrimary"
+            android:background="@drawable/hui_icon_press"
             android:padding="8dp"
             android:src="@drawable/baseline_keyboard_tab_24"
-            app:tint="?colorOnSurface" />
+            app:tint="@color/hui_ink" />
 
         <moe.matsuri.nb4a.ui.ExtendedKeyboard
             android:id="@+id/extended_keyboard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?colorSecondaryVariant"
+            android:background="@drawable/hui_glass_tab"
             android:orientation="horizontal"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:itemCount="6"
@@ -68,33 +79,33 @@
             android:id="@+id/action_undo"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?primaryOrTextPrimary"
+            android:background="@drawable/hui_icon_press"
             android:padding="8dp"
             android:src="@drawable/baseline_undo_24"
-            app:tint="?colorOnSurface" />
+            app:tint="@color/hui_ink" />
 
         <ImageView
             android:id="@+id/action_redo"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?primaryOrTextPrimary"
+            android:background="@drawable/hui_icon_press"
             android:padding="8dp"
             android:src="@drawable/baseline_redo_24"
-            app:tint="?colorOnSurface" />
+            app:tint="@color/hui_ink" />
 
         <ImageView
             android:id="@+id/action_format"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?primaryOrTextPrimary"
+            android:background="@drawable/hui_icon_press"
             android:padding="8dp"
             android:src="@drawable/ic_baseline_format_align_left_24"
-            app:tint="?colorOnSurface" />
+            app:tint="@color/hui_ink" />
 
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="?primaryOrTextPrimary" />
+            android:background="@android:color/transparent" />
 
     </LinearLayout>
 

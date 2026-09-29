@@ -70,7 +70,9 @@ class DashboardFragment : ToolbarFragment(R.layout.layout_dashboard) {
         view.findViewById<TextView>(R.id.dashboard_total).text =
             "↑ ${Formatter.formatFileSize(context, status.txTotal)}    ↓ ${Formatter.formatFileSize(context, status.rxTotal)}"
         view.findViewById<TextView>(R.id.dashboard_engine).text = engine.displayName
-        view.findViewById<TextView>(R.id.dashboard_version).text = status.version.ifBlank { status.message }
+        view.findViewById<TextView>(R.id.dashboard_version).text =
+            if (status.state == CoreStatus.State.ERROR) status.message
+            else status.version.ifBlank { status.message }
         view.findViewById<TextView>(R.id.dashboard_ip).text = cachedIp
         refreshIpIfNeeded(view)
     }

@@ -184,7 +184,15 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
         scaleType = ImageView.ScaleType.CENTER_CROP
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
         setImageDrawable(HuiVisuals.backdrop(context))
-        colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0.96f) })
+        colorFilter = ColorMatrixColorFilter(ColorMatrix().apply {
+            setSaturation(0.84f)
+            postConcat(ColorMatrix(floatArrayOf(
+                1f, 0f, 0f, 0f, 8f,
+                0f, 1f, 0f, 0f, 8f,
+                0f, 0f, 1f, 0f, 8f,
+                0f, 0f, 0f, 1f, 0f,
+            )))
+        })
         // Keep the 4K source static and slightly desaturated for text readability.
         // of short frame stalls while RecyclerViews/fragments were also laying out.
         scaleX = 1.045f
@@ -195,7 +203,7 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
     private var lastDriftFrame = 0L
     private val readabilityScrim = View(context).apply {
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-        setBackgroundColor(0x18080A10)
+        setBackgroundColor(0x24FFFFFF)
         isClickable = false
         isFocusable = false
     }
@@ -222,7 +230,7 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
             repeatMode = ValueAnimator.REVERSE
             addUpdateListener { animator ->
                 val now = SystemClock.uptimeMillis()
-                if (now - lastDriftFrame < 16L) return@addUpdateListener
+                if (now - lastDriftFrame < 30L) return@addUpdateListener
                 lastDriftFrame = now
                 val p = animator.animatedValue as Float
                 wallpaper.scaleX = 1.045f + 0.026f * p
