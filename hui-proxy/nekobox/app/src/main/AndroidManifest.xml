@@ -52,7 +52,6 @@
     <application
         android:name="io.nekohasekai.sagernet.SagerNet"
         android:allowBackup="false"
-        android:autoRevokePermissions="allowed"
         android:banner="@drawable/hui_avatar"
         android:dataExtractionRules="@xml/backup_rules"
         android:fullBackupContent="@xml/backup_descriptor"

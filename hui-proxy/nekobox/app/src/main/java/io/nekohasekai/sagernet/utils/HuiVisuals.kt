@@ -124,7 +124,7 @@ object HuiVisuals {
         } else {
             decodeScaled(context, uri)
         }
-        if (bitmap == null) return context.getDrawable(R.drawable.hui_background)!!
+        if (bitmap == null) return AppCompatResources.getDrawable(context, R.drawable.hui_background)!!
         cachedKey = key
         cachedBitmap = bitmap
         return BitmapDrawable(context.resources, bitmap)

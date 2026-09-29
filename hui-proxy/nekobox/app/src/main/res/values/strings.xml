@@ -592,4 +592,7 @@
     <string name="hui_import_url_hint">Paste a subscription URL or a single-node share link</string>
     <string name="hui_import_url_title">Import link</string>
     <string name="hui_import_url_invalid">Please enter a valid URL or share link</string>
+    <string name="hui_crash_saved">The app stopped unexpectedly last time. A local diagnostic snapshot was kept; it will not be shared automatically.</string>
+    <string name="hui_open_log">Open logs</string>
+    <string name="hui_log_export_failed">Unable to export the diagnostic log.</string>
 </resources>

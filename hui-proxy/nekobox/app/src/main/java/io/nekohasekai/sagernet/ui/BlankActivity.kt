@@ -2,19 +2,14 @@ package io.nekohasekai.sagernet.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import moe.matsuri.nb4a.utils.SendLog
 
+/**
+ * Legacy trampoline kept for compatibility with old intents.
+ * Fatal crashes must never open a share sheet automatically.
+ */
 class BlankActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // process crash log
-        intent?.getStringExtra("sendLog")?.apply {
-            SendLog.sendLog(this@BlankActivity, this)
-        }
-
         finish()
     }
-
 }

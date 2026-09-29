@@ -54,7 +54,7 @@ class SagerNet : Application(),
     override fun onCreate() {
         super.onCreate()
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler)
+        CrashHandler.install()
 
         if (isMainProcess || isBgProcess) {
             externalAssets.mkdirs()

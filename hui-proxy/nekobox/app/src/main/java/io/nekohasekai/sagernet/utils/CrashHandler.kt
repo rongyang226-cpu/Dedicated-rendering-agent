@@ -1,43 +1,94 @@
 package io.nekohasekai.sagernet.utils
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.jakewharton.processphoenix.ProcessPhoenix
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.database.preference.PublicDatabase
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.app
-import io.nekohasekai.sagernet.ui.BlankActivity
 import java.io.BufferedReader
+import java.io.File
 import java.io.IOException
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.system.exitProcess
 
 object CrashHandler : Thread.UncaughtExceptionHandler {
 
-    @Suppress("UNNECESSARY_SAFE_CALL")
+    private const val CRASH_DIR = "crash"
+    private const val LAST_CRASH = "last_crash.log"
+    private const val PENDING_CRASH = "pending_crash"
+    private const val MAX_CRASH_CHARS = 512 * 1024
+    private val handlingCrash = AtomicBoolean(false)
+    @Volatile private var previousHandler: Thread.UncaughtExceptionHandler? = null
+
+    fun install() {
+        val current = Thread.getDefaultUncaughtExceptionHandler()
+        if (current !== this) previousHandler = current
+        Thread.setDefaultUncaughtExceptionHandler(this)
+    }
+
+    fun consumePendingCrash(): Boolean = try {
+        val marker = File(app.filesDir, "$CRASH_DIR/$PENDING_CRASH")
+        marker.exists() && marker.delete()
+    } catch (_: Throwable) {
+        false
+    }
+
+    fun lastCrashFile(): File? = try {
+        File(app.filesDir, "$CRASH_DIR/$LAST_CRASH").takeIf { it.isFile && it.length() > 0L }
+    } catch (_: Throwable) {
+        null
+    }
+
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
-        // note: libc / go panic is in android log
-
-        try {
-            Log.e(thread.toString(), throwable.stackTraceToString())
-        } catch (e: Exception) {
+        // Never launch UI from a fatal-exception handler. The previous implementation
+        // rebooted into a share chooser, so a recurring startup/background crash could
+        // trap the user in an endless system share sheet. Save one local snapshot instead.
+        if (handlingCrash.compareAndSet(false, true)) {
+            try {
+                Log.e(thread.toString(), throwable.stackTraceToString())
+            } catch (_: Throwable) {
+            }
+            try {
+                Logs.e(thread.toString())
+                Logs.e(throwable.stackTraceToString())
+            } catch (_: Throwable) {
+            }
+            try {
+                persistCrash(thread, throwable)
+            } catch (_: Throwable) {
+            }
         }
 
-        try {
-            Logs.e(thread.toString())
-            Logs.e(throwable.stackTraceToString())
-        } catch (e: Exception) {
+        val delegate = previousHandler
+        if (delegate != null && delegate !== this) {
+            try {
+                delegate.uncaughtException(thread, throwable)
+            } catch (_: Throwable) {
+            }
         }
+        // Android's default handler normally terminates the process. If a custom
+        // upstream handler returns, never continue execution in a corrupted state.
+        android.os.Process.killProcess(android.os.Process.myPid())
+        exitProcess(10)
+    }
 
-        ProcessPhoenix.triggerRebirth(app, Intent(app, BlankActivity::class.java).apply {
-            putExtra("sendLog", "NB4A Crash")
-        })
+    private fun persistCrash(thread: Thread, throwable: Throwable) {
+        val dir = File(app.filesDir, CRASH_DIR).apply { mkdirs() }
+        val report = buildString {
+            append("绘 ${SagerNet.appVersionNameForDisplay} (${BuildConfig.VERSION_CODE})\n")
+            append("Date: ${getCurrentMilliSecondUTCTimeStamp()}\n")
+            append("Process: ${app.process}\n")
+            append("Thread: ${thread.name}\n\n")
+            append(formatThrowable(throwable))
+        }.take(MAX_CRASH_CHARS)
+        File(dir, LAST_CRASH).writeText(report)
+        File(dir, PENDING_CRASH).writeText(System.currentTimeMillis().toString())
     }
 
     fun formatThrowable(throwable: Throwable): String {
@@ -97,18 +148,10 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         }\n\n"
 
 
-        try {
-            report += "Settings: \n"
-            for (pair in PublicDatabase.kvPairDao.all()) {
-                report += "\n"
-                report += pair.key + ": " + pair.toString()
-            }
-        } catch (e: Exception) {
-            report += "Export settings failed: " + formatThrowable(e)
-        }
-
-        report += "\n\n"
-
+        // Do not dump the preference database here. It may contain subscription URLs,
+        // UUIDs, passwords or other node credentials. Diagnostic exports should be safe
+        // to share by default.
+        report += "\n"
         return report
     }
 
@@ -127,21 +170,18 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
             val process = ProcessBuilder().command("/system/bin/getprop")
                 .redirectErrorStream(true)
                 .start()
-            val inputStream = process.inputStream
-            val bufferedReader = BufferedReader(InputStreamReader(inputStream))
-            var line: String?
-            var key: String
-            var value: String
-            while (bufferedReader.readLine().also { line = it } != null) {
-                val matcher = propertiesPattern.matcher(line)
-                if (matcher.matches()) {
-                    key = matcher.group(1)
-                    value = matcher.group(2)
-                    if (key != null && value != null && !key.isEmpty() && !value.isEmpty()) systemProperties[key] =
-                        value
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                reader.forEachLine { currentLine ->
+                    val matcher = propertiesPattern.matcher(currentLine)
+                    if (matcher.matches()) {
+                        val key = matcher.group(1).orEmpty()
+                        val value = matcher.group(2).orEmpty()
+                        if (key.isNotEmpty() && value.isNotEmpty()) {
+                            systemProperties[key] = value
+                        }
+                    }
                 }
             }
-            bufferedReader.close()
             process.destroy()
         } catch (e: IOException) {
             Logs.e(

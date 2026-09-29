@@ -47,6 +47,7 @@ import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.parseProxies
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.utils.CrashHandler
 import io.nekohasekai.sagernet.utils.HuiVisuals
 import moe.matsuri.nb4a.utils.Util
 
@@ -61,6 +62,7 @@ class MainActivity : ThemedActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val recoveredFromCrash = CrashHandler.consumePendingCrash()
         binding = LayoutMainBinding.inflate(layoutInflater)
         if (!DataStore.configurationStore.getBoolean("huiRc3LayoutMigrated", false)) {
             if (DataStore.huiNodeLayout == "standard") DataStore.huiNodeLayout = "grid"
@@ -103,6 +105,13 @@ class MainActivity : ThemedActivity(),
         HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.connect_action))
 
         setContentView(HuiVisuals.wrap(this, binding.root))
+        if (recoveredFromCrash) {
+            binding.root.post {
+                snackbar(getString(R.string.hui_crash_saved))
+                    .setAction(R.string.hui_open_log) { displayFragmentWithId(R.id.nav_logcat) }
+                    .show()
+            }
+        }
         changeState(BaseService.State.Idle)
         connection.connect(this, this)
         DataStore.configurationStore.registerChangeListener(this)

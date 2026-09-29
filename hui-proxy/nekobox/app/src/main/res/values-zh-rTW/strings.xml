@@ -423,4 +423,7 @@
     <string name="hui_import_url_hint">貼上訂閱 URL 或單節點分享連結</string>
     <string name="hui_import_url_title">匯入連結</string>
     <string name="hui_import_url_invalid">請輸入有效的訂閱 URL 或節點分享連結</string>
+    <string name="hui_crash_saved">上次執行發生異常，診斷快照已保留在本機，不會再自動跳出分享。</string>
+    <string name="hui_open_log">查看日誌</string>
+    <string name="hui_log_export_failed">無法匯出診斷日誌。</string>
 </resources>

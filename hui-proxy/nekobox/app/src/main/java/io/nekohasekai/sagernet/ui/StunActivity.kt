@@ -32,9 +32,10 @@ class StunActivity : ThemedActivity() {
 
     fun doTest() {
         binding.waitLayout.isVisible = true
+        val server = binding.natStunServer.text.toString().trim()
         runOnDefaultDispatcher {
             val result = try {
-                val _result = Libcore.stunTest(binding.natStunServer.text.toString())
+                val _result = Libcore.stunTest(server)
                 if (_result!!.success) {
                     _result.text
                 } else {

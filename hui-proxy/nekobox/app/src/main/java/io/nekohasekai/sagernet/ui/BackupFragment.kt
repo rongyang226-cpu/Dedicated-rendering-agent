@@ -36,23 +36,28 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
     override fun name0() = app.getString(R.string.backup)
 
     var content = ""
+
+    private fun backupFileName(): String {
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        return "nekobox_backup_${stamp}.json"
+    }
+
     private val exportSettings =
-        registerForActivityResult(ActivityResultContracts.CreateDocument()) { data ->
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { data ->
+            val resolver = context?.contentResolver ?: return@registerForActivityResult
             if (data != null) {
                 runOnDefaultDispatcher {
                     try {
-                        requireActivity().contentResolver.openOutputStream(
-                            data
-                        )!!.bufferedWriter().use {
+                        resolver.openOutputStream(data)?.bufferedWriter()?.use {
                             it.write(content)
-                        }
+                        } ?: error("Unable to open output file")
                         onMainDispatcher {
-                            snackbar(getString(R.string.action_export_msg)).show()
+                            if (isAdded) snackbar(getString(R.string.action_export_msg)).show()
                         }
                     } catch (e: Exception) {
                         Logs.w(e)
                         onMainDispatcher {
-                            snackbar(e.readableMessage).show()
+                            if (isAdded) snackbar(e.readableMessage).show()
                         }
                     }
                 }
@@ -76,31 +81,25 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         }
 
         binding.actionExport.setOnClickListener {
+            val configurations = binding.backupConfigurations.isChecked
+            val rules = binding.backupRules.isChecked
+            val settings = binding.backupSettings.isChecked
             runOnDefaultDispatcher {
-                content = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
-                )
+                content = doBackup(configurations, rules, settings)
                 onMainDispatcher {
-                    startFilesForResult(
-                        exportSettings, "nekobox_backup_${Date().toLocaleString()}.json"
-                    )
+                    if (isAdded) startFilesForResult(exportSettings, backupFileName())
                 }
             }
         }
 
         binding.actionShare.setOnClickListener {
+            val configurations = binding.backupConfigurations.isChecked
+            val rules = binding.backupRules.isChecked
+            val settings = binding.backupSettings.isChecked
             runOnDefaultDispatcher {
-                content = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
-                )
-                app.cacheDir.mkdirs()
-                val cacheFile = File(
-                    app.cacheDir, "nekobox_backup_${Date().toLocaleString()}.json"
-                )
+                content = doBackup(configurations, rules, settings)
+                val backupDir = File(app.cacheDir, "backup").also { it.mkdirs() }
+                val cacheFile = File(backupDir, backupFileName())
                 cacheFile.writeText(content)
                 onMainDispatcher {
                     startActivity(

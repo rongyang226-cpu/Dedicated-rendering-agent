@@ -339,9 +339,10 @@ class ConfigurationFragment @JvmOverloads constructor(
             ProfileManager.createProfile(targetId, proxy)
         }
         onMainDispatcher {
+            val ctx = context ?: return@onMainDispatcher
             DataStore.editingGroup = targetId
             snackbar(
-                requireContext().resources.getQuantityString(
+                ctx.resources.getQuantityString(
                     R.plurals.added, proxies.size, proxies.size
                 )
             ).show()
@@ -350,14 +351,15 @@ class ConfigurationFragment @JvmOverloads constructor(
     }
 
     private fun showManualUrlImport() {
-        val input = EditText(requireContext()).apply {
+        val hostActivity = activity as? MainActivity ?: return
+        val input = EditText(hostActivity).apply {
             hint = getString(R.string.hui_import_url_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             isSingleLine = false
             maxLines = 4
             setPadding(40, 20, 40, 20)
         }
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(hostActivity)
             .setTitle(R.string.hui_import_url_title)
             .setView(input)
             .setNegativeButton(android.R.string.cancel, null)
@@ -371,7 +373,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     try {
                         if (text.startsWith("http://", true) || text.startsWith("https://", true)) {
                             val uri = "sn://subscription?url=${android.net.Uri.encode(text)}".toUri()
-                            (requireActivity() as MainActivity).importSubscription(uri)
+                            hostActivity.importSubscription(uri)
                         } else {
                             val proxies = RawUpdater.parseRaw(text)
                             if (proxies.isNullOrEmpty()) {
@@ -381,7 +383,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                             }
                         }
                     } catch (e: SubscriptionFoundException) {
-                        (requireActivity() as MainActivity).importSubscription(e.link.toUri())
+                        hostActivity.importSubscription(e.link.toUri())
                     } catch (e: Exception) {
                         Logs.w(e)
                         onMainDispatcher { snackbar(e.readableMessage).show() }
@@ -1126,6 +1128,32 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         lateinit var layoutManager: LinearLayoutManager
         lateinit var configurationListView: RecyclerView
+        private var appliedLayoutMode = ""
+
+        private fun desiredLayoutMode(): String =
+            if (DataStore.huiNodeLayout == "grid" && !select) "grid" else "linear"
+
+        private fun applyLayoutManagerIfNeeded(force: Boolean = false) {
+            if (!::configurationListView.isInitialized) return
+            val mode = desiredLayoutMode()
+            if (!force && appliedLayoutMode == mode) return
+            val firstVisible = if (::layoutManager.isInitialized) {
+                layoutManager.findFirstVisibleItemPosition().coerceAtLeast(0)
+            } else 0
+            layoutManager = if (mode == "grid") {
+                GridLayoutManager(requireContext(), 2)
+            } else {
+                FixedLinearLayoutManager(configurationListView)
+            }
+            configurationListView.layoutManager = layoutManager
+            appliedLayoutMode = mode
+            adapter?.notifyDataSetChanged()
+            configurationListView.post {
+                if (::layoutManager.isInitialized) {
+                    layoutManager.scrollToPositionWithOffset(firstVisible, 0)
+                }
+            }
+        }
 
         val select by lazy {
             try {
@@ -1147,6 +1175,9 @@ class ConfigurationFragment @JvmOverloads constructor(
         override fun onResume() {
             super.onResume()
 
+            if (::configurationListView.isInitialized) {
+                applyLayoutManagerIfNeeded()
+            }
             if (::configurationListView.isInitialized && configurationListView.size == 0) {
                 configurationListView.adapter = adapter
                 runOnDefaultDispatcher {
@@ -1210,13 +1241,8 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (!::proxyGroup.isInitialized) return
 
             configurationListView = view.findViewById(R.id.configuration_list)
-            layoutManager = if (DataStore.huiNodeLayout == "grid" && !select) {
-                GridLayoutManager(requireContext(), 2)
-            } else {
-                FixedLinearLayoutManager(configurationListView)
-            }
-            configurationListView.layoutManager = layoutManager
             adapter = ConfigurationAdapter()
+            applyLayoutManagerIfNeeded(force = true)
             ProfileManager.addListener(adapter!!)
             GroupManager.addListener(adapter!!)
             configurationListView.adapter = adapter
@@ -1226,13 +1252,9 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 undoManager = UndoSnackbarManager(activity as MainActivity, adapter!!)
 
-                val dragDirections = if (DataStore.huiNodeLayout == "grid") {
-                    ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
-                } else {
-                    ItemTouchHelper.UP or ItemTouchHelper.DOWN
-                }
                 ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                    dragDirections, ItemTouchHelper.START
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
+                    ItemTouchHelper.START
                 ) {
                     override fun getSwipeDirs(
                         recyclerView: RecyclerView,
@@ -1244,7 +1266,14 @@ class ConfigurationFragment @JvmOverloads constructor(
                     override fun getDragDirs(
                         recyclerView: RecyclerView,
                         viewHolder: RecyclerView.ViewHolder,
-                    ) = if (isEnabled) super.getDragDirs(recyclerView, viewHolder) else 0
+                    ): Int {
+                        if (!isEnabled) return 0
+                        return if (DataStore.huiNodeLayout == "grid") {
+                            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                        } else {
+                            ItemTouchHelper.UP or ItemTouchHelper.DOWN
+                        }
+                    }
 
                     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                     }

@@ -509,4 +509,7 @@
     <string name="hui_import_url_hint">粘贴订阅 URL 或单节点分享链接</string>
     <string name="hui_import_url_title">导入链接</string>
     <string name="hui_import_url_invalid">请输入有效的订阅 URL 或节点分享链接</string>
+    <string name="hui_crash_saved">上次运行发生异常，诊断快照已在本机保留，不会再自动弹出分享。</string>
+    <string name="hui_open_log">查看日志</string>
+    <string name="hui_log_export_failed">无法导出诊断日志。</string>
 </resources>
