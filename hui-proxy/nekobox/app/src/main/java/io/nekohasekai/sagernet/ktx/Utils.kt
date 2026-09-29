@@ -270,9 +270,25 @@ fun Context.getColour(@ColorRes colorRes: Int): Int {
 }
 
 fun Context.getColorAttr(@AttrRes resId: Int): Int {
-    return ContextCompat.getColor(this, TypedValue().also {
-        theme.resolveAttribute(resId, it, true)
-    }.resourceId)
+    fun resolve(attr: Int, depth: Int = 0): Int? {
+        if (depth > 4) return null
+        val value = TypedValue()
+        if (!theme.resolveAttribute(attr, value, true)) return null
+        if (value.resourceId != 0) {
+            return runCatching { ContextCompat.getColor(this, value.resourceId) }.getOrNull()
+        }
+        if (value.type in TypedValue.TYPE_FIRST_COLOR_INT..TypedValue.TYPE_LAST_COLOR_INT) {
+            return value.data
+        }
+        if (value.type == TypedValue.TYPE_ATTRIBUTE && value.data != 0) {
+            return resolve(value.data, depth + 1)
+        }
+        return null
+    }
+
+    return resolve(resId)
+        ?: resolve(android.R.attr.textColorPrimary)
+        ?: android.graphics.Color.GRAY
 }
 
 val isExpert: Boolean by lazy { BuildConfig.DEBUG || DataStore.isExpert }
