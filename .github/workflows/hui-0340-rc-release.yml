@@ -13,7 +13,7 @@ jobs:
       - name: Verify RC APK
         run: |
           test -s dist/Hui-v0.34.0-rc2.apk
-          sha256sum -c dist/Hui-v0.34.0-rc2.sha256
+          (cd dist && sha256sum -c Hui-v0.34.0-rc2.sha256)
       - name: Publish RC
         env:
           GH_TOKEN: ${{ github.token }}
