@@ -8,6 +8,8 @@
         <item name="colorPrimary">#825273</item>
         <item name="colorPrimaryDark">#59415F</item>
         <item name="colorAccent">#A65180</item>
+        <item name="android:colorControlHighlight">#22FFFFFF</item>
+        <item name="colorControlHighlight">#22FFFFFF</item>
 
         <item name="colorMaterial100">@color/material_pink_100</item>
         <item name="colorMaterial300">@color/material_pink_300</item>

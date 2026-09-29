@@ -62,6 +62,10 @@ class MainActivity : ThemedActivity(),
         super.onCreate(savedInstanceState)
 
         binding = LayoutMainBinding.inflate(layoutInflater)
+        if (!DataStore.configurationStore.getBoolean("huiRc3LayoutMigrated", false)) {
+            if (DataStore.huiNodeLayout == "standard") DataStore.huiNodeLayout = "grid"
+            DataStore.configurationStore.putBoolean("huiRc3LayoutMigrated", true)
+        }
         binding.fab.initProgress(binding.fabProgress)
         if (themeResId !in intArrayOf(
                 R.style.Theme_SagerNet_Black

@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.text.SpannableStringBuilder
 import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+import android.text.InputType
 import android.text.format.Formatter
 import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
@@ -17,6 +18,7 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -30,6 +32,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.size
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceDataStore
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -346,6 +349,48 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     }
 
+    private fun showManualUrlImport() {
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.hui_import_url_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            isSingleLine = false
+            maxLines = 4
+            setPadding(40, 20, 40, 20)
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.hui_import_url_title)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.hui_import_url) { _, _ ->
+                val text = input.text?.toString()?.trim().orEmpty()
+                if (text.isBlank()) {
+                    snackbar(R.string.hui_import_url_invalid).show()
+                    return@setPositiveButton
+                }
+                runOnDefaultDispatcher {
+                    try {
+                        if (text.startsWith("http://", true) || text.startsWith("https://", true)) {
+                            val uri = "sn://subscription?url=${android.net.Uri.encode(text)}".toUri()
+                            (requireActivity() as MainActivity).importSubscription(uri)
+                        } else {
+                            val proxies = RawUpdater.parseRaw(text)
+                            if (proxies.isNullOrEmpty()) {
+                                onMainDispatcher { snackbar(R.string.hui_import_url_invalid).show() }
+                            } else {
+                                import(proxies)
+                            }
+                        }
+                    } catch (e: SubscriptionFoundException) {
+                        (requireActivity() as MainActivity).importSubscription(e.link.toUri())
+                    } catch (e: Exception) {
+                        Logs.w(e)
+                        onMainDispatcher { snackbar(e.readableMessage).show() }
+                    }
+                }
+            }
+            .show()
+    }
+
     override fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_scan_qr_code -> {
@@ -372,6 +417,10 @@ class ConfigurationFragment @JvmOverloads constructor(
                         }
                     }
                 }
+            }
+
+            R.id.action_import_url -> {
+                showManualUrlImport()
             }
 
             R.id.action_import_file -> {
@@ -1161,7 +1210,11 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (!::proxyGroup.isInitialized) return
 
             configurationListView = view.findViewById(R.id.configuration_list)
-            layoutManager = FixedLinearLayoutManager(configurationListView)
+            layoutManager = if (DataStore.huiNodeLayout == "grid" && !select) {
+                GridLayoutManager(requireContext(), 2)
+            } else {
+                FixedLinearLayoutManager(configurationListView)
+            }
             configurationListView.layoutManager = layoutManager
             adapter = ConfigurationAdapter()
             ProfileManager.addListener(adapter!!)
@@ -1173,8 +1226,13 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 undoManager = UndoSnackbarManager(activity as MainActivity, adapter!!)
 
+                val dragDirections = if (DataStore.huiNodeLayout == "grid") {
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                } else {
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN
+                }
                 ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                    ItemTouchHelper.UP or ItemTouchHelper.DOWN, ItemTouchHelper.START
+                    dragDirections, ItemTouchHelper.START
                 ) {
                     override fun getSwipeDirs(
                         recyclerView: RecyclerView,
@@ -1492,17 +1550,27 @@ class ConfigurationFragment @JvmOverloads constructor(
             val removeButton: ImageView = view.findViewById(R.id.remove)
 
             init {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !SagerNet.isTv) {
-                    view.defaultFocusHighlightEnabled = false
+                if (!SagerNet.isTv) {
+                    listOf<View>(view, editButton, shareLayout, removeButton).forEach { target ->
+                        target.isFocusable = false
+                        target.isFocusableInTouchMode = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            target.defaultFocusHighlightEnabled = false
+                        }
+                    }
                 }
                 applyNodeLayout()
                 HuiVisuals.applyLiquidPress(view)
+                HuiVisuals.applyLiquidPress(editButton)
+                HuiVisuals.applyLiquidPress(shareLayout)
+                HuiVisuals.applyLiquidPress(removeButton)
             }
 
             private fun dp(value: Int): Int = (value * view.resources.displayMetrics.density).toInt()
 
             private fun applyNodeLayout() {
                 val spec = when (DataStore.huiNodeLayout) {
+                    "grid" -> intArrayOf(5, 20, 14, 11, 11, 7, 9, 6)
                     "compact" -> intArrayOf(2, 16, 14, 12, 11, 4, 6, 8)
                     "comfortable" -> intArrayOf(6, 24, 17, 14, 13, 10, 14, 13)
                     else -> intArrayOf(4, 20, 16, 13, 12, 7, 10, 10)
@@ -1573,6 +1641,19 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 }
 
+                if (DataStore.huiNodeLayout == "grid" && !select) {
+                    view.setOnLongClickListener {
+                        it.context.startActivity(
+                            proxyEntity.settingIntent(
+                                it.context, proxyGroup.type == GroupType.SUBSCRIPTION
+                            )
+                        )
+                        true
+                    }
+                } else {
+                    view.setOnLongClickListener(null)
+                }
+
                 profileName.text = proxyEntity.displayName()
                 profileType.text = proxyEntity.displayType()
                 profileType.setTextColor(requireContext().getProtocolColor(proxyEntity.type))
@@ -1605,7 +1686,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
 
                 profileAddress.text = address
-                (trafficText.parent as View).isGone = !showTraffic && address.isBlank()
+                (trafficText.parent as View).isGone = DataStore.huiNodeLayout == "grid" || (!showTraffic && address.isBlank())
 
                 when (proxyEntity.status) {
                     1 -> {
@@ -1645,9 +1726,10 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
 
                 val selectOrChain = select || proxyEntity.type == ProxyEntity.TYPE_CHAIN
-                shareLayout.isGone = selectOrChain
-                editButton.isGone = select
-                removeButton.isGone = select
+                val gridMode = DataStore.huiNodeLayout == "grid"
+                shareLayout.isGone = gridMode || selectOrChain
+                editButton.isGone = gridMode || select
+                removeButton.isGone = gridMode || select
 
                 proxyEntity.nekoBean?.apply {
                     shareLayout.isGone = true

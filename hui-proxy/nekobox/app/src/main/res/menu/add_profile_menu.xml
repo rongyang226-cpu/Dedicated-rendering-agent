@@ -20,6 +20,9 @@
                 android:id="@+id/action_import_clipboard"
                 android:title="@string/action_import" />
             <item
+                android:id="@+id/action_import_url"
+                android:title="@string/hui_import_url" />
+            <item
                 android:id="@+id/action_import_file"
                 android:title="@string/action_import_file" />
             <item android:title="@string/add_profile_methods_manual_settings">

@@ -532,11 +532,13 @@
 
 
     <string-array name="hui_node_layout_entries">
+        <item>@string/hui_layout_grid</item>
         <item>@string/hui_layout_compact</item>
         <item>@string/hui_layout_standard</item>
         <item>@string/hui_layout_comfortable</item>
     </string-array>
     <string-array name="hui_node_layout_values">
+        <item>grid</item>
         <item>compact</item>
         <item>standard</item>
         <item>comfortable</item>

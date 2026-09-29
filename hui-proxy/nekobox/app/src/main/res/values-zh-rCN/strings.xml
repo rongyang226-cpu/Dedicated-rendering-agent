@@ -501,7 +501,12 @@
     <string name="open_app_settings">打开系统设置</string>
     <string name="hui_session_traffic">本次 ↑ %1$s  ↓ %2$s</string>
     <string name="hui_node_layout">节点布局</string>
+    <string name="hui_layout_grid">双列网格</string>
     <string name="hui_layout_compact">紧凑列表</string>
     <string name="hui_layout_standard">标准玻璃</string>
     <string name="hui_layout_comfortable">舒适大卡</string>
+    <string name="hui_import_url">手动输入链接</string>
+    <string name="hui_import_url_hint">粘贴订阅 URL 或单节点分享链接</string>
+    <string name="hui_import_url_title">导入链接</string>
+    <string name="hui_import_url_invalid">请输入有效的订阅 URL 或节点分享链接</string>
 </resources>

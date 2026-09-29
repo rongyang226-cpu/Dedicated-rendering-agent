@@ -584,7 +584,12 @@
     <string name="open_app_settings">Open System Settings</string>
     <string name="hui_session_traffic">Session ↑ %1$s  ↓ %2$s</string>
     <string name="hui_node_layout">Node layout</string>
+    <string name="hui_layout_grid">Two-column grid</string>
     <string name="hui_layout_compact">Compact list</string>
     <string name="hui_layout_standard">Standard glass</string>
     <string name="hui_layout_comfortable">Comfortable cards</string>
+    <string name="hui_import_url">Import from URL</string>
+    <string name="hui_import_url_hint">Paste a subscription URL or a single-node share link</string>
+    <string name="hui_import_url_title">Import link</string>
+    <string name="hui_import_url_invalid">Please enter a valid URL or share link</string>
 </resources>

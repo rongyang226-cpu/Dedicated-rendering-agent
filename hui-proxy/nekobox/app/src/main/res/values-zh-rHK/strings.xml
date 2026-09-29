@@ -96,7 +96,12 @@
     <string name="connection_test_icmp_ping_unavailable">ICMPing 不可用</string>
     <string name="hui_session_traffic">本次連線 ↑ %1$s  ↓ %2$s</string>
     <string name="hui_node_layout">節點佈局</string>
+    <string name="hui_layout_grid">雙欄網格</string>
     <string name="hui_layout_compact">緊湊列表</string>
     <string name="hui_layout_standard">標準玻璃</string>
     <string name="hui_layout_comfortable">舒適大卡</string>
+    <string name="hui_import_url">手動輸入連結</string>
+    <string name="hui_import_url_hint">貼上訂閱 URL 或單節點分享連結</string>
+    <string name="hui_import_url_title">匯入連結</string>
+    <string name="hui_import_url_invalid">請輸入有效的訂閱 URL 或節點分享連結</string>
 </resources>

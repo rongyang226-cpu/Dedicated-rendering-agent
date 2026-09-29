@@ -7,7 +7,7 @@
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
     android:clickable="true"
-    android:focusable="true"
+    android:focusable="false"
     app:cardElevation="0dp"
     app:cardCornerRadius="22dp"
     android:stateListAnimator="@animator/hui_card_motion"
@@ -27,7 +27,7 @@
             android:id="@+id/selected_view"
             android:layout_width="4dp"
             android:layout_height="match_parent"
-            android:background="?selectedColorPrimary"
+            android:background="@color/hui_selected"
             android:orientation="horizontal"
             android:visibility="invisible"
             tools:visibility="visible" />
@@ -94,9 +94,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/hui_icon_press"
                     android:contentDescription="@string/edit"
-                    android:focusable="true"
+                    android:focusable="false"
                     android:padding="12dp"
                     app:srcCompat="@drawable/ic_image_edit" />
 
@@ -105,9 +105,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/hui_icon_press"
                     android:contentDescription="@string/share"
-                    android:focusable="true"
+                    android:focusable="false"
                     android:nextFocusLeft="@+id/container">
 
                     <LinearLayout
@@ -130,9 +130,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top"
-                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:background="@drawable/hui_icon_press"
                     android:contentDescription="@string/delete"
-                    android:focusable="true"
+                    android:focusable="false"
                     android:padding="12dp"
                     android:visibility="gone"
                     app:srcCompat="@drawable/ic_action_delete" />

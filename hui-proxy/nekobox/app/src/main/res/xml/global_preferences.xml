@@ -19,7 +19,7 @@
             app:title="恢复默认背景"
             app:summary="恢复绘的默认背景与液态光影" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
-            app:defaultValue="standard"
+            app:defaultValue="grid"
             app:entries="@array/hui_node_layout_entries"
             app:entryValues="@array/hui_node_layout_values"
             app:icon="@drawable/ic_baseline_view_list_24"
