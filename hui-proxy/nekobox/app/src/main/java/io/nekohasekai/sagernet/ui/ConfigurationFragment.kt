@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.OpenableColumns
@@ -10,6 +11,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
 import android.text.format.Formatter
 import android.text.style.ForegroundColorSpan
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -78,6 +80,7 @@ import io.nekohasekai.sagernet.ktx.startFilesForResult
 import io.nekohasekai.sagernet.ktx.tryToShow
 import io.nekohasekai.sagernet.plugin.PluginManager
 import io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import io.nekohasekai.sagernet.ui.profile.HttpSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.HysteriaSettingsActivity
 import io.nekohasekai.sagernet.ui.profile.MieruSettingsActivity
@@ -1477,6 +1480,8 @@ class ConfigurationFragment @JvmOverloads constructor(
             val profileType: TextView = view.findViewById(R.id.profile_type)
             val profileAddress: TextView = view.findViewById(R.id.profile_address)
             val profileStatus: TextView = view.findViewById(R.id.profile_status)
+            val nameBox: LinearLayout = view.findViewById(R.id.name_box)
+            val metaRow: LinearLayout = view.findViewById(R.id.meta_row)
 
             val trafficText: TextView = view.findViewById(R.id.traffic_text)
             val selectedView: LinearLayout = view.findViewById(R.id.selected_view)
@@ -1486,7 +1491,48 @@ class ConfigurationFragment @JvmOverloads constructor(
             val shareButton: ImageView = view.findViewById(R.id.shareIcon)
             val removeButton: ImageView = view.findViewById(R.id.remove)
 
+            init {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !SagerNet.isTv) {
+                    view.defaultFocusHighlightEnabled = false
+                }
+                applyNodeLayout()
+                HuiVisuals.applyLiquidPress(view)
+            }
+
+            private fun dp(value: Int): Int = (value * view.resources.displayMetrics.density).toInt()
+
+            private fun applyNodeLayout() {
+                val spec = when (DataStore.huiNodeLayout) {
+                    "compact" -> intArrayOf(2, 16, 14, 12, 11, 4, 6, 8)
+                    "comfortable" -> intArrayOf(6, 24, 17, 14, 13, 10, 14, 13)
+                    else -> intArrayOf(4, 20, 16, 13, 12, 7, 10, 10)
+                }
+                val margin = spec[0]
+                val radius = spec[1]
+                val titleSp = spec[2]
+                val typeSp = spec[3]
+                val pingSp = spec[4]
+                val nameV = spec[5]
+                val metaBottom = spec[6]
+                val iconPad = spec[7]
+
+                (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                    lp.setMargins(dp(margin), dp(margin), dp(margin), dp(margin))
+                    view.layoutParams = lp
+                }
+                (view as? com.google.android.material.card.MaterialCardView)?.radius = dp(radius).toFloat()
+                profileName.setTextSize(TypedValue.COMPLEX_UNIT_SP, titleSp.toFloat())
+                profileType.setTextSize(TypedValue.COMPLEX_UNIT_SP, typeSp.toFloat())
+                profileStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, pingSp.toFloat())
+                nameBox.setPadding(dp(12), dp(nameV), dp(4), dp(nameV))
+                metaRow.setPadding(dp(12), 0, dp(8), dp(metaBottom))
+                editButton.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
+                shareLayer.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
+                removeButton.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
+            }
+
             fun bind(proxyEntity: ProxyEntity, trafficData: TrafficData? = null) {
+                applyNodeLayout()
                 val pf = parentFragment as? ConfigurationFragment ?: return
 
                 entity = proxyEntity
@@ -1559,36 +1605,27 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
 
                 profileAddress.text = address
-                (trafficText.parent as View).isGone =
-                    (!showTraffic || proxyEntity.status <= 0) && address.isBlank()
+                (trafficText.parent as View).isGone = !showTraffic && address.isBlank()
 
-                if (proxyEntity.status <= 0) {
-                    if (showTraffic) {
-                        profileStatus.text = trafficText.text
+                when (proxyEntity.status) {
+                    1 -> {
+                        profileStatus.text = "${proxyEntity.ping} ms"
+                        profileStatus.setTextColor(requireContext().getColour(R.color.material_green_500))
+                        profileStatus.setOnClickListener(null)
+                    }
+                    2, 3 -> {
+                        profileStatus.text = getString(R.string.unavailable)
+                        profileStatus.setTextColor(requireContext().getColour(R.color.material_red_500))
+                        val err = proxyEntity.error
+                        profileStatus.setOnClickListener(if (err.isNullOrBlank()) null else View.OnClickListener {
+                            alert(err).tryToShow()
+                        })
+                    }
+                    else -> {
+                        profileStatus.text = "— ms"
                         profileStatus.setTextColor(requireContext().getColorAttr(android.R.attr.textColorSecondary))
-                        trafficText.text = ""
-                    } else {
-                        profileStatus.text = ""
+                        profileStatus.setOnClickListener(null)
                     }
-                } else if (proxyEntity.status == 1) {
-                    profileStatus.text = getString(R.string.available, proxyEntity.ping)
-                    profileStatus.setTextColor(requireContext().getColour(R.color.material_green_500))
-                } else {
-                    profileStatus.setTextColor(requireContext().getColour(R.color.material_red_500))
-                    if (proxyEntity.status == 2) {
-                        profileStatus.text = proxyEntity.error
-                    }
-                }
-
-                if (proxyEntity.status == 3) {
-                    val err = proxyEntity.error ?: "<?>"
-                    val msg = Protocols.genFriendlyMsg(err)
-                    profileStatus.text = if (msg != err) msg else getString(R.string.unavailable)
-                    profileStatus.setOnClickListener {
-                        alert(err).tryToShow()
-                    }
-                } else {
-                    profileStatus.setOnClickListener(null)
                 }
 
                 editButton.setOnClickListener {

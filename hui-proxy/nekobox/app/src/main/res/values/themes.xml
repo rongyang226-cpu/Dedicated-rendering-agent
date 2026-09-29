@@ -52,6 +52,11 @@
 
     </style>
 
+    <style name="HuiAvatarShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+    </style>
+
     <style name="HuiGlassCard" parent="Widget.MaterialComponents.CardView">
         <item name="cardBackgroundColor">@color/hui_glass_fill</item>
         <item name="cardCornerRadius">22dp</item>

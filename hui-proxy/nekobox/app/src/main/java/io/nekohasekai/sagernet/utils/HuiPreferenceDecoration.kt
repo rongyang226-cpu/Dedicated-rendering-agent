@@ -15,7 +15,7 @@ class HuiPreferenceDecoration : RecyclerView.ItemDecoration() {
     private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 1f
-        color = 0xC8FFFFFF.toInt()
+        color = 0xEAFFFFFF.toInt()
     }
     private val shine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(105, 255, 255, 255)
@@ -45,9 +45,9 @@ class HuiPreferenceDecoration : RecyclerView.ItemDecoration() {
             fill.shader = LinearGradient(
                 left, top, right, bottom,
                 intArrayOf(
-                    Color.argb(112, 255, 255, 255),
-                    Color.argb(42, 255, 238, 249),
-                    Color.argb(74, 235, 229, 255)
+                    Color.argb(166, 255, 255, 255),
+                    Color.argb(108, 255, 242, 249),
+                    Color.argb(142, 239, 234, 255)
                 ),
                 floatArrayOf(0f, 0.50f + phase * 0.06f, 1f),
                 Shader.TileMode.CLAMP

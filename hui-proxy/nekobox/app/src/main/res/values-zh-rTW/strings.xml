@@ -413,4 +413,9 @@
     <string name="backup_summary">如果路由規則不與設定檔一起備份，則自訂出站將丟失。</string>
     <string name="backup_not_file">不是一個備份檔案，預計 .json，但 %s</string>
     <string name="packet_encoding">封包編碼</string>
+    <string name="hui_session_traffic">本次連線 ↑ %1$s  ↓ %2$s</string>
+    <string name="hui_node_layout">節點佈局</string>
+    <string name="hui_layout_compact">緊湊列表</string>
+    <string name="hui_layout_standard">標準玻璃</string>
+    <string name="hui_layout_comfortable">舒適大卡</string>
 </resources>

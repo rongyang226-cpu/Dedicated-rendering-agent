@@ -39,13 +39,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         super.onViewCreated(view, savedInstanceState)
 
         listView.layoutManager = FixedLinearLayoutManager(listView)
-        listView.setPadding(0, dp(6), 0, dp(18))
-        listView.clipToPadding = false
-        listView.addItemDecoration(HuiPreferenceDecoration())
-        listView.addOnChildAttachStateChangeListener(object : androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
-            override fun onChildViewAttachedToWindow(view: View) = HuiVisuals.applyLiquidPress(view)
-            override fun onChildViewDetachedFromWindow(view: View) = Unit
-        })
+        HuiVisuals.decoratePreferenceList(listView)
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()

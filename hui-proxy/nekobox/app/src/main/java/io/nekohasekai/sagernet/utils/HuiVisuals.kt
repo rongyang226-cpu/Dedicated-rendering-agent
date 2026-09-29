@@ -6,13 +6,18 @@ import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.recyclerview.widget.RecyclerView
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
@@ -65,6 +70,27 @@ object HuiVisuals {
             }
             false
         }
+    }
+
+    fun decoratePreferenceList(listView: RecyclerView) {
+        val density = listView.resources.displayMetrics.density
+        listView.setPadding(0, (6f * density).toInt(), 0, (18f * density).toInt())
+        listView.clipToPadding = false
+        listView.addItemDecoration(HuiPreferenceDecoration())
+
+        fun decorate(child: View) {
+            child.background = AppCompatResources.getDrawable(child.context, R.drawable.hui_preference_press)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !SagerNet.isTv) {
+                child.defaultFocusHighlightEnabled = false
+            }
+            applyLiquidPress(child)
+        }
+
+        for (i in 0 until listView.childCount) decorate(listView.getChildAt(i))
+        listView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) = decorate(view)
+            override fun onChildViewDetachedFromWindow(view: View) = Unit
+        })
     }
 
     fun animationsEnabled(context: Context): Boolean = try {
@@ -148,6 +174,7 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
     }
     private val ambient = HuiAmbientView(context)
     private var drift: ValueAnimator? = null
+    private var lastDriftFrame = 0L
 
     init {
         clipChildren = false
@@ -165,11 +192,14 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
             addUpdateListener { animator ->
+                val now = SystemClock.uptimeMillis()
+                if (now - lastDriftFrame < 40L) return@addUpdateListener
+                lastDriftFrame = now
                 val p = animator.animatedValue as Float
-                wallpaper.scaleX = 1.045f + 0.035f * p
-                wallpaper.scaleY = 1.045f + 0.035f * p
-                wallpaper.translationX = width * -0.012f * p
-                wallpaper.translationY = height * 0.008f * p
+                wallpaper.scaleX = 1.045f + 0.028f * p
+                wallpaper.scaleY = 1.045f + 0.028f * p
+                wallpaper.translationX = width * -0.009f * p
+                wallpaper.translationY = height * 0.006f * p
             }
             start()
         }
@@ -185,15 +215,17 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
 }
 
 class HuiAmbientView(context: Context) : View(context) {
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val petalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFFFE2EC.toInt()
+        color = 0xFFFFF1F6.toInt()
+        style = Paint.Style.FILL
     }
+    private val petalPath = Path()
     private val petalX = floatArrayOf(0.05f, 0.13f, 0.21f, 0.31f, 0.39f, 0.48f, 0.57f, 0.66f, 0.74f, 0.83f, 0.91f, 0.97f)
     private val petalY = floatArrayOf(0.02f, 0.36f, 0.15f, 0.62f, 0.43f, 0.08f, 0.76f, 0.29f, 0.55f, 0.18f, 0.69f, 0.47f)
     private val petalScale = floatArrayOf(0.72f, 0.95f, 0.66f, 0.84f, 1.0f, 0.74f, 0.90f, 0.68f, 0.82f, 0.96f, 0.76f, 0.88f)
     private var phase = 0f
     private var animator: ValueAnimator? = null
+    private var lastPetalFrame = 0L
 
     init {
         isClickable = false
@@ -203,28 +235,6 @@ class HuiAmbientView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (width <= 0 || height <= 0) return
-        val p = ((sin(phase * Math.PI * 2.0) + 1.0) * 0.5).toFloat()
-        drawBubble(
-            canvas,
-            width * (0.18f + 0.08f * p),
-            height * (0.20f + 0.05f * p),
-            min(width, height) * 0.52f,
-            0x38FFD7EA
-        )
-        drawBubble(
-            canvas,
-            width * (0.84f - 0.06f * p),
-            height * (0.68f - 0.07f * p),
-            min(width, height) * 0.60f,
-            0x2FDACBFF
-        )
-        drawBubble(
-            canvas,
-            width * (0.58f + 0.03f * p),
-            height * (0.42f - 0.02f * p),
-            min(width, height) * 0.34f,
-            0x1FFFFFFF
-        )
         drawSakura(canvas)
     }
 
@@ -235,28 +245,21 @@ class HuiAmbientView(context: Context) : View(context) {
             val sway = sin((phase * 6.28318f + i * 0.83f).toDouble()).toFloat()
             val x = width * (petalX[i] + sway * 0.035f)
             val y = height * (fall - 0.04f)
-            val size = (5.0f + 3.0f * petalScale[i]) * d
-            petalPaint.alpha = (72 + 86 * petalScale[i]).toInt().coerceIn(0, 180)
+            val size = (4.4f + 2.8f * petalScale[i]) * d
+            petalPaint.alpha = (70 + 78 * petalScale[i]).toInt().coerceIn(0, 165)
+            petalPath.reset()
+            petalPath.moveTo(0f, size)
+            petalPath.cubicTo(-size * 0.95f, size * 0.35f, -size * 0.78f, -size * 0.58f, 0f, -size)
+            petalPath.cubicTo(size * 0.78f, -size * 0.58f, size * 0.95f, size * 0.35f, 0f, size)
+            petalPath.close()
             canvas.save()
             canvas.translate(x, y)
             canvas.rotate((phase * 210f + i * 31f) % 360f)
-            canvas.drawOval(-size, -size * 0.43f, size, size * 0.43f, petalPaint)
-            canvas.rotate(38f)
-            canvas.drawOval(-size * 0.56f, -size * 0.28f, size * 0.56f, size * 0.28f, petalPaint)
+            canvas.scale(0.72f, 1f)
+            canvas.drawPath(petalPath, petalPaint)
             canvas.restore()
         }
         petalPaint.alpha = 255
-    }
-
-    private fun drawBubble(canvas: Canvas, x: Float, y: Float, radius: Float, color: Int) {
-        paint.shader = RadialGradient(
-            x, y, radius,
-            intArrayOf(color, color and 0x00FFFFFF, Color.TRANSPARENT),
-            floatArrayOf(0f, 0.45f, 1f),
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawCircle(x, y, radius, paint)
-        paint.shader = null
     }
 
     fun startMotion() {
@@ -266,8 +269,11 @@ class HuiAmbientView(context: Context) : View(context) {
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.RESTART
             addUpdateListener {
+                val now = SystemClock.uptimeMillis()
+                if (now - lastPetalFrame < 32L) return@addUpdateListener
+                lastPetalFrame = now
                 phase = it.animatedValue as Float
-                invalidate()
+                postInvalidateOnAnimation()
             }
             start()
         }

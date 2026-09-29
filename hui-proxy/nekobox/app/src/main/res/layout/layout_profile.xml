@@ -10,15 +10,17 @@
     android:focusable="true"
     app:cardElevation="0dp"
     app:cardCornerRadius="22dp"
+    android:stateListAnimator="@animator/hui_card_motion"
     app:cardBackgroundColor="@color/hui_glass_fill"
-    app:strokeColor="#E6FFFFFF"
+    app:rippleColor="#66FFFFFF"
+    app:strokeColor="@color/hui_edge"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:id="@+id/content_lin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:focusable="true"
+        android:focusable="false"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -44,6 +46,7 @@
                 android:orientation="horizontal">
 
                 <LinearLayout
+                    android:id="@+id/name_box"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
@@ -55,12 +58,35 @@
 
                     <TextView
                         android:id="@+id/profile_name"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="2"
                         android:textAppearance="?android:attr/textAppearanceSmall"
                         android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         tools:text="@string/profile_name" />
+
+                    <TextView
+                        android:id="@+id/profile_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/hui_glass_tab"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:minWidth="54dp"
+                        android:gravity="center"
+                        android:paddingStart="7dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="7dp"
+                        android:paddingBottom="3dp"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:textColor="?attr/accentOrTextSecondary"
+                        android:textSize="12sp"
+                        tools:text="86 ms" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.AppCompatImageView
@@ -147,6 +173,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/meta_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -158,21 +185,21 @@
                     android:id="@+id/profile_type"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/hui_glass_tab"
+                    android:paddingStart="7dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="7dp"
+                    android:paddingBottom="2dp"
                     android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:textColor="?attr/accentOrTextSecondary" />
+                    android:textColor="?attr/accentOrTextSecondary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1" />
 
-                <TextView
-                    android:id="@+id/profile_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:textColor="?attr/accentOrTextSecondary" />
 
             </LinearLayout>
 

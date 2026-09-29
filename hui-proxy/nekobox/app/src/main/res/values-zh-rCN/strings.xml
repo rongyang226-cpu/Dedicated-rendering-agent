@@ -499,4 +499,9 @@
     <string name="minimize">最小化</string>
     <string name="app_list_permission_denied">无法读取已安装的应用。\n这通常是由于系统限制了应用的读取权限（例如某些中国厂商系统）。\n请在系统设置中授予权限。</string>
     <string name="open_app_settings">打开系统设置</string>
+    <string name="hui_session_traffic">本次 ↑ %1$s  ↓ %2$s</string>
+    <string name="hui_node_layout">节点布局</string>
+    <string name="hui_layout_compact">紧凑列表</string>
+    <string name="hui_layout_standard">标准玻璃</string>
+    <string name="hui_layout_comfortable">舒适大卡</string>
 </resources>

@@ -39,6 +39,7 @@ import io.nekohasekai.sagernet.databinding.LayoutGroupItemBinding
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.ui.ThemedActivity
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import io.nekohasekai.sagernet.widget.ListListener
 import kotlinx.parcelize.Parcelize
 import kotlin.properties.Delegates
@@ -231,6 +232,7 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
             super.onViewCreated(view, savedInstanceState)
 
             ViewCompat.setOnApplyWindowInsetsListener(listView, ListListener)
+            HuiVisuals.decoratePreferenceList(listView)
 
             activity?.apply {
                 viewCreated(view, savedInstanceState)

@@ -35,6 +35,7 @@ import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.utils.PackageCache
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import io.nekohasekai.sagernet.widget.AppListPreference
 import io.nekohasekai.sagernet.widget.ListListener
 import io.nekohasekai.sagernet.widget.OutboundPreference
@@ -340,6 +341,7 @@ class RouteSettingsActivity(
             super.onViewCreated(view, savedInstanceState)
 
             ViewCompat.setOnApplyWindowInsetsListener(listView, ListListener)
+            HuiVisuals.decoratePreferenceList(listView)
 
             activity?.apply {
                 viewCreated(view, savedInstanceState)

@@ -86,13 +86,17 @@ class MainActivity : ThemedActivity(),
             }
         }
 
-        binding.fab.setOnClickListener {
-            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
-                null
-            )
+        val toggleService = {
+            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(null)
         }
+        binding.fab.setOnClickListener { toggleService() }
+        binding.stats.findViewById<android.view.View>(R.id.connect_action).setOnClickListener { toggleService() }
         binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
-        HuiVisuals.applyLiquidPress(binding.fab)
+        binding.stats.findViewById<android.view.View>(R.id.latency_action).setOnClickListener {
+            if (DataStore.serviceState.connected) binding.stats.testConnection()
+        }
+        HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.latency_action))
+        HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.connect_action))
 
         setContentView(HuiVisuals.wrap(this, binding.root))
         changeState(BaseService.State.Idle)
@@ -316,11 +320,10 @@ class MainActivity : ThemedActivity(),
     fun displayFragment(fragment: ToolbarFragment) {
         if (fragment is ConfigurationFragment) {
             binding.stats.allowShow = true
-            binding.fab.show()
+            binding.stats.post { if (binding.stats.allowShow) binding.stats.performShow() }
         } else if (!DataStore.showBottomBar) {
             binding.stats.allowShow = false
             binding.stats.performHide()
-            binding.fab.hide()
         }
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_holder, fragment)
@@ -358,19 +361,17 @@ class MainActivity : ThemedActivity(),
         msg: String? = null,
         animate: Boolean = false,
     ) {
+        val previousState = DataStore.serviceState
         DataStore.serviceState = state
 
-        binding.fab.changeState(state, DataStore.serviceState, animate)
+        binding.fab.changeState(state, previousState, animate)
         binding.stats.changeState(state)
         if (msg != null) snackbar(getString(R.string.vpn_error, msg)).show()
     }
 
     override fun snackbarInternal(text: CharSequence): Snackbar {
         return Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
-            if (binding.fab.isShown) {
-                anchorView = binding.fab
-            }
-            // TODO
+            if (binding.stats.isShown) anchorView = binding.stats
         }
     }
 
@@ -400,7 +401,7 @@ class MainActivity : ThemedActivity(),
     // may NOT called when app is in background
     // ONLY do UI update here, write DB in bg process
     override fun cbSpeedUpdate(stats: SpeedDisplayData) {
-        binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy)
+        binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy, stats.txTotal, stats.rxTotal)
     }
 
     override fun cbTrafficUpdate(data: TrafficData) {
