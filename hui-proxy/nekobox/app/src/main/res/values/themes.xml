@@ -54,6 +54,17 @@
 
     </style>
 
+    <style name="HuiPopupTheme" parent="ThemeOverlay.AppCompat.Light">
+        <item name="colorControlHighlight">#28FFFFFF</item>
+        <item name="android:colorControlHighlight">#28FFFFFF</item>
+        <item name="popupMenuStyle">@style/HuiPopupMenuWidget</item>
+        <item name="android:popupMenuStyle">@style/HuiPopupMenuWidget</item>
+    </style>
+
+    <style name="HuiPopupMenuWidget" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/hui_popup_glass</item>
+    </style>
+
     <style name="HuiAvatarShape">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">24dp</item>

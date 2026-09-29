@@ -12,6 +12,11 @@
         android:title="@string/hui_add_subscription"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_edit_raw_config"
+        android:icon="@drawable/ic_action_description"
+        android:title="编辑原始配置"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_new_group"
         android:icon="@drawable/ic_av_playlist_add"
         android:title="@string/group_create"

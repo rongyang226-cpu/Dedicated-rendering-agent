@@ -113,6 +113,8 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_edit_raw_config -> activity.displayFragmentWithId(R.id.nav_config_center)
+
             R.id.action_add_subscription -> showQuickSubscription()
 
             R.id.action_new_group -> {

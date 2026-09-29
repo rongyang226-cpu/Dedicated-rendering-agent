@@ -818,6 +818,57 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     }
 
+    private val manualPingIds = ConcurrentHashMap.newKeySet<Long>()
+
+    private fun performTcpPing(profile: ProxyEntity) {
+        profile.status = 0
+        profile.error = null
+        var address = profile.requireBean().serverAddress
+        if (!address.isIpAddress()) {
+            address = runCatching {
+                SagerNet.underlyingNetwork?.getAllByName(address)?.firstOrNull()?.hostAddress
+                    ?: java.net.InetAddress.getAllByName(address).firstOrNull()?.hostAddress
+            }.getOrNull() ?: address
+        }
+        if (!address.isIpAddress()) {
+            profile.status = 2
+            profile.error = app.getString(R.string.connection_test_domain_not_found)
+            return
+        }
+        try {
+            val socket = SagerNet.underlyingNetwork?.socketFactory?.createSocket() ?: Socket()
+            try {
+                socket.soTimeout = 3000
+                socket.bind(InetSocketAddress(0))
+                val started = SystemClock.elapsedRealtime()
+                socket.connect(InetSocketAddress(address, profile.requireBean().serverPort), 3000)
+                profile.status = 1
+                profile.ping = (SystemClock.elapsedRealtime() - started).toInt()
+                profile.error = null
+            } finally {
+                socket.closeQuietly()
+            }
+        } catch (e: Exception) {
+            profile.status = 2
+            profile.error = e.readableMessage
+        }
+    }
+
+    private fun manualPing(profile: ProxyEntity) {
+        if (!manualPingIds.add(profile.id)) return
+        runOnDefaultDispatcher {
+            try {
+                profile.status = 0
+                profile.error = null
+                runCatching { ProfileManager.updateProfile(profile) }.onFailure(Logs::w)
+                performTcpPing(profile)
+                runCatching { ProfileManager.updateProfile(profile) }.onFailure(Logs::w)
+            } finally {
+                manualPingIds.remove(profile.id)
+            }
+        }
+    }
+
     private fun silentAutoPing() {
         if (DataStore.runningTest) return
         DataStore.runningTest = true
@@ -833,36 +884,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     workers += launch(Dispatchers.IO) {
                         while (isActive) {
                             val profile = queue.poll() ?: break
-                            profile.status = 0
-                            var address = profile.requireBean().serverAddress
-                            if (!address.isIpAddress()) {
-                                address = runCatching {
-                                    SagerNet.underlyingNetwork?.getAllByName(address)?.firstOrNull()?.hostAddress
-                                        ?: java.net.InetAddress.getAllByName(address).firstOrNull()?.hostAddress
-                                }.getOrNull() ?: address
-                            }
-                            if (!address.isIpAddress()) {
-                                profile.status = 2
-                                profile.error = app.getString(R.string.connection_test_domain_not_found)
-                            } else {
-                                try {
-                                    val socket = SagerNet.underlyingNetwork?.socketFactory?.createSocket() ?: Socket()
-                                    try {
-                                        socket.soTimeout = 3000
-                                        socket.bind(InetSocketAddress(0))
-                                        val start = SystemClock.elapsedRealtime()
-                                        socket.connect(InetSocketAddress(address, profile.requireBean().serverPort), 3000)
-                                        profile.status = 1
-                                        profile.ping = (SystemClock.elapsedRealtime() - start).toInt()
-                                        profile.error = null
-                                    } finally {
-                                        socket.closeQuietly()
-                                    }
-                                } catch (e: Exception) {
-                                    profile.status = 2
-                                    profile.error = e.readableMessage
-                                }
-                            }
+                            performTcpPing(profile)
                             runCatching { ProfileManager.updateProfile(profile) }.onFailure(Logs::w)
                         }
                     }
@@ -1701,6 +1723,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 HuiVisuals.applyLiquidPress(editButton)
                 HuiVisuals.applyLiquidPress(shareLayout)
                 HuiVisuals.applyLiquidPress(removeButton)
+                profileStatus.isClickable = true
+                profileStatus.isFocusable = false
+                HuiVisuals.applyLiquidPress(profileStatus)
             }
 
             private fun dp(value: Int): Int = (value * view.resources.displayMetrics.density).toInt()
@@ -1836,20 +1861,24 @@ class ConfigurationFragment @JvmOverloads constructor(
                     1 -> {
                         profileStatus.text = "${proxyEntity.ping} ms"
                         profileStatus.setTextColor(requireContext().getColour(R.color.material_green_500))
-                        profileStatus.setOnClickListener(null)
+                        profileStatus.setOnClickListener { pf.manualPing(proxyEntity) }
+                        profileStatus.setOnLongClickListener(null)
                     }
                     2, 3 -> {
                         profileStatus.text = getString(R.string.unavailable)
                         profileStatus.setTextColor(requireContext().getColour(R.color.material_red_500))
                         val err = proxyEntity.error
-                        profileStatus.setOnClickListener(if (err.isNullOrBlank()) null else View.OnClickListener {
+                        profileStatus.setOnClickListener { pf.manualPing(proxyEntity) }
+                        profileStatus.setOnLongClickListener(if (err.isNullOrBlank()) null else View.OnLongClickListener {
                             alert(err).tryToShow()
+                            true
                         })
                     }
                     else -> {
                         profileStatus.text = "— ms"
                         profileStatus.setTextColor(requireContext().getColorAttr(android.R.attr.textColorSecondary))
-                        profileStatus.setOnClickListener(null)
+                        profileStatus.setOnClickListener { pf.manualPing(proxyEntity) }
+                        profileStatus.setOnLongClickListener(null)
                     }
                 }
 

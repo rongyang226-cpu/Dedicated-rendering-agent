@@ -87,7 +87,7 @@
                     android:id="@+id/dock_config"
                     style="@style/HuiDockBubble"
                     android:drawableTop="@drawable/ic_baseline_view_list_24"
-                    android:text="配置" />
+                    android:text="分组" />
                 <TextView
                     android:id="@+id/dock_settings"
                     style="@style/HuiDockBubble"

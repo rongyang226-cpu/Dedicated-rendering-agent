@@ -101,7 +101,7 @@ class MainActivity : ThemedActivity(),
         }
         onBackPressedDispatcher.addCallback {
             val homeVisible = supportFragmentManager.findFragmentByTag("hui-dock-${R.id.nav_home}")?.isVisible == true
-            if (homeVisible) moveTaskToBack(true) else displayFragmentWithId(R.id.nav_home)
+            if (homeVisible) moveTaskToBack(true) else displayFragmentWithId(lastDockId)
         }
 
         CoreController.normalizeSelection()
@@ -346,15 +346,16 @@ class MainActivity : ThemedActivity(),
 
 
     private val dockIds = setOf(
-        R.id.nav_home, R.id.nav_configuration, R.id.nav_config_center, R.id.nav_settings
+        R.id.nav_home, R.id.nav_configuration, R.id.nav_group, R.id.nav_settings
     )
     private var currentDockId: Int = R.id.nav_home
+    private var lastDockId: Int = R.id.nav_home
 
     private fun setupDock() {
         val items = listOf(
             binding.dockHome to R.id.nav_home,
             binding.dockNodes to R.id.nav_configuration,
-            binding.dockConfig to R.id.nav_config_center,
+            binding.dockConfig to R.id.nav_group,
             binding.dockSettings to R.id.nav_settings,
         )
         items.forEach { (view, id) ->
@@ -368,16 +369,31 @@ class MainActivity : ThemedActivity(),
     }
 
     private fun updateDockSelection(id: Int) {
-        binding.dockHome.isSelected = id == R.id.nav_home
-        binding.dockNodes.isSelected = id == R.id.nav_configuration
-        binding.dockConfig.isSelected = id == R.id.nav_config_center
-        binding.dockSettings.isSelected = id == R.id.nav_settings
+        val items = listOf(
+            binding.dockHome to R.id.nav_home,
+            binding.dockNodes to R.id.nav_configuration,
+            binding.dockConfig to R.id.nav_group,
+            binding.dockSettings to R.id.nav_settings,
+        )
+        val lift = 2f * resources.displayMetrics.density
+        items.forEach { (item, itemId) ->
+            val selected = itemId == id
+            item.isSelected = selected
+            item.animate().cancel()
+            item.animate()
+                .scaleX(if (selected) 1f else 0.94f)
+                .scaleY(if (selected) 1f else 0.94f)
+                .translationY(if (selected) -lift else 0f)
+                .alpha(if (selected) 1f else 0.76f)
+                .setDuration(170L)
+                .start()
+        }
     }
 
     private fun dockFragment(id: Int): ToolbarFragment = when (id) {
         R.id.nav_home -> DashboardFragment()
         R.id.nav_configuration -> ConfigurationFragment()
-        R.id.nav_config_center -> ConfigCenterFragment()
+        R.id.nav_group -> GroupFragment()
         R.id.nav_settings -> SettingsFragment()
         else -> error("Not a dock destination: $id")
     }
@@ -387,9 +403,14 @@ class MainActivity : ThemedActivity(),
         val fm = supportFragmentManager
         var target = fm.findFragmentByTag(tag) as? ToolbarFragment
         val tx = fm.beginTransaction().setReorderingAllowed(true)
+            .setCustomAnimations(R.anim.hui_page_enter, R.anim.hui_page_exit)
         fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded && it !== target }.forEach { fragment ->
-            tx.hide(fragment)
-            tx.setMaxLifecycle(fragment, Lifecycle.State.STARTED)
+            if (fragment.tag?.startsWith("hui-dock-") == true) {
+                tx.hide(fragment)
+                tx.setMaxLifecycle(fragment, Lifecycle.State.STARTED)
+            } else {
+                tx.remove(fragment)
+            }
         }
         if (target == null) {
             target = dockFragment(id)
@@ -400,15 +421,27 @@ class MainActivity : ThemedActivity(),
         tx.setMaxLifecycle(target, Lifecycle.State.RESUMED)
         tx.commitAllowingStateLoss()
         currentDockId = id
+        lastDockId = id
         updateDockSelection(id)
         binding.drawerLayout.closeDrawers()
     }
 
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
-        supportFragmentManager.beginTransaction()
+        val fm = supportFragmentManager
+        val tx = fm.beginTransaction()
             .setReorderingAllowed(true)
-            .replace(R.id.fragment_holder, fragment)
+            .setCustomAnimations(R.anim.hui_page_enter, R.anim.hui_page_exit)
+        fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded }.forEach { current ->
+            if (current.tag?.startsWith("hui-dock-") == true) {
+                tx.hide(current)
+                tx.setMaxLifecycle(current, Lifecycle.State.STARTED)
+            } else {
+                tx.remove(current)
+            }
+        }
+        tx.add(R.id.fragment_holder, fragment, "hui-secondary-${fragment::class.java.simpleName}")
+            .setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
             .commitAllowingStateLoss()
         binding.drawerLayout.closeDrawers()
     }
@@ -420,7 +453,7 @@ class MainActivity : ThemedActivity(),
             currentDockId = -1
             updateDockSelection(-1)
             when (id) {
-            R.id.nav_group -> displayFragment(GroupFragment())
+            R.id.nav_config_center -> displayFragment(ConfigCenterFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
             R.id.nav_traffic -> displayFragment(WebviewFragment())
             R.id.nav_tools -> displayFragment(ToolsFragment())

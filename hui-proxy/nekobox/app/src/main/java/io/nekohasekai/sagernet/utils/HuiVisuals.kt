@@ -61,6 +61,9 @@ object HuiVisuals {
 
     fun applyLiquidPress(view: View) {
         if (!view.isClickable || !view.isEnabled) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            view.stateListAnimator = null
+        }
         if (!SagerNet.isTv) {
             view.isFocusable = false
             view.isFocusableInTouchMode = false
@@ -70,9 +73,9 @@ object HuiVisuals {
         }
         view.setOnTouchListener { v, event ->
             when (event.actionMasked) {
-                android.view.MotionEvent.ACTION_DOWN -> v.animate().scaleX(0.975f).scaleY(0.975f).alpha(0.90f).setDuration(80L).start()
+                android.view.MotionEvent.ACTION_DOWN -> v.animate().scaleX(0.975f).scaleY(0.975f).alpha(0.90f).setDuration(65L).start()
                 android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
-                    v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(220L).setInterpolator(AccelerateDecelerateInterpolator()).start()
+                    v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(145L).setInterpolator(AccelerateDecelerateInterpolator()).start()
             }
             false
         }
@@ -215,7 +218,7 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
             repeatMode = ValueAnimator.REVERSE
             addUpdateListener { animator ->
                 val now = SystemClock.uptimeMillis()
-                if (now - lastDriftFrame < 40L) return@addUpdateListener
+                if (now - lastDriftFrame < 16L) return@addUpdateListener
                 lastDriftFrame = now
                 val p = animator.animatedValue as Float
                 wallpaper.scaleX = 1.045f + 0.026f * p
@@ -252,7 +255,7 @@ class HuiAmbientView(context: Context) : View(context) {
             if (!running || !isAttachedToWindow) return
             phase = (SystemClock.uptimeMillis() % 24000L) / 24000f
             invalidate()
-            postDelayed(this, 40L)
+            postOnAnimation(this)
         }
     }
 
