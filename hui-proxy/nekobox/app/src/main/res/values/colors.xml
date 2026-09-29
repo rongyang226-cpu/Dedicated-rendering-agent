@@ -9,8 +9,8 @@
     <color name="hui_ink_secondary">#C6262830</color>
     <color name="hui_glass_soft">#4FFFFFFF</color>
     <color name="hui_glass_strong">#82FFFFFF</color>
-    <color name="hui_selected">#FFF36B9A</color>
-    <color name="hui_selected_surface">#3DFFE2EE</color>
+    <color name="hui_selected">#FF4C5663</color>
+    <color name="hui_selected_surface">#334C5663</color>
     <integer-array name="material_colors">
         <item>@color/material_red_500</item>
         <item>@color/color_pink_ssr</item>

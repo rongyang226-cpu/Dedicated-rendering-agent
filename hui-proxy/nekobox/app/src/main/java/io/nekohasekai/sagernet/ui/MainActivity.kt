@@ -86,13 +86,13 @@ class MainActivity : ThemedActivity(),
         navigation.setNavigationItemSelectedListener(this)
 
         if (savedInstanceState == null) {
-            displayFragmentWithId(R.id.nav_configuration)
+            displayFragmentWithId(R.id.nav_home)
         }
         onBackPressedDispatcher.addCallback {
-            if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is ConfigurationFragment) {
+            if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is DashboardFragment) {
                 moveTaskToBack(true)
             } else {
-                displayFragmentWithId(R.id.nav_configuration)
+                displayFragmentWithId(R.id.nav_home)
             }
         }
 
@@ -349,10 +349,10 @@ class MainActivity : ThemedActivity(),
 
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
-        if (fragment is ConfigurationFragment) {
+        if (fragment is DashboardFragment || DataStore.showBottomBar) {
             binding.stats.allowShow = true
             binding.stats.post { if (binding.stats.allowShow) binding.stats.performShow() }
-        } else if (!DataStore.showBottomBar) {
+        } else {
             binding.stats.allowShow = false
             binding.stats.performHide()
         }
@@ -364,6 +364,8 @@ class MainActivity : ThemedActivity(),
 
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
         when (id) {
+            R.id.nav_home -> displayFragment(DashboardFragment())
+
             R.id.nav_configuration -> {
                 displayFragment(ConfigurationFragment())
             }

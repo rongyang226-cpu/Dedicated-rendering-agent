@@ -595,4 +595,6 @@
     <string name="hui_crash_saved">The app stopped unexpectedly last time. A local diagnostic snapshot was kept; it will not be shared automatically.</string>
     <string name="hui_open_log">Open logs</string>
     <string name="hui_log_export_failed">Unable to export the diagnostic log.</string>
+    <string name="hui_dashboard">Dashboard</string>
+    <string name="hui_nodes">Nodes</string>
 </resources>

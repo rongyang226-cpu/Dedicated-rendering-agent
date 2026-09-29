@@ -5,17 +5,17 @@
         <item name="actionModeCloseDrawable">@drawable/ic_navigation_close</item>
         <item name="colorButtonNormal">?colorAccent</item>
         <item name="android:navigationBarColor">@color/hui_fallback</item>
-        <item name="colorPrimary">#825273</item>
-        <item name="colorPrimaryDark">#59415F</item>
-        <item name="colorAccent">#A65180</item>
+        <item name="colorPrimary">#4C5663</item>
+        <item name="colorPrimaryDark">#343B45</item>
+        <item name="colorAccent">#4C5663</item>
         <item name="android:colorControlHighlight">#22FFFFFF</item>
         <item name="colorControlHighlight">#22FFFFFF</item>
 
         <item name="colorMaterial100">@color/material_pink_100</item>
         <item name="colorMaterial300">@color/material_pink_300</item>
 
-        <item name="accentOrTextSecondary">?colorAccent</item>
-        <item name="accentOrTextPrimary">?colorAccent</item>
+        <item name="accentOrTextSecondary">@color/hui_ink_secondary</item>
+        <item name="accentOrTextPrimary">@color/hui_ink</item>
         <item name="primaryOrTextSecondary">?colorPrimary</item>
         <item name="primaryOrTextPrimary">?colorPrimary</item>
 

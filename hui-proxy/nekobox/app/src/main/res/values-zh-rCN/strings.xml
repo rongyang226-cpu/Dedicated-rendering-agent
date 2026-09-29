@@ -512,4 +512,6 @@
     <string name="hui_crash_saved">上次运行发生异常，诊断快照已在本机保留，不会再自动弹出分享。</string>
     <string name="hui_open_log">查看日志</string>
     <string name="hui_log_export_failed">无法导出诊断日志。</string>
+    <string name="hui_dashboard">仪表盘</string>
+    <string name="hui_nodes">节点</string>
 </resources>

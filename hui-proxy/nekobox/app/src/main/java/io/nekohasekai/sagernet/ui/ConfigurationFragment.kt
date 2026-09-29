@@ -31,6 +31,9 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.view.size
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.PreferenceDataStore
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -103,6 +106,7 @@ import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.joinAll
@@ -250,6 +254,17 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
 
         DataStore.profileCacheStore.registerChangeListener(this)
+
+        if (!select) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                    while (isActive) {
+                        silentAutoPing()
+                        delay(60_000L)
+                    }
+                }
+            }
+        }
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
@@ -801,6 +816,65 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
         }
 
+    }
+
+    private fun silentAutoPing() {
+        if (DataStore.runningTest) return
+        DataStore.runningTest = true
+        val groupId = DataStore.currentGroupId()
+        runOnDefaultDispatcher {
+            try {
+                val profiles = SagerDatabase.proxyDao.getByGroup(groupId).filter {
+                    runCatching { it.requireBean().canTCPing() }.getOrDefault(false)
+                }
+                val queue = ConcurrentLinkedQueue(profiles)
+                val workers = mutableListOf<Job>()
+                repeat(DataStore.connectionTestConcurrent.coerceAtLeast(1)) {
+                    workers += launch(Dispatchers.IO) {
+                        while (isActive) {
+                            val profile = queue.poll() ?: break
+                            profile.status = 0
+                            var address = profile.requireBean().serverAddress
+                            if (!address.isIpAddress()) {
+                                address = runCatching {
+                                    SagerNet.underlyingNetwork?.getAllByName(address)?.firstOrNull()?.hostAddress
+                                        ?: java.net.InetAddress.getAllByName(address).firstOrNull()?.hostAddress
+                                }.getOrNull() ?: address
+                            }
+                            if (!address.isIpAddress()) {
+                                profile.status = 2
+                                profile.error = app.getString(R.string.connection_test_domain_not_found)
+                            } else {
+                                try {
+                                    val socket = SagerNet.underlyingNetwork?.socketFactory?.createSocket() ?: Socket()
+                                    try {
+                                        socket.soTimeout = 3000
+                                        socket.bind(InetSocketAddress(0))
+                                        val start = SystemClock.elapsedRealtime()
+                                        socket.connect(InetSocketAddress(address, profile.requireBean().serverPort), 3000)
+                                        profile.status = 1
+                                        profile.ping = (SystemClock.elapsedRealtime() - start).toInt()
+                                        profile.error = null
+                                    } finally {
+                                        socket.closeQuietly()
+                                    }
+                                } catch (e: Exception) {
+                                    profile.status = 2
+                                    profile.error = e.readableMessage
+                                }
+                            }
+                            runCatching { ProfileManager.updateProfile(profile) }.onFailure(Logs::w)
+                        }
+                    }
+                }
+                workers.joinAll()
+                GroupManager.postReload(groupId)
+            } catch (e: Throwable) {
+                Logs.w(e)
+            } finally {
+                DataStore.runningTest = false
+            }
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -1726,7 +1800,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 profileName.text = proxyEntity.displayName()
                 profileType.text = proxyEntity.displayType()
-                profileType.setTextColor(requireContext().getProtocolColor(proxyEntity.type))
+                profileType.setTextColor(requireContext().getColour(R.color.hui_ink_secondary))
 
                 var rx = proxyEntity.rx
                 var tx = proxyEntity.tx
