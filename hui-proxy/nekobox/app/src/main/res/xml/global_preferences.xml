@@ -8,6 +8,16 @@
             app:key="isAutoConnect"
             app:summary="@string/auto_connect_summary"
             app:title="@string/auto_connect" />
+        <Preference
+            app:key="huiBackground"
+            app:icon="@drawable/ic_image_photo"
+            app:title="自定义背景"
+            app:summary="选择图片作为绘的动态玻璃背景" />
+        <Preference
+            app:key="huiBackgroundReset"
+            app:icon="@drawable/ic_baseline_refresh_24"
+            app:title="恢复默认背景"
+            app:summary="恢复绘的默认背景与液态光影" />
         <moe.matsuri.nb4a.ui.ColorPickerPreference
             android:title="@string/theme"
             app:icon="@drawable/ic_baseline_color_lens_24"

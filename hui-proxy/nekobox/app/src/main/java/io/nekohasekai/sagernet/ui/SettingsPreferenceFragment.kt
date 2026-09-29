@@ -1,7 +1,9 @@
 package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -16,6 +18,8 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.utils.Theme
+import io.nekohasekai.sagernet.utils.HuiPreferenceDecoration
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import moe.matsuri.nb4a.ui.*
 
 class SettingsPreferenceFragment : PreferenceFragmentCompat() {
@@ -24,12 +28,27 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
     private lateinit var globalCustomConfig: EditConfigPreference
 
+    private val backgroundPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        runCatching { requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        HuiVisuals.setBackground(requireContext(), uri)
+        ActivityCompat.recreate(requireActivity())
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         listView.layoutManager = FixedLinearLayoutManager(listView)
+        listView.setPadding(0, dp(6), 0, dp(18))
+        listView.clipToPadding = false
+        listView.addItemDecoration(HuiPreferenceDecoration())
+        listView.addOnChildAttachStateChangeListener(object : androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) = HuiVisuals.applyLiquidPress(view)
+            override fun onChildViewDetachedFromWindow(view: View) = Unit
+        })
     }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private val reloadListener = Preference.OnPreferenceChangeListener { _, _ ->
         needReload()
@@ -40,6 +59,16 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = DataStore.configurationStore
         DataStore.initGlobal()
         addPreferencesFromResource(R.xml.global_preferences)
+
+        findPreference<Preference>("huiBackground")?.setOnPreferenceClickListener {
+            backgroundPicker.launch(arrayOf("image/*"))
+            true
+        }
+        findPreference<Preference>("huiBackgroundReset")?.setOnPreferenceClickListener {
+            HuiVisuals.clearBackground(requireContext())
+            ActivityCompat.recreate(requireActivity())
+            true
+        }
 
         val appTheme = findPreference<ColorPickerPreference>(Key.APP_THEME)!!
         appTheme.setOnPreferenceChangeListener { _, newTheme ->

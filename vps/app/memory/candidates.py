@@ -43,6 +43,14 @@ async def init_candidate_db():
         ON memory_candidates(status);
         """)
 
+        cur = await db.execute("PRAGMA table_info(memory_candidates)")
+        columns = {row[1] for row in await cur.fetchall()}
+        if "evidence_count" not in columns:
+            await db.execute(
+                "ALTER TABLE memory_candidates "
+                "ADD COLUMN evidence_count INTEGER NOT NULL DEFAULT 1"
+            )
+
         await db.commit()
 
 

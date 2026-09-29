@@ -192,7 +192,7 @@ class AppListActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
 
         binding = LayoutAppListBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(io.nekohasekai.sagernet.utils.HuiVisuals.wrap(this, binding.root))
 
         binding.appPlaceholder.openSettings.setOnClickListener {
             val intent =

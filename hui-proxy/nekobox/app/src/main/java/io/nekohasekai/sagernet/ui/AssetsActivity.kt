@@ -36,7 +36,7 @@ class AssetsActivity : ThemedActivity() {
 
         val binding = LayoutAssetsBinding.inflate(layoutInflater)
         layout = binding
-        setContentView(binding.root)
+        setContentView(io.nekohasekai.sagernet.utils.HuiVisuals.wrap(this, binding.root))
 
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.apply {

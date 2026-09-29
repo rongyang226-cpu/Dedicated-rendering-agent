@@ -31,11 +31,29 @@ import org.json.JSONTokener
 import org.yaml.snakeyaml.TypeDescription
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.StringReader
 import androidx.core.net.toUri
 
 @Suppress("EXPERIMENTAL_API_USAGE")
 object RawUpdater : GroupUpdater() {
+
+    private const val MAX_SUBSCRIPTION_BYTES = 8 * 1024 * 1024
+
+    private fun readLimited(input: InputStream): String = input.use { stream ->
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val read = stream.read(buffer)
+            if (read < 0) break
+            total += read
+            if (total > MAX_SUBSCRIPTION_BYTES) error("Subscription file is too large")
+            output.write(buffer, 0, read)
+        }
+        output.toString(Charsets.UTF_8.name())
+    }
 
     @SuppressLint("Recycle")
     override suspend fun doUpdate(
@@ -49,8 +67,7 @@ object RawUpdater : GroupUpdater() {
         var proxies: List<AbstractBean>
         if (link.startsWith("content://")) {
             val contentText = app.contentResolver.openInputStream(link.toUri())
-                ?.bufferedReader()
-                ?.readText()
+                ?.let(::readLimited)
 
             proxies = contentText?.let { parseRaw(contentText) }
                 ?: error(app.getString(R.string.no_proxies_found_in_subscription))
@@ -69,7 +86,15 @@ object RawUpdater : GroupUpdater() {
                 setURL(subscription.link)
                 setUserAgent(subscription.customUserAgent.takeIf { it.isNotBlank() } ?: USER_AGENT)
             }.execute()
-            proxies = parseRaw(Util.getStringBox(response.contentString))
+            val declaredSize = Util.getStringBox(response.getHeader("Content-Length")).toLongOrNull()
+            if (declaredSize != null && declaredSize > MAX_SUBSCRIPTION_BYTES) {
+                error("Subscription response is too large")
+            }
+            val responseText = Util.getStringBox(response.contentString)
+            if (responseText.length > MAX_SUBSCRIPTION_BYTES) {
+                error("Subscription response is too large")
+            }
+            proxies = parseRaw(responseText)
                 ?: error(app.getString(R.string.no_proxies_found))
 
             subscription.subscriptionUserinfo =

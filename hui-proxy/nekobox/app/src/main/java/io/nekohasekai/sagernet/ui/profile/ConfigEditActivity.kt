@@ -60,7 +60,7 @@ class ConfigEditActivity : ThemedActivity() {
         }
 
         binding = LayoutEditConfigBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(io.nekohasekai.sagernet.utils.HuiVisuals.wrap(this, binding.root))
 
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.apply {

@@ -13,6 +13,7 @@ import androidx.core.view.updatePadding
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.utils.HuiVisuals
 import io.nekohasekai.sagernet.utils.Theme
 
 abstract class ThemedActivity : AppCompatActivity {
@@ -33,6 +34,10 @@ abstract class ThemedActivity : AppCompatActivity {
 
         super.onCreate(savedInstanceState)
 
+        if (isDialog && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            runCatching { window.setBackgroundBlurRadius(24) }
+        }
+
         uiMode = resources.configuration.uiMode
 
         if (Build.VERSION.SDK_INT >= 35) {
@@ -48,6 +53,15 @@ abstract class ThemedActivity : AppCompatActivity {
                 insets
             }
         }
+    }
+
+    override fun setContentView(layoutResID: Int) {
+        if (isDialog) {
+            super.setContentView(layoutResID)
+            return
+        }
+        val content = layoutInflater.inflate(layoutResID, null)
+        super.setContentView(HuiVisuals.wrap(this, content))
     }
 
     override fun setTheme(resId: Int) {

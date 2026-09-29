@@ -54,6 +54,17 @@ async def init_profile_db():
         );
         """)
 
+        cur = await db.execute("PRAGMA table_info(person_facts)")
+        columns = {row[1] for row in await cur.fetchall()}
+        migrations = {
+            "strength": "ALTER TABLE person_facts ADD COLUMN strength REAL NOT NULL DEFAULT 1.0",
+            "reinforcement_count": "ALTER TABLE person_facts ADD COLUMN reinforcement_count INTEGER NOT NULL DEFAULT 1",
+            "last_reinforced_at": "ALTER TABLE person_facts ADD COLUMN last_reinforced_at TEXT",
+        }
+        for column, sql in migrations.items():
+            if column not in columns:
+                await db.execute(sql)
+
         await db.commit()
 
 

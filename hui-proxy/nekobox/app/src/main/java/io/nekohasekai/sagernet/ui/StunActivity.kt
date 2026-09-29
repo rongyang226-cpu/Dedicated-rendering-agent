@@ -18,7 +18,7 @@ class StunActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
 
         binding = LayoutStunBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(io.nekohasekai.sagernet.utils.HuiVisuals.wrap(this, binding.root))
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.apply {
             setTitle(R.string.stun_test)

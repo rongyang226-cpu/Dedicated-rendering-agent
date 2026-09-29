@@ -26,6 +26,8 @@
     <uses-permission android:name="com.android.permission.GET_INSTALLED_APPS" />
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <uses-feature
@@ -49,7 +51,7 @@
 
     <application
         android:name="io.nekohasekai.sagernet.SagerNet"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:autoRevokePermissions="allowed"
         android:banner="@drawable/hui_avatar"
         android:dataExtractionRules="@xml/backup_rules"

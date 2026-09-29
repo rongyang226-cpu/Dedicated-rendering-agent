@@ -1,7 +1,9 @@
 package io.nekohasekai.sagernet.ui
 
 import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Bundle
+import android.net.Uri
 import android.text.InputType
 import android.view.MenuItem
 import android.view.View
@@ -37,7 +39,26 @@ class WebviewFragment : ToolbarFragment(R.layout.layout_webview), Toolbar.OnMenu
         mWebView = binding.webview
         mWebView.settings.domStorageEnabled = true
         mWebView.settings.javaScriptEnabled = true
+        mWebView.settings.allowFileAccess = false
+        mWebView.settings.allowContentAccess = false
+        mWebView.settings.javaScriptCanOpenWindowsAutomatically = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mWebView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mWebView.settings.safeBrowsingEnabled = true
+        }
         mWebView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val scheme = request?.url?.scheme?.lowercase()
+                return scheme != "http" && scheme != "https"
+            }
+
+            @Suppress("DEPRECATION")
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                val scheme = runCatching { Uri.parse(url).scheme?.lowercase() }.getOrNull()
+                return scheme != "http" && scheme != "https"
+            }
             override fun onReceivedError(
                 view: WebView?, request: WebResourceRequest?, error: WebResourceError?
             ) {
