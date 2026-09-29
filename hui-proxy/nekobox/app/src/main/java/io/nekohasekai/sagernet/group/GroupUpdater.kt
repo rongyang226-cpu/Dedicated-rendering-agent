@@ -2,6 +2,7 @@ package io.nekohasekai.sagernet.group
 
 import io.nekohasekai.sagernet.*
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.SubscriptionBean
@@ -136,7 +137,7 @@ abstract class GroupUpdater {
                 GroupManager.postReload(proxyGroup.id)
 
                 val subscription = proxyGroup.subscription!!
-                val connected = DataStore.serviceState.connected
+                val connected = CoreController.status(app).active
                 val userInterface = GroupManager.userInterface
 
                 if (byUser && (subscription.link?.startsWith("http://") == true || subscription.updateWhenConnectedOnly) && !connected) {

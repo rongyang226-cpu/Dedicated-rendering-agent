@@ -90,6 +90,19 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var huiNodeLayout by configurationStore.string("huiNodeLayout") { "grid" }
     var huiCoreEngine by configurationStore.string("huiCoreEngine") { "box" }
 
+    private fun huiFullConfigOverrideKey(profileId: Long) = "huiFullConfigOverride.$profileId"
+
+    fun huiFullConfigOverride(profileId: Long): String =
+        configurationStore.getString(huiFullConfigOverrideKey(profileId)).orEmpty()
+
+    fun setHuiFullConfigOverride(profileId: Long, value: String) {
+        configurationStore.putString(huiFullConfigOverrideKey(profileId), value)
+    }
+
+    fun clearHuiFullConfigOverride(profileId: Long) {
+        configurationStore.remove(huiFullConfigOverrideKey(profileId))
+    }
+
     var allowInsecureOnRequest by configurationStore.boolean(Key.ALLOW_INSECURE_ON_REQUEST)
     var networkChangeResetConnections by configurationStore.boolean(Key.NETWORK_CHANGE_RESET_CONNECTIONS) { true }
     var wakeResetConnections by configurationStore.boolean(Key.WAKE_RESET_CONNECTIONS)

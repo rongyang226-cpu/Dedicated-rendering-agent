@@ -7,6 +7,7 @@ import io.nekohasekai.sagernet.bg.core.CoreStatus
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.buildConfig
+import moe.matsuri.nb4a.proxy.config.ConfigBean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -26,6 +27,56 @@ object BoxCoreManager {
 
     fun hasPreparedConfig(context: Context): Boolean = activeConfig(context).let {
         it.isFile && it.length() in 2..MAX_CONFIG_BYTES.toLong()
+    }
+
+    data class EditableConfig(
+        val text: String,
+        val description: String,
+        val canUpdateSource: Boolean,
+    )
+
+    fun editableConfig(): EditableConfig {
+        val selected = DataStore.selectedProxy
+        val profile = selected.takeIf { it > 0L }?.let(SagerDatabase.proxyDao::getById)
+        val group = profile?.let { SagerDatabase.groupDao.getById(it.groupId) } ?: DataStore.currentGroup()
+        val bean = profile?.let { runCatching { it.requireBean() }.getOrNull() }
+        if (profile != null && bean is ConfigBean && bean.type == 0) {
+            val override = DataStore.huiFullConfigOverride(profile.id)
+            return EditableConfig(
+                text = override.ifBlank { bean.config.orEmpty() },
+                description = if (override.isNotBlank())
+                    "Box 完整配置 · 本地覆写已启用，更新来源不会覆盖"
+                else "Box 完整 sing-box JSON · 可直接编辑",
+                canUpdateSource = group.subscription != null,
+            )
+        }
+        return EditableConfig(
+            text = DataStore.globalCustomConfig.ifBlank { "{}" },
+            description = if (group.subscription != null)
+                "Box JSON 覆写 · 更新订阅时会保留本地覆写"
+            else "Box JSON 全局覆写",
+            canUpdateSource = group.subscription != null,
+        )
+    }
+
+    fun saveEditedConfig(raw: String) {
+        val text = raw.trim().ifBlank { "{}" }
+        val formatted = JSONObject(text).toString(2)
+        val selected = DataStore.selectedProxy
+        val profile = selected.takeIf { it > 0L }?.let(SagerDatabase.proxyDao::getById)
+        val bean = profile?.let { runCatching { it.requireBean() }.getOrNull() }
+        if (profile != null && bean is ConfigBean && bean.type == 0) {
+            DataStore.setHuiFullConfigOverride(profile.id, formatted)
+        } else {
+            DataStore.globalCustomConfig = formatted
+        }
+    }
+
+    fun sourceGroup(): io.nekohasekai.sagernet.database.ProxyGroup? {
+        val selected = DataStore.selectedProxy
+        val profile = selected.takeIf { it > 0L }?.let(SagerDatabase.proxyDao::getById)
+        val group = profile?.let { SagerDatabase.groupDao.getById(it.groupId) } ?: DataStore.currentGroup()
+        return group.takeIf { it.subscription != null }
     }
 
     suspend fun prepareSelectedProfile(context: Context): String = withContext(Dispatchers.IO) {

@@ -96,6 +96,24 @@
         <item name="android:letterSpacing">0.01</item>
     </style>
 
+    <style name="HuiDockBubble">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/hui_glass_tab</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">false</item>
+        <item name="android:drawableTint">@color/hui_ink</item>
+        <item name="android:drawablePadding">2dp</item>
+        <item name="android:paddingTop">7dp</item>
+        <item name="android:paddingBottom">5dp</item>
+        <item name="android:textColor">@color/hui_ink</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:stateListAnimator">@animator/hui_card_motion</item>
+    </style>
+
     <style name="Theme.SagerNet.Dialog" parent="Theme.MaterialComponents.Light.Dialog.Alert">
         <item name="android:windowBackground">@drawable/hui_glass</item>
         <item name="colorSurface">#CFFFFFFF</item>
@@ -103,15 +121,15 @@
         <item name="actionModeCloseDrawable">@drawable/ic_navigation_close</item>
         <item name="colorButtonNormal">?colorAccent</item>
         <item name="android:navigationBarColor">?colorPrimaryDark</item>
-        <item name="colorPrimary">@color/material_pink_500</item>
-        <item name="colorPrimaryDark">@color/material_pink_700</item>
-        <item name="colorAccent">@color/material_pink_accent_200</item>
+        <item name="colorPrimary">@color/hui_selected</item>
+        <item name="colorPrimaryDark">#343B45</item>
+        <item name="colorAccent">@color/hui_selected</item>
 
-        <item name="colorMaterial100">@color/material_pink_100</item>
-        <item name="colorMaterial300">@color/material_pink_300</item>
+        <item name="colorMaterial100">@color/hui_glass_soft</item>
+        <item name="colorMaterial300">@color/hui_selected_surface</item>
 
-        <item name="accentOrTextSecondary">?colorAccent</item>
-        <item name="accentOrTextPrimary">?colorAccent</item>
+        <item name="accentOrTextSecondary">@color/hui_ink_secondary</item>
+        <item name="accentOrTextPrimary">@color/hui_ink</item>
         <item name="primaryOrTextSecondary">?colorPrimary</item>
         <item name="primaryOrTextPrimary">?colorPrimary</item>
 

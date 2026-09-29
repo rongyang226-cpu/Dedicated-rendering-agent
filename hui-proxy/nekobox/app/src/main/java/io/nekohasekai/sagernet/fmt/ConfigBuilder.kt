@@ -66,8 +66,9 @@ fun buildConfig(
     if (proxy.type == TYPE_CONFIG) {
         val bean = proxy.requireBean() as ConfigBean
         if (bean.type == 0) {
+            val localOverride = DataStore.huiFullConfigOverride(proxy.id).takeIf(String::isNotBlank)
             return ConfigBuildResult(
-                bean.config,
+                localOverride ?: bean.config,
                 listOf(),
                 proxy.id, //
                 mapOf(TAG_PROXY to listOf(proxy)), //

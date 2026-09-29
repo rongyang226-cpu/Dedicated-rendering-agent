@@ -34,6 +34,8 @@ object MetaCoreManager {
     fun profileDir(context: Context) = File(home(context), "profiles/active")
     fun activeConfig(context: Context) = File(profileDir(context), "config.yaml")
     private fun sourceFile(context: Context) = File(home(context), "source.txt")
+    private fun sourceUrlFile(context: Context) = File(home(context), "source_url.txt")
+    private fun backupDir(context: Context) = File(home(context), "backups")
     private fun statusFile(context: Context) = File(home(context), "status.json")
 
     fun sourceLabel(context: Context): String = runCatching {
@@ -47,11 +49,12 @@ object MetaCoreManager {
     fun importUri(context: Context, uri: Uri, label: String? = null) {
         val bytes = context.contentResolver.openInputStream(uri)?.use(::readLimited)
             ?: error("无法读取 Meta 配置")
-        saveConfig(context, bytes, label ?: uri.lastPathSegment.orEmpty())
+        saveConfig(context, bytes, label ?: uri.lastPathSegment.orEmpty(), null)
     }
 
     fun importUrl(context: Context, raw: String) {
-        val url = URL(raw.trim())
+        val normalized = raw.trim()
+        val url = URL(normalized)
         require(url.protocol.equals("https", true) || url.protocol.equals("http", true)) {
             "只支持 HTTP/HTTPS 配置链接"
         }
@@ -68,7 +71,7 @@ object MetaCoreManager {
             val length = connection.contentLengthLong
             require(length <= 0 || length <= MAX_CONFIG_BYTES) { "Meta 配置超过 2 MB" }
             val bytes = connection.inputStream.use(::readLimited)
-            saveConfig(context, bytes, url.host)
+            saveConfig(context, bytes, url.host, normalized)
         } finally {
             connection.disconnect()
         }
@@ -88,13 +91,14 @@ object MetaCoreManager {
         return output.toByteArray()
     }
 
-    private fun saveConfig(context: Context, bytes: ByteArray, label: String) {
+    private fun saveConfig(context: Context, bytes: ByteArray, label: String, sourceUrl: String?) {
         require(bytes.isNotEmpty()) { "Meta 配置为空" }
         val text = bytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
         require("proxies:" in text || "proxy-providers:" in text || "listeners:" in text) {
             "这不像 Clash Meta / Mihomo YAML 配置"
         }
         val target = activeConfig(context)
+        backupActive(context)
         target.parentFile?.mkdirs()
         val temp = File(target.parentFile, "config.pending.yaml")
         FileOutputStream(temp).use { out ->
@@ -110,7 +114,58 @@ object MetaCoreManager {
             parentFile?.mkdirs()
             writeText(label.take(180))
         }
+        if (sourceUrl.isNullOrBlank()) sourceUrlFile(context).delete() else {
+            sourceUrlFile(context).apply {
+                parentFile?.mkdirs()
+                writeText(sourceUrl.take(4096))
+            }
+        }
     }
+
+    fun sourceUrl(context: Context): String = runCatching {
+        sourceUrlFile(context).takeIf(File::isFile)?.readText()?.trim().orEmpty()
+    }.getOrDefault("")
+
+    fun readConfigText(context: Context): String = runCatching {
+        activeConfig(context).takeIf(File::isFile)?.readText().orEmpty()
+    }.getOrDefault("")
+
+    fun saveEditedConfig(context: Context, raw: String) {
+        val text = raw.removePrefix("\uFEFF").trim()
+        require(text.isNotEmpty()) { "Meta 配置不能为空" }
+        require(text.toByteArray().size <= MAX_CONFIG_BYTES) { "Meta 配置超过 2 MB" }
+        require("proxies:" in text || "proxy-providers:" in text || "listeners:" in text) {
+            "这不像 Clash Meta / Mihomo YAML 配置"
+        }
+        backupActive(context)
+        val target = activeConfig(context)
+        target.parentFile?.mkdirs()
+        val pending = File(target.parentFile, "config.edited.yaml")
+        FileOutputStream(pending).use { out ->
+            out.write(text.toByteArray(Charsets.UTF_8))
+            out.fd.sync()
+        }
+        if (target.exists() && !target.delete()) error("无法替换 Meta 配置")
+        if (!pending.renameTo(target)) {
+            pending.copyTo(target, overwrite = true)
+            pending.delete()
+        }
+    }
+
+    fun refreshFromSource(context: Context) {
+        val url = sourceUrl(context)
+        require(url.isNotBlank()) { "当前 Meta 配置没有远程来源" }
+        importUrl(context, url)
+    }
+
+    private fun backupActive(context: Context) {
+        val source = activeConfig(context)
+        if (!source.isFile || source.length() <= 0L) return
+        val dir = backupDir(context).apply { mkdirs() }
+        source.copyTo(File(dir, "config-${System.currentTimeMillis()}.yaml"), overwrite = true)
+        dir.listFiles()?.sortedByDescending(File::lastModified)?.drop(6)?.forEach(File::delete)
+    }
+
 
     fun start(context: Context) {
         require(hasConfig(context)) { "先导入 Clash Meta / Mihomo YAML 配置" }

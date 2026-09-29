@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MenuItem
 import androidx.activity.addCallback
@@ -16,6 +17,7 @@ import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceDataStore
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
@@ -51,7 +53,9 @@ import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.utils.HuiVisuals
 import moe.matsuri.nb4a.utils.Util
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -63,6 +67,9 @@ class MainActivity : ThemedActivity(),
 
     lateinit var binding: LayoutMainBinding
     lateinit var navigation: NavigationView
+    @Volatile private var currentStatusSnapshot = CoreStatus()
+
+    fun coreStatusSnapshot(): CoreStatus = currentStatusSnapshot
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,30 +91,22 @@ class MainActivity : ThemedActivity(),
             binding.drawerLayout.removeView(binding.navView)
         }
         navigation.setNavigationItemSelectedListener(this)
+        setContentView(HuiVisuals.wrap(this, binding.root))
+        setupDock()
 
         if (savedInstanceState == null) {
             displayFragmentWithId(R.id.nav_home)
+        } else {
+            updateDockSelection(currentDockId)
         }
         onBackPressedDispatcher.addCallback {
-            if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is DashboardFragment) {
-                moveTaskToBack(true)
-            } else {
-                displayFragmentWithId(R.id.nav_home)
-            }
+            val homeVisible = supportFragmentManager.findFragmentByTag("hui-dock-${R.id.nav_home}")?.isVisible == true
+            if (homeVisible) moveTaskToBack(true) else displayFragmentWithId(R.id.nav_home)
         }
 
         CoreController.normalizeSelection()
-        val toggleService = {
-            val status = CoreController.status(this)
-            if (status.active) {
-                changeState(BaseService.State.Stopping, animate = true)
-                CoreController.stopAll(this)
-            } else {
-                requestCoreStart()
-            }
-        }
-        binding.fab.setOnClickListener { toggleService() }
-        binding.stats.findViewById<android.view.View>(R.id.connect_action).setOnClickListener { toggleService() }
+        binding.fab.setOnClickListener { toggleServiceFromUi() }
+        binding.stats.findViewById<android.view.View>(R.id.connect_action).setOnClickListener { toggleServiceFromUi() }
         binding.stats.setOnClickListener { if (CoreController.status(this).state == CoreStatus.State.RUNNING) binding.stats.testConnection() }
         binding.stats.findViewById<android.view.View>(R.id.latency_action).setOnClickListener {
             if (CoreController.status(this).state == CoreStatus.State.RUNNING) binding.stats.testConnection()
@@ -115,7 +114,6 @@ class MainActivity : ThemedActivity(),
         HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.latency_action))
         HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.connect_action))
 
-        setContentView(HuiVisuals.wrap(this, binding.root))
         changeState(BaseService.State.Idle)
         DataStore.configurationStore.registerChangeListener(this)
         GroupManager.userInterface = GroupInterfaceAdapter(this)
@@ -347,32 +345,83 @@ class MainActivity : ThemedActivity(),
     }
 
 
+    private val dockIds = setOf(
+        R.id.nav_home, R.id.nav_configuration, R.id.nav_config_center, R.id.nav_settings
+    )
+    private var currentDockId: Int = R.id.nav_home
+
+    private fun setupDock() {
+        val items = listOf(
+            binding.dockHome to R.id.nav_home,
+            binding.dockNodes to R.id.nav_configuration,
+            binding.dockConfig to R.id.nav_config_center,
+            binding.dockSettings to R.id.nav_settings,
+        )
+        items.forEach { (view, id) ->
+            HuiVisuals.applyLiquidPress(view)
+            view.setOnClickListener {
+                val visible = supportFragmentManager.findFragmentByTag("hui-dock-$id")?.isVisible == true
+                if (!visible) displayFragmentWithId(id)
+            }
+        }
+        updateDockSelection(currentDockId)
+    }
+
+    private fun updateDockSelection(id: Int) {
+        binding.dockHome.isSelected = id == R.id.nav_home
+        binding.dockNodes.isSelected = id == R.id.nav_configuration
+        binding.dockConfig.isSelected = id == R.id.nav_config_center
+        binding.dockSettings.isSelected = id == R.id.nav_settings
+    }
+
+    private fun dockFragment(id: Int): ToolbarFragment = when (id) {
+        R.id.nav_home -> DashboardFragment()
+        R.id.nav_configuration -> ConfigurationFragment()
+        R.id.nav_config_center -> ConfigCenterFragment()
+        R.id.nav_settings -> SettingsFragment()
+        else -> error("Not a dock destination: $id")
+    }
+
+    private fun showDockFragment(@IdRes id: Int) {
+        val tag = "hui-dock-$id"
+        val fm = supportFragmentManager
+        var target = fm.findFragmentByTag(tag) as? ToolbarFragment
+        val tx = fm.beginTransaction().setReorderingAllowed(true)
+        fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded && it !== target }.forEach { fragment ->
+            tx.hide(fragment)
+            tx.setMaxLifecycle(fragment, Lifecycle.State.STARTED)
+        }
+        if (target == null) {
+            target = dockFragment(id)
+            tx.add(R.id.fragment_holder, target, tag)
+        } else {
+            tx.show(target)
+        }
+        tx.setMaxLifecycle(target, Lifecycle.State.RESUMED)
+        tx.commitAllowingStateLoss()
+        currentDockId = id
+        updateDockSelection(id)
+        binding.drawerLayout.closeDrawers()
+    }
+
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
-        if (fragment is DashboardFragment || DataStore.showBottomBar) {
-            binding.stats.allowShow = true
-            binding.stats.post { if (binding.stats.allowShow) binding.stats.performShow() }
-        } else {
-            binding.stats.allowShow = false
-            binding.stats.performHide()
-        }
         supportFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
             .replace(R.id.fragment_holder, fragment)
             .commitAllowingStateLoss()
         binding.drawerLayout.closeDrawers()
     }
 
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
-        when (id) {
-            R.id.nav_home -> displayFragment(DashboardFragment())
-
-            R.id.nav_configuration -> {
-                displayFragment(ConfigurationFragment())
-            }
-
+        if (id in dockIds) {
+            showDockFragment(id)
+        } else {
+            currentDockId = -1
+            updateDockSelection(-1)
+            when (id) {
             R.id.nav_group -> displayFragment(GroupFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
-            R.id.nav_settings -> displayFragment(SettingsFragment())
             R.id.nav_traffic -> displayFragment(WebviewFragment())
             R.id.nav_tools -> displayFragment(ToolsFragment())
             R.id.nav_logcat -> displayFragment(LogcatFragment())
@@ -380,13 +429,31 @@ class MainActivity : ThemedActivity(),
                 launchCustomTab("https://github.com/rongyang226-cpu/yingbao")
                 return false
             }
-
             R.id.nav_about -> displayFragment(AboutFragment())
-
             else -> return false
+            }
         }
-        navigation.menu.findItem(id).isChecked = true
+        navigation.menu.findItem(id)?.isChecked = true
         return true
+    }
+
+    private var lastServiceToggleAt = 0L
+
+    fun toggleServiceFromUi() {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastServiceToggleAt < 600L) return
+        lastServiceToggleAt = now
+        val status = currentStatusSnapshot
+        if (status.active) {
+            changeState(BaseService.State.Stopping, animate = true)
+            CoreController.stopAll(this)
+        } else {
+            requestCoreStart()
+        }
+    }
+
+    fun reloadCurrentCoreFromUi() {
+        if (currentStatusSnapshot.active) requestCoreStart()
     }
 
     private fun changeState(
@@ -402,11 +469,10 @@ class MainActivity : ThemedActivity(),
         if (msg != null) snackbar(getString(R.string.vpn_error, msg)).show()
     }
 
-    override fun snackbarInternal(text: CharSequence): Snackbar {
-        return Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
-            if (binding.stats.isShown) anchorView = binding.stats
+    override fun snackbarInternal(text: CharSequence): Snackbar =
+        Snackbar.make(binding.coordinator, text, Snackbar.LENGTH_LONG).apply {
+            anchorView = binding.huiBottomDock
         }
-    }
 
     private var pendingCoreStart: CoreEngine? = null
     private val corePermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -458,33 +524,28 @@ class MainActivity : ThemedActivity(),
     private var lastCoreState: CoreStatus.State? = null
     private var lastCoreMessage = ""
     private var lastCoreEngine: CoreEngine? = null
-    private val corePoll = object : Runnable {
-        override fun run() {
-            if (!isFinishing) {
-                val engine = CoreController.selected
-                val status = CoreController.status(this@MainActivity)
-                if (engine != lastCoreEngine) {
-                    lastCoreEngine = engine
-                    lastCoreState = null
-                    lastCoreMessage = ""
-                }
-                val mapped = when (status.state) {
-                    CoreStatus.State.STARTING -> BaseService.State.Connecting
-                    CoreStatus.State.RUNNING -> BaseService.State.Connected
-                    CoreStatus.State.STOPPING -> BaseService.State.Stopping
-                    else -> BaseService.State.Idle
-                }
-                if (status.state != lastCoreState) {
-                    lastCoreState = status.state
-                    changeState(mapped, animate = true)
-                }
-                binding.stats.updateSpeed(status.txRate, status.rxRate, status.txTotal, status.rxTotal)
-                if (status.state == CoreStatus.State.ERROR && status.message.isNotBlank() && status.message != lastCoreMessage) {
-                    lastCoreMessage = status.message
-                    snackbar("${engine.displayName}：${status.message}").show()
-                }
-            }
-            binding.root.postDelayed(this, 1000L)
+    private var corePollJob: Job? = null
+
+    private fun applyCoreSnapshot(engine: CoreEngine, status: CoreStatus) {
+        currentStatusSnapshot = status
+        if (engine != lastCoreEngine) {
+            lastCoreEngine = engine
+            lastCoreState = null
+            lastCoreMessage = ""
+        }
+        val mapped = when (status.state) {
+            CoreStatus.State.STARTING -> BaseService.State.Connecting
+            CoreStatus.State.RUNNING -> BaseService.State.Connected
+            CoreStatus.State.STOPPING -> BaseService.State.Stopping
+            else -> BaseService.State.Idle
+        }
+        if (status.state != lastCoreState) {
+            lastCoreState = status.state
+            changeState(mapped, animate = true)
+        }
+        if (status.state == CoreStatus.State.ERROR && status.message.isNotBlank() && status.message != lastCoreMessage) {
+            lastCoreMessage = status.message
+            snackbar("${engine.displayName}：${status.message}").show()
         }
     }
 
@@ -494,11 +555,12 @@ class MainActivity : ThemedActivity(),
                 CoreController.stopAll(this)
                 lastCoreEngine = null
                 lastCoreState = null
+                currentStatusSnapshot = CoreStatus()
                 changeState(BaseService.State.Idle)
             }
             Key.SERVICE_MODE -> Unit
             Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL -> {
-                if (CoreController.status(this).active) {
+                if (currentStatusSnapshot.active) {
                     snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
                         requestCoreStart()
                     }.show()
@@ -509,17 +571,28 @@ class MainActivity : ThemedActivity(),
 
     override fun onStart() {
         super.onStart()
-        binding.root.removeCallbacks(corePoll)
-        binding.root.post(corePoll)
+        corePollJob?.cancel()
+        corePollJob = lifecycleScope.launch {
+            while (isActive) {
+                val engine = CoreController.selected
+                val status = withContext(Dispatchers.IO) {
+                    CoreController.status(applicationContext)
+                }
+                applyCoreSnapshot(engine, status)
+                delay(1000L)
+            }
+        }
     }
 
     override fun onStop() {
-        binding.root.removeCallbacks(corePoll)
+        corePollJob?.cancel()
+        corePollJob = null
         super.onStop()
     }
 
     override fun onDestroy() {
-        binding.root.removeCallbacks(corePoll)
+        corePollJob?.cancel()
+        corePollJob = null
         super.onDestroy()
         GroupManager.userInterface = null
         DataStore.configurationStore.unregisterChangeListener(this)
