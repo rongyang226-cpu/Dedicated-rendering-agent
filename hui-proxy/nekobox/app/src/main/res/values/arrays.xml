@@ -543,4 +543,13 @@
         <item>standard</item>
         <item>comfortable</item>
     </string-array>
+
+    <string-array name="hui_core_entries">
+        <item>Box · sing-box</item>
+        <item>Meta · Mihomo</item>
+    </string-array>
+    <string-array name="hui_core_values">
+        <item>box</item>
+        <item>meta</item>
+    </string-array>
 </resources>

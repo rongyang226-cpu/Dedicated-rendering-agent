@@ -2,10 +2,13 @@ package io.nekohasekai.sagernet.ui
 
 import android.os.Bundle
 import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.SagerNet
+import androidx.lifecycle.lifecycleScope
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreEngine
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
+import kotlinx.coroutines.launch
 
 class SwitchActivity : ThemedActivity(R.layout.layout_empty),
     ConfigurationFragment.SelectCallback {
@@ -30,7 +33,13 @@ class SwitchActivity : ThemedActivity(R.layout.layout_empty),
             ProfileManager.postUpdate(old, true)
             ProfileManager.postUpdate(profileId, true)
         }
-        SagerNet.reloadService()
-        finish()
+        if (CoreController.selected == CoreEngine.BOX && CoreController.status(this).active) {
+            lifecycleScope.launch {
+                runCatching { CoreController.reloadSelected(this@SwitchActivity) }
+                finish()
+            }
+        } else {
+            finish()
+        }
     }
 }

@@ -31,6 +31,8 @@ import com.github.shadowsocks.plugin.fragment.AlertDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.*
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreEngine
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.SagerDatabase
@@ -142,10 +144,10 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
                 finish()
                 return
             }
-            if (proxyEntity!!.id == DataStore.selectedProxy) {
-                SagerNet.stopService()
-            }
+            val reloadBox = proxyEntity!!.id == DataStore.selectedProxy &&
+                CoreController.selected == CoreEngine.BOX && CoreController.status(this).active
             ProfileManager.updateProfile(proxyEntity!!.apply { (requireBean() as T).serialize() })
+            if (reloadBox) runCatching { CoreController.reloadSelected(this) }.onFailure(Logs::w)
         }
         finish()
 

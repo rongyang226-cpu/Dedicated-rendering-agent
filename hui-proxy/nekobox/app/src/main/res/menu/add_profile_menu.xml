@@ -25,6 +25,12 @@
             <item
                 android:id="@+id/action_import_file"
                 android:title="@string/action_import_file" />
+            <item
+                android:id="@+id/action_import_meta_file"
+                android:title="导入 Meta / Mihomo YAML 文件" />
+            <item
+                android:id="@+id/action_import_meta_url"
+                android:title="导入 Meta / Mihomo URL" />
             <item android:title="@string/add_profile_methods_manual_settings">
                 <menu>
                     <item

@@ -1,20 +1,22 @@
 package io.nekohasekai.sagernet.ui
 
 import android.Manifest.permission.POST_NOTIFICATIONS
+import android.app.Activity
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.RemoteException
 import android.view.KeyEvent
 import android.view.MenuItem
 import androidx.activity.addCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceDataStore
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
@@ -23,11 +25,10 @@ import io.nekohasekai.sagernet.GroupType
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.aidl.ISagerNetService
-import io.nekohasekai.sagernet.aidl.SpeedDisplayData
-import io.nekohasekai.sagernet.aidl.TrafficData
 import io.nekohasekai.sagernet.bg.BaseService
-import io.nekohasekai.sagernet.bg.SagerConnection
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreEngine
+import io.nekohasekai.sagernet.bg.core.CoreStatus
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -47,12 +48,16 @@ import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.parseProxies
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
-import io.nekohasekai.sagernet.utils.CrashHandler
 import io.nekohasekai.sagernet.utils.HuiVisuals
 import moe.matsuri.nb4a.utils.Util
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : ThemedActivity(),
-    SagerConnection.Callback,
     OnPreferenceDataStoreChangeListener,
     NavigationView.OnNavigationItemSelectedListener {
 
@@ -62,7 +67,6 @@ class MainActivity : ThemedActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val recoveredFromCrash = CrashHandler.consumePendingCrash()
         binding = LayoutMainBinding.inflate(layoutInflater)
         if (!DataStore.configurationStore.getBoolean("huiRc3LayoutMigrated", false)) {
             if (DataStore.huiNodeLayout == "standard") DataStore.huiNodeLayout = "grid"
@@ -92,28 +96,27 @@ class MainActivity : ThemedActivity(),
             }
         }
 
+        CoreController.normalizeSelection()
         val toggleService = {
-            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(null)
+            val status = CoreController.status(this)
+            if (status.active) {
+                changeState(BaseService.State.Stopping, animate = true)
+                CoreController.stopAll(this)
+            } else {
+                requestCoreStart()
+            }
         }
         binding.fab.setOnClickListener { toggleService() }
         binding.stats.findViewById<android.view.View>(R.id.connect_action).setOnClickListener { toggleService() }
-        binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
+        binding.stats.setOnClickListener { if (CoreController.status(this).state == CoreStatus.State.RUNNING) binding.stats.testConnection() }
         binding.stats.findViewById<android.view.View>(R.id.latency_action).setOnClickListener {
-            if (DataStore.serviceState.connected) binding.stats.testConnection()
+            if (CoreController.status(this).state == CoreStatus.State.RUNNING) binding.stats.testConnection()
         }
         HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.latency_action))
         HuiVisuals.applyLiquidPress(binding.stats.findViewById(R.id.connect_action))
 
         setContentView(HuiVisuals.wrap(this, binding.root))
-        if (recoveredFromCrash) {
-            binding.root.post {
-                snackbar(getString(R.string.hui_crash_saved))
-                    .setAction(R.string.hui_open_log) { displayFragmentWithId(R.id.nav_logcat) }
-                    .show()
-            }
-        }
         changeState(BaseService.State.Idle)
-        connection.connect(this, this)
         DataStore.configurationStore.registerChangeListener(this)
         GroupManager.userInterface = GroupInterfaceAdapter(this)
 
@@ -165,10 +168,25 @@ class MainActivity : ThemedActivity(),
     }
 
     fun urlTest(): Int {
-        if (!DataStore.serviceState.connected || connection.service == null) {
-            error("not started")
+        require(CoreController.status(this).state == CoreStatus.State.RUNNING) { "not started" }
+        val url = URL(DataStore.connectionTestURL)
+        require(url.protocol == "http" || url.protocol == "https") { "invalid test URL" }
+        val started = android.os.SystemClock.elapsedRealtime()
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8_000
+            readTimeout = 8_000
+            instanceFollowRedirects = true
+            useCaches = false
+            setRequestProperty("User-Agent", "Hui/${BuildConfig.VERSION_NAME}")
         }
-        return connection.service!!.urlTest()
+        try {
+            val code = connection.responseCode
+            require(code in 200..399) { "HTTP $code" }
+            runCatching { connection.inputStream?.close() }
+        } finally {
+            connection.disconnect()
+        }
+        return (android.os.SystemClock.elapsedRealtime() - started).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     suspend fun importSubscription(uri: Uri) {
@@ -265,7 +283,7 @@ class MainActivity : ThemedActivity(),
         }
     }
 
-    override fun missingPlugin(profileName: String, pluginName: String) {
+    fun missingPlugin(profileName: String, pluginName: String) {
         val pluginEntity = PluginEntry.find(pluginName)
 
         // unknown exe or neko plugin
@@ -388,58 +406,99 @@ class MainActivity : ThemedActivity(),
         }
     }
 
-    override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {
-        changeState(state, msg, true)
-    }
-
-    val connection = SagerConnection(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_FOREGROUND, true)
-    override fun onServiceConnected(service: ISagerNetService) = changeState(
-        try {
-            BaseService.State.values()[service.state]
-        } catch (_: RemoteException) {
-            BaseService.State.Idle
-        }
-    )
-
-    override fun onServiceDisconnected() = changeState(BaseService.State.Idle)
-    override fun onBinderDied() {
-        connection.disconnect(this)
-        connection.connect(this, this)
-    }
-
-    private val connect = registerForActivityResult(VpnRequestActivity.StartService()) {
-        if (it) snackbar(R.string.vpn_permission_denied).show()
-    }
-
-    // may NOT called when app is in background
-    // ONLY do UI update here, write DB in bg process
-    override fun cbSpeedUpdate(stats: SpeedDisplayData) {
-        binding.stats.updateSpeed(stats.txRateProxy, stats.rxRateProxy, stats.txTotal, stats.rxTotal)
-    }
-
-    override fun cbTrafficUpdate(data: TrafficData) {
-        runOnDefaultDispatcher {
-            ProfileManager.postUpdate(data)
+    private var pendingCoreStart: CoreEngine? = null
+    private val corePermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val requested = pendingCoreStart
+        pendingCoreStart = null
+        if (result.resultCode == Activity.RESULT_OK && requested == CoreController.selected) {
+            startSelectedCore()
+        } else if (result.resultCode != Activity.RESULT_OK) {
+            changeState(BaseService.State.Idle)
+            snackbar(R.string.vpn_permission_denied).show()
         }
     }
 
-    override fun cbSelectorUpdate(id: Long) {
-        val old = DataStore.selectedProxy
-        DataStore.selectedProxy = id
-        DataStore.currentProfile = id
-        runOnDefaultDispatcher {
-            ProfileManager.postUpdate(old, true)
-            ProfileManager.postUpdate(id, true)
+    private fun requestCoreStart() {
+        val requested = CoreController.selected
+        lifecycleScope.launch {
+            changeState(BaseService.State.Connecting, animate = true)
+            CoreController.stopAll(this@MainActivity)
+            delay(250L)
+            val prepared = runCatching {
+                withContext(Dispatchers.IO) { CoreController.prepareSelected(this@MainActivity) }
+            }
+            prepared.onFailure {
+                changeState(BaseService.State.Idle)
+                snackbar(it.message ?: "${requested.displayName} 配置准备失败").show()
+                return@launch
+            }
+            if (requested != CoreController.selected) {
+                changeState(BaseService.State.Idle)
+                return@launch
+            }
+            pendingCoreStart = requested
+            val permission = android.net.VpnService.prepare(this@MainActivity)
+            if (permission != null) corePermission.launch(permission) else {
+                pendingCoreStart = null
+                startSelectedCore()
+            }
+        }
+    }
+
+    private fun startSelectedCore() {
+        val engine = CoreController.selected
+        runCatching { CoreController.startPrepared(this) }.onFailure {
+            changeState(BaseService.State.Idle)
+            snackbar("${engine.displayName}：${it.message ?: "启动失败"}").show()
+        }
+    }
+
+    private var lastCoreState: CoreStatus.State? = null
+    private var lastCoreMessage = ""
+    private var lastCoreEngine: CoreEngine? = null
+    private val corePoll = object : Runnable {
+        override fun run() {
+            if (!isFinishing) {
+                val engine = CoreController.selected
+                val status = CoreController.status(this@MainActivity)
+                if (engine != lastCoreEngine) {
+                    lastCoreEngine = engine
+                    lastCoreState = null
+                    lastCoreMessage = ""
+                }
+                val mapped = when (status.state) {
+                    CoreStatus.State.STARTING -> BaseService.State.Connecting
+                    CoreStatus.State.RUNNING -> BaseService.State.Connected
+                    CoreStatus.State.STOPPING -> BaseService.State.Stopping
+                    else -> BaseService.State.Idle
+                }
+                if (status.state != lastCoreState) {
+                    lastCoreState = status.state
+                    changeState(mapped, animate = true)
+                }
+                binding.stats.updateSpeed(status.txRate, status.rxRate, status.txTotal, status.rxTotal)
+                if (status.state == CoreStatus.State.ERROR && status.message.isNotBlank() && status.message != lastCoreMessage) {
+                    lastCoreMessage = status.message
+                    snackbar("${engine.displayName}：${status.message}").show()
+                }
+            }
+            binding.root.postDelayed(this, 1000L)
         }
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
         when (key) {
-            Key.SERVICE_MODE -> onBinderDied()
+            "huiCoreEngine" -> {
+                CoreController.stopAll(this)
+                lastCoreEngine = null
+                lastCoreState = null
+                changeState(BaseService.State.Idle)
+            }
+            Key.SERVICE_MODE -> Unit
             Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL -> {
-                if (DataStore.serviceState.canStop) {
+                if (CoreController.status(this).active) {
                     snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
-                        SagerNet.reloadService()
+                        requestCoreStart()
                     }.show()
                 }
             }
@@ -447,20 +506,21 @@ class MainActivity : ThemedActivity(),
     }
 
     override fun onStart() {
-        connection.updateConnectionId(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_FOREGROUND)
         super.onStart()
+        binding.root.removeCallbacks(corePoll)
+        binding.root.post(corePoll)
     }
 
     override fun onStop() {
-        connection.updateConnectionId(SagerConnection.CONNECTION_ID_MAIN_ACTIVITY_BACKGROUND)
+        binding.root.removeCallbacks(corePoll)
         super.onStop()
     }
 
     override fun onDestroy() {
+        binding.root.removeCallbacks(corePoll)
         super.onDestroy()
         GroupManager.userInterface = null
         DataStore.configurationStore.unregisterChangeListener(this)
-        connection.disconnect(this)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

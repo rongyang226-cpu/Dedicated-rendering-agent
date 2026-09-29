@@ -14,7 +14,6 @@ import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.exitProcess
 
 object CrashHandler : Thread.UncaughtExceptionHandler {
@@ -23,15 +22,6 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     private const val LAST_CRASH = "last_crash.log"
     private const val PENDING_CRASH = "pending_crash"
     private const val MAX_CRASH_CHARS = 512 * 1024
-    private val handlingCrash = AtomicBoolean(false)
-    @Volatile private var previousHandler: Thread.UncaughtExceptionHandler? = null
-
-    fun install() {
-        val current = Thread.getDefaultUncaughtExceptionHandler()
-        if (current !== this) previousHandler = current
-        Thread.setDefaultUncaughtExceptionHandler(this)
-    }
-
     fun consumePendingCrash(): Boolean = try {
         val marker = File(app.filesDir, "$CRASH_DIR/$PENDING_CRASH")
         marker.exists() && marker.delete()
@@ -49,28 +39,18 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         // Never launch UI from a fatal-exception handler. The previous implementation
         // rebooted into a share chooser, so a recurring startup/background crash could
         // trap the user in an endless system share sheet. Save one local snapshot instead.
-        if (handlingCrash.compareAndSet(false, true)) {
-            try {
-                Log.e(thread.toString(), throwable.stackTraceToString())
-            } catch (_: Throwable) {
-            }
-            try {
-                Logs.e(thread.toString())
-                Logs.e(throwable.stackTraceToString())
-            } catch (_: Throwable) {
-            }
-            try {
-                persistCrash(thread, throwable)
-            } catch (_: Throwable) {
-            }
+        try {
+            Log.e(thread.toString(), throwable.stackTraceToString())
+        } catch (_: Throwable) {
         }
-
-        val delegate = previousHandler
-        if (delegate != null && delegate !== this) {
-            try {
-                delegate.uncaughtException(thread, throwable)
-            } catch (_: Throwable) {
-            }
+        try {
+            Logs.e(thread.toString())
+            Logs.e(throwable.stackTraceToString())
+        } catch (_: Throwable) {
+        }
+        try {
+            persistCrash(thread, throwable)
+        } catch (_: Throwable) {
         }
         // Android's default handler normally terminates the process. If a custom
         // upstream handler returns, never continue execution in a corrupted state.

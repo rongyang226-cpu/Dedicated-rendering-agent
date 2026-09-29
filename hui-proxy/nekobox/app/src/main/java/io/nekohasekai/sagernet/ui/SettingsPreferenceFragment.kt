@@ -15,6 +15,7 @@ import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.utils.Theme
@@ -64,11 +65,24 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<SimpleMenuPreference>("huiCoreEngine")?.setOnPreferenceChangeListener { _, newValue ->
+            if (newValue.toString() != DataStore.huiCoreEngine) {
+                CoreController.stopAll(requireContext())
+                requireActivity().window.decorView.postDelayed({
+                    if (isAdded) ActivityCompat.recreate(requireActivity())
+                }, 350L)
+            }
+            true
+        }
+        findPreference<SimpleMenuPreference>("huiNodeLayout")?.setOnPreferenceChangeListener { _, _ ->
+            requireActivity().window.decorView.post {
+                if (isAdded) ActivityCompat.recreate(requireActivity())
+            }
+            true
+        }
+
         val appTheme = findPreference<ColorPickerPreference>(Key.APP_THEME)!!
         appTheme.setOnPreferenceChangeListener { _, newTheme ->
-            if (DataStore.serviceState.started) {
-                SagerNet.reloadService()
-            }
             val theme = Theme.getTheme(newTheme as Int)
             app.setTheme(theme)
             requireActivity().apply {
@@ -157,7 +171,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         serviceMode.setOnPreferenceChangeListener { _, _ ->
-            if (DataStore.serviceState.started) SagerNet.stopService()
+            CoreController.stopAll(requireContext())
             true
         }
 

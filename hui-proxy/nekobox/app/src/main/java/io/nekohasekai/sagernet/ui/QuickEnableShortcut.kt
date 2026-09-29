@@ -1,58 +1,32 @@
-/*******************************************************************************
- *                                                                             *
- *  Copyright (C) 2017 by Max Lv <[Email0]>                          *
- *  Copyright (C) 2017 by Mygod Studio <[Email1]>  *
- *                                                                             *
- *  This program is free software: you can redistribute it and/or modify       *
- *  it under the terms of the GNU General Public License as published by       *
- *  the Free Software Foundation, either version 3 of the License, or          *
- *  (at your option) any later version.                                        *
- *                                                                             *
- *  This program is distributed in the hope that it will be useful,            *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of             *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
- *  GNU General Public License for more details.                               *
- *                                                                             *
- *  You should have received a copy of the GNU General Public License          *
- *  along with this program. If not, see <http://www.gnu.org/licenses/>.       *
- *                                                                             *
- *******************************************************************************/
-
 package io.nekohasekai.sagernet.ui
 
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.core.content.getSystemService
-import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.aidl.ISagerNetService
-import io.nekohasekai.sagernet.bg.BaseService
-import io.nekohasekai.sagernet.bg.SagerConnection
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.ktx.readableMessage
+import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 
-class QuickEnableShortcut : Activity(), SagerConnection.Callback {
-    private val connection = SagerConnection(SagerConnection.CONNECTION_ID_SHORTCUT)
-
+class QuickEnableShortcut : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        connection.connect(this, this)
-        if (Build.VERSION.SDK_INT >= 25) {
-            getSystemService<ShortcutManager>()!!.reportShortcutUsed("enable")
+        if (Build.VERSION.SDK_INT >= 25) getSystemService<ShortcutManager>()?.reportShortcutUsed("enable")
+        if (CoreController.needsVpnPermission(this)) {
+            startActivity(Intent(this, VpnRequestActivity::class.java))
+            finish()
+            return
         }
-    }
-
-    override fun onServiceConnected(service: ISagerNetService) {
-        val state = BaseService.State.values()[service.state]
-        if (state == BaseService.State.Stopped) {
-            SagerNet.startService()
+        runOnDefaultDispatcher {
+            val error = runCatching { CoreController.startSelectedAuthorized(this@QuickEnableShortcut) }.exceptionOrNull()
+            runOnMainDispatcher {
+                error?.let { Toast.makeText(this@QuickEnableShortcut, it.readableMessage, Toast.LENGTH_LONG).show() }
+                finish()
+            }
         }
-        finish()
-    }
-
-    override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) {}
-
-    override fun onDestroy() {
-        connection.disconnect(this)
-        super.onDestroy()
     }
 }

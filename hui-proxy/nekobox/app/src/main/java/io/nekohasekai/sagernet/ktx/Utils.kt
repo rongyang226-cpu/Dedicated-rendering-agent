@@ -32,10 +32,8 @@ import com.jakewharton.processphoenix.ProcessPhoenix
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.aidl.ISagerNetService
-import io.nekohasekai.sagernet.bg.BaseService
-import io.nekohasekai.sagernet.bg.SagerConnection
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.ui.ThemedActivity
 import kotlinx.coroutines.Dispatchers
@@ -241,9 +239,12 @@ fun Fragment.startFilesForResult(
 }
 
 fun Fragment.needReload() {
-    if (DataStore.serviceState.started) {
+    val ctx = context ?: return
+    if (CoreController.status(ctx).active) {
         snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
-            SagerNet.reloadService()
+            runOnDefaultDispatcher {
+                runCatching { CoreController.reloadSelected(ctx.applicationContext) }.onFailure(Logs::w)
+            }
         }.show()
     }
 }
@@ -256,26 +257,11 @@ fun Fragment.needRestart() {
 
 fun triggerFullRestart(ctx: Context) {
     runOnDefaultDispatcher {
-        SagerNet.stopService()
+        CoreController.stopAll(ctx.applicationContext)
         delay(500)
-        SagerConnection.restartingApp = true
-        val connection = SagerConnection(SagerConnection.CONNECTION_ID_RESTART_BG)
-        connection.connect(ctx, RestartCallback {
+        onMainDispatcher {
             ProcessPhoenix.triggerRebirth(ctx, Intent(ctx, MainActivity::class.java))
-        })
-    }
-}
-
-private class RestartCallback(val callback: () -> Unit) : SagerConnection.Callback {
-    override fun stateChanged(
-        state: BaseService.State,
-        profileName: String?,
-        msg: String?
-    ) {
-    }
-
-    override fun onServiceConnected(service: ISagerNetService) {
-        callback()
+        }
     }
 }
 

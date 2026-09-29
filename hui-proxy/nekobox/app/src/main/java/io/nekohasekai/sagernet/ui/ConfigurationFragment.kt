@@ -50,6 +50,9 @@ import io.nekohasekai.sagernet.aidl.TrafficData
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.proto.UrlTest
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.meta.MetaCoreManager
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreEngine
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
@@ -286,6 +289,22 @@ class ConfigurationFragment @JvmOverloads constructor(
         return super.onKeyDown(ketCode, event)
     }
 
+    private val importMetaFile =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            val appContext = context?.applicationContext ?: return@registerForActivityResult
+            if (uri != null) runOnDefaultDispatcher {
+                runCatching { MetaCoreManager.importUri(appContext, uri) }
+                    .onSuccess {
+                        DataStore.huiCoreEngine = MetaCoreManager.ENGINE_META
+                        onMainDispatcher { snackbar("Meta YAML 已导入并设为当前内核").show() }
+                    }
+                    .onFailure { e ->
+                        Logs.w(e)
+                        onMainDispatcher { snackbar(e.readableMessage).show() }
+                    }
+            }
+        }
+
     private val importFile =
         registerForActivityResult(ActivityResultContracts.GetContent()) { file ->
             if (file != null) runOnDefaultDispatcher {
@@ -339,10 +358,9 @@ class ConfigurationFragment @JvmOverloads constructor(
             ProfileManager.createProfile(targetId, proxy)
         }
         onMainDispatcher {
-            val ctx = context ?: return@onMainDispatcher
             DataStore.editingGroup = targetId
             snackbar(
-                ctx.resources.getQuantityString(
+                requireContext().resources.getQuantityString(
                     R.plurals.added, proxies.size, proxies.size
                 )
             ).show()
@@ -351,15 +369,14 @@ class ConfigurationFragment @JvmOverloads constructor(
     }
 
     private fun showManualUrlImport() {
-        val hostActivity = activity as? MainActivity ?: return
-        val input = EditText(hostActivity).apply {
+        val input = EditText(requireContext()).apply {
             hint = getString(R.string.hui_import_url_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             isSingleLine = false
             maxLines = 4
             setPadding(40, 20, 40, 20)
         }
-        MaterialAlertDialogBuilder(hostActivity)
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.hui_import_url_title)
             .setView(input)
             .setNegativeButton(android.R.string.cancel, null)
@@ -373,7 +390,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     try {
                         if (text.startsWith("http://", true) || text.startsWith("https://", true)) {
                             val uri = "sn://subscription?url=${android.net.Uri.encode(text)}".toUri()
-                            hostActivity.importSubscription(uri)
+                            (requireActivity() as MainActivity).importSubscription(uri)
                         } else {
                             val proxies = RawUpdater.parseRaw(text)
                             if (proxies.isNullOrEmpty()) {
@@ -383,11 +400,46 @@ class ConfigurationFragment @JvmOverloads constructor(
                             }
                         }
                     } catch (e: SubscriptionFoundException) {
-                        hostActivity.importSubscription(e.link.toUri())
+                        (requireActivity() as MainActivity).importSubscription(e.link.toUri())
                     } catch (e: Exception) {
                         Logs.w(e)
                         onMainDispatcher { snackbar(e.readableMessage).show() }
                     }
+                }
+            }
+            .show()
+    }
+
+    private fun showMetaUrlImport() {
+        val host = activity as? MainActivity ?: return
+        val input = EditText(host).apply {
+            hint = "https://example.com/config.yaml"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            isSingleLine = false
+            maxLines = 4
+            setPadding(40, 20, 40, 20)
+        }
+        MaterialAlertDialogBuilder(host)
+            .setTitle("导入 Meta URL")
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("导入") { _, _ ->
+                val raw = input.text?.toString()?.trim().orEmpty()
+                if (raw.isBlank()) {
+                    snackbar("请输入配置 URL").show()
+                    return@setPositiveButton
+                }
+                val appContext = host.applicationContext
+                runOnDefaultDispatcher {
+                    runCatching { MetaCoreManager.importUrl(appContext, raw) }
+                        .onSuccess {
+                            DataStore.huiCoreEngine = MetaCoreManager.ENGINE_META
+                            onMainDispatcher { snackbar("Meta URL 已导入并设为当前内核").show() }
+                        }
+                        .onFailure { e ->
+                            Logs.w(e)
+                            onMainDispatcher { snackbar(e.readableMessage).show() }
+                        }
                 }
             }
             .show()
@@ -427,6 +479,14 @@ class ConfigurationFragment @JvmOverloads constructor(
 
             R.id.action_import_file -> {
                 startFilesForResult(importFile, "*/*")
+            }
+
+            R.id.action_import_meta_file -> {
+                startFilesForResult(importMetaFile, "*/*")
+            }
+
+            R.id.action_import_meta_url -> {
+                showMetaUrlImport()
             }
 
             R.id.action_new_socks -> {
@@ -1122,38 +1182,13 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
 
         private val isEnabled: Boolean
-            get() {
-                return DataStore.serviceState.let { it.canStop || it == BaseService.State.Stopped }
-            }
+            get() = CoreController.status(requireContext()).state !in setOf(
+                io.nekohasekai.sagernet.bg.core.CoreStatus.State.STARTING,
+                io.nekohasekai.sagernet.bg.core.CoreStatus.State.STOPPING,
+            )
 
         lateinit var layoutManager: LinearLayoutManager
         lateinit var configurationListView: RecyclerView
-        private var appliedLayoutMode = ""
-
-        private fun desiredLayoutMode(): String =
-            if (DataStore.huiNodeLayout == "grid" && !select) "grid" else "linear"
-
-        private fun applyLayoutManagerIfNeeded(force: Boolean = false) {
-            if (!::configurationListView.isInitialized) return
-            val mode = desiredLayoutMode()
-            if (!force && appliedLayoutMode == mode) return
-            val firstVisible = if (::layoutManager.isInitialized) {
-                layoutManager.findFirstVisibleItemPosition().coerceAtLeast(0)
-            } else 0
-            layoutManager = if (mode == "grid") {
-                GridLayoutManager(requireContext(), 2)
-            } else {
-                FixedLinearLayoutManager(configurationListView)
-            }
-            configurationListView.layoutManager = layoutManager
-            appliedLayoutMode = mode
-            adapter?.notifyDataSetChanged()
-            configurationListView.post {
-                if (::layoutManager.isInitialized) {
-                    layoutManager.scrollToPositionWithOffset(firstVisible, 0)
-                }
-            }
-        }
 
         val select by lazy {
             try {
@@ -1175,9 +1210,6 @@ class ConfigurationFragment @JvmOverloads constructor(
         override fun onResume() {
             super.onResume()
 
-            if (::configurationListView.isInitialized) {
-                applyLayoutManagerIfNeeded()
-            }
             if (::configurationListView.isInitialized && configurationListView.size == 0) {
                 configurationListView.adapter = adapter
                 runOnDefaultDispatcher {
@@ -1241,8 +1273,13 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (!::proxyGroup.isInitialized) return
 
             configurationListView = view.findViewById(R.id.configuration_list)
+            layoutManager = if (DataStore.huiNodeLayout == "grid" && !select) {
+                GridLayoutManager(requireContext(), 2)
+            } else {
+                FixedLinearLayoutManager(configurationListView)
+            }
+            configurationListView.layoutManager = layoutManager
             adapter = ConfigurationAdapter()
-            applyLayoutManagerIfNeeded(force = true)
             ProfileManager.addListener(adapter!!)
             GroupManager.addListener(adapter!!)
             configurationListView.adapter = adapter
@@ -1252,9 +1289,13 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 undoManager = UndoSnackbarManager(activity as MainActivity, adapter!!)
 
+                val dragDirections = if (DataStore.huiNodeLayout == "grid") {
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                } else {
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN
+                }
                 ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-                    ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
-                    ItemTouchHelper.START
+                    dragDirections, ItemTouchHelper.START
                 ) {
                     override fun getSwipeDirs(
                         recyclerView: RecyclerView,
@@ -1266,14 +1307,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     override fun getDragDirs(
                         recyclerView: RecyclerView,
                         viewHolder: RecyclerView.ViewHolder,
-                    ): Int {
-                        if (!isEnabled) return 0
-                        return if (DataStore.huiNodeLayout == "grid") {
-                            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
-                        } else {
-                            ItemTouchHelper.UP or ItemTouchHelper.DOWN
-                        }
-                    }
+                    ) = if (isEnabled) super.getDragDirs(recyclerView, viewHolder) else 0
 
                     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                     }
@@ -1640,33 +1674,40 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 } else {
                     view.setOnClickListener {
+                        val appContext = requireContext().applicationContext
                         runOnDefaultDispatcher {
+                            val previousEngine = CoreController.selected
+                            val wasActive = CoreController.status(appContext).active
                             var update: Boolean
                             var lastSelected: Long
                             profileAccess.withLock {
                                 update = DataStore.selectedProxy != proxyEntity.id
                                 lastSelected = DataStore.selectedProxy
                                 DataStore.selectedProxy = proxyEntity.id
-                                onMainDispatcher {
-                                    selectedView.visibility = View.VISIBLE
-                                }
+                                if (previousEngine != CoreEngine.BOX) DataStore.huiCoreEngine = CoreEngine.BOX.id
+                                onMainDispatcher { selectedView.visibility = View.VISIBLE }
                             }
 
-                            if (update) {
+                            if (update || previousEngine != CoreEngine.BOX) {
                                 ProfileManager.postUpdate(lastSelected)
-                                if (DataStore.serviceState.canStop && reloadAccess.tryLock()) {
-                                    SagerNet.reloadService()
-                                    reloadAccess.unlock()
+                                if (wasActive && reloadAccess.tryLock()) {
+                                    try {
+                                        CoreController.reloadSelected(appContext)
+                                    } catch (e: Throwable) {
+                                        Logs.w(e)
+                                        onMainDispatcher { snackbar(e.readableMessage).show() }
+                                    } finally {
+                                        reloadAccess.unlock()
+                                    }
                                 }
                             } else if (SagerNet.isTv) {
-                                if (DataStore.serviceState.started) {
-                                    SagerNet.stopService()
-                                } else {
-                                    SagerNet.startService()
+                                if (wasActive) {
+                                    CoreController.stopAll(appContext)
+                                } else if (!CoreController.needsVpnPermission(appContext)) {
+                                    runCatching { CoreController.startSelectedAuthorized(appContext) }.onFailure(Logs::w)
                                 }
                             }
                         }
-
                     }
                 }
 
@@ -1766,8 +1807,9 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 runOnDefaultDispatcher {
                     val selected = (selectedItem?.id ?: DataStore.selectedProxy) == proxyEntity.id
-                    val started =
-                        selected && DataStore.serviceState.started && DataStore.currentProfile == proxyEntity.id
+                    val coreStatus = CoreController.status(view.context.applicationContext)
+                    val started = selected && CoreController.selected == CoreEngine.BOX &&
+                        coreStatus.active && DataStore.currentProfile == proxyEntity.id
                     onMainDispatcher {
                         editButton.isEnabled = !started
                         removeButton.isEnabled = !started
@@ -1827,7 +1869,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     .show()
             }
 
-            override fun onMenuItemClick(item: MenuItem): Boolean {
+    override fun onMenuItemClick(item: MenuItem): Boolean {
                 try {
                     currentName = entity.displayName()!!
                     when (item.itemId) {

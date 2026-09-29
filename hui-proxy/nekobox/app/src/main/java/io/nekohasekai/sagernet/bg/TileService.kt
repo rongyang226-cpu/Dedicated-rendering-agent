@@ -1,93 +1,81 @@
 package io.nekohasekai.sagernet.bg
 
+import android.app.PendingIntent
+import android.content.Intent
 import android.graphics.drawable.Icon
+import android.os.Build
 import android.service.quicksettings.Tile
 import androidx.annotation.RequiresApi
 import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.aidl.ISagerNetService
-import io.nekohasekai.sagernet.database.SagerDatabase
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreStatus
+import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
+import io.nekohasekai.sagernet.ui.VpnRequestActivity
 import android.service.quicksettings.TileService as BaseTileService
 
 @RequiresApi(24)
-class TileService : BaseTileService(), SagerConnection.Callback {
+class TileService : BaseTileService() {
     private val iconIdle by lazy { Icon.createWithResource(this, R.drawable.ic_service_idle) }
     private val iconBusy by lazy { Icon.createWithResource(this, R.drawable.ic_service_busy) }
-    private val iconConnected by lazy {
-        Icon.createWithResource(this, R.drawable.ic_service_active)
-    }
-    private var tapPending = false
-
-    private val connection = SagerConnection(SagerConnection.CONNECTION_ID_TILE)
-    override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) =
-        updateTile(state, profileName)
-
-    override fun onServiceConnected(service: ISagerNetService) {
-        updateTile(BaseService.State.values()[service.state], service.profileName)
-        if (tapPending) {
-            tapPending = false
-            onClick()
-        }
-    }
-
-    override fun cbSelectorUpdate(id: Long) {
-        val profile = SagerDatabase.proxyDao.getById(id) ?: return
-        updateTile(BaseService.State.Connected, profile.displayName())
-    }
+    private val iconConnected by lazy { Icon.createWithResource(this, R.drawable.ic_service_active) }
 
     override fun onStartListening() {
         super.onStartListening()
-        connection.connect(this, this)
-    }
-
-    override fun onStopListening() {
-        connection.disconnect(this)
-        super.onStopListening()
+        refresh()
     }
 
     override fun onClick() {
+        super.onClick()
         if (isLocked) unlockAndRun(this::toggle) else toggle()
     }
 
-    private fun updateTile(serviceState: BaseService.State, profileName: String?) {
+    private fun refresh() = updateTile(CoreController.status(this))
+
+    private fun updateTile(status: CoreStatus) {
         qsTile?.apply {
-            label = null
-            when (serviceState) {
-                BaseService.State.Idle -> error("serviceState")
-                BaseService.State.Connecting -> {
-                    icon = iconBusy
-                    state = Tile.STATE_ACTIVE
-                }
-
-                BaseService.State.Connected -> {
-                    icon = iconConnected
-                    label = profileName
-                    state = Tile.STATE_ACTIVE
-                }
-
-                BaseService.State.Stopping -> {
-                    icon = iconBusy
-                    state = Tile.STATE_UNAVAILABLE
-                }
-
-                BaseService.State.Stopped -> {
-                    icon = iconIdle
-                    state = Tile.STATE_INACTIVE
-                }
+            when (status.state) {
+                CoreStatus.State.STARTING -> { icon = iconBusy; state = Tile.STATE_ACTIVE }
+                CoreStatus.State.RUNNING -> { icon = iconConnected; state = Tile.STATE_ACTIVE }
+                CoreStatus.State.STOPPING -> { icon = iconBusy; state = Tile.STATE_UNAVAILABLE }
+                CoreStatus.State.ERROR -> { icon = iconIdle; state = Tile.STATE_UNAVAILABLE }
+                CoreStatus.State.STOPPED -> { icon = iconIdle; state = Tile.STATE_INACTIVE }
             }
-            label = label ?: getString(R.string.app_name)
+            label = if (status.active) CoreController.selected.displayName else getString(R.string.app_name)
+            if (Build.VERSION.SDK_INT >= 29) subtitle = status.message.takeIf { it.isNotBlank() }
             updateTile()
         }
     }
 
     private fun toggle() {
-        val service = connection.service
-        if (service == null) tapPending =
-            true else BaseService.State.values()[service.state].let { state ->
-            when {
-                state.canStop -> SagerNet.stopService()
-                state == BaseService.State.Stopped -> SagerNet.startService()
-            }
+        if (CoreController.status(this).active) {
+            CoreController.stopAll(this)
+            refresh()
+            return
+        }
+        if (CoreController.needsVpnPermission(this)) {
+            openPermissionActivity()
+            return
+        }
+        runOnDefaultDispatcher {
+            runCatching { CoreController.startSelectedAuthorized(this@TileService) }
+                .onFailure { Logs.w(it) }
+            runOnMainDispatcher { refresh() }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun openPermissionActivity() {
+        val intent = Intent(this, VpnRequestActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (Build.VERSION.SDK_INT >= 34) {
+            val pending = PendingIntent.getActivity(
+                this, 4102, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            startActivityAndCollapse(pending)
+        } else {
+            startActivityAndCollapse(intent)
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.work.WorkerParameters
 import androidx.work.multiprocess.RemoteWorkManager
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.ktx.Logs
@@ -64,8 +65,8 @@ object SubscriptionUpdater {
         override suspend fun doWork(): Result {
             var subscriptions =
                 SagerDatabase.groupDao.subscriptions().filter { it.subscription!!.autoUpdate }
-            if (!DataStore.serviceState.connected) {
-                Logs.d("work: not connected")
+            if (!CoreController.status(applicationContext).active) {
+                Logs.d("work: no selected core is connected")
                 subscriptions = subscriptions.filter { !it.subscription!!.updateWhenConnectedOnly }
             }
 

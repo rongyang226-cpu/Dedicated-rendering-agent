@@ -13,12 +13,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.getSystemService
-import io.nekohasekai.sagernet.Key
+import androidx.lifecycle.lifecycleScope
 import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.broadcastReceiver
+import io.nekohasekai.sagernet.ktx.readableMessage
+import kotlinx.coroutines.launch
 
 class VpnRequestActivity : AppCompatActivity() {
     private var receiver: BroadcastReceiver? = null
@@ -39,9 +40,20 @@ class VpnRequestActivity : AppCompatActivity() {
         } else connect.launch(null)
     }
 
-    private val connect = registerForActivityResult(StartService()) {
-        if (it) Toast.makeText(this, R.string.vpn_permission_denied, Toast.LENGTH_LONG).show()
-        finish()
+    private val connect = registerForActivityResult(RequestVpnPermission()) { granted ->
+        if (!granted) {
+            Toast.makeText(this, R.string.vpn_permission_denied, Toast.LENGTH_LONG).show()
+            finish()
+            return@registerForActivityResult
+        }
+        lifecycleScope.launch {
+            runCatching { CoreController.startSelectedAuthorized(this@VpnRequestActivity) }
+                .onFailure {
+                    Logs.e(it)
+                    Toast.makeText(this@VpnRequestActivity, it.readableMessage, Toast.LENGTH_LONG).show()
+                }
+            finish()
+        }
     }
 
     override fun onDestroy() {
@@ -49,32 +61,19 @@ class VpnRequestActivity : AppCompatActivity() {
         if (receiver != null) unregisterReceiver(receiver)
     }
 
-    class StartService : ActivityResultContract<Void?, Boolean>() {
+    class RequestVpnPermission : ActivityResultContract<Void?, Boolean>() {
         private var cachedIntent: Intent? = null
 
-        override fun getSynchronousResult(
-            context: Context,
-            input: Void?,
-        ): SynchronousResult<Boolean>? {
-            if (DataStore.serviceMode == Key.MODE_VPN) VpnService.prepare(context)?.let { intent ->
-                cachedIntent = intent
-                return null
-            }
-            SagerNet.startService()
-            return SynchronousResult(false)
+        override fun getSynchronousResult(context: Context, input: Void?): SynchronousResult<Boolean>? {
+            val intent = VpnService.prepare(context) ?: return SynchronousResult(true)
+            cachedIntent = intent
+            return null
         }
 
         override fun createIntent(context: Context, input: Void?) =
-            cachedIntent!!.also { cachedIntent = null }
+            requireNotNull(cachedIntent).also { cachedIntent = null }
 
-        override fun parseResult(resultCode: Int, intent: Intent?) =
-            if (resultCode == Activity.RESULT_OK) {
-                SagerNet.startService()
-                false
-            } else {
-                Logs.e("Failed to start VpnService: $intent")
-                true
-            }
+        override fun parseResult(resultCode: Int, intent: Intent?) = resultCode == Activity.RESULT_OK
     }
 
 
