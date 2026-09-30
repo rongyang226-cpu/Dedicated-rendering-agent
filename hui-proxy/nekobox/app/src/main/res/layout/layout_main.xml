@@ -17,11 +17,19 @@
             android:layout_height="match_parent"
             android:clipChildren="false">
 
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/dock_pager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="92dp"
+                android:overScrollMode="never" />
+
             <FrameLayout
                 android:id="@+id/fragment_holder"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginBottom="92dp" />
+                android:layout_marginBottom="92dp"
+                android:visibility="gone" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/fabProgress"
@@ -68,7 +76,7 @@
                 android:layout_marginEnd="12dp"
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/hui_glass"
-                android:elevation="8dp"
+                android:elevation="0dp"
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:padding="6dp">
@@ -87,7 +95,7 @@
                     android:id="@+id/dock_config"
                     style="@style/HuiDockBubble"
                     android:drawableTop="@drawable/ic_baseline_view_list_24"
-                    android:text="分组" />
+                    android:text="配置" />
                 <TextView
                     android:id="@+id/dock_settings"
                     style="@style/HuiDockBubble"

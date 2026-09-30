@@ -45,6 +45,9 @@ class BootstrapActivity : Activity() {
         val wallpaper = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setImageDrawable(HuiVisuals.backdrop(this@BootstrapActivity))
+            scaleX = 1.12f
+            scaleY = 1.12f
+            alpha = 0.72f
         }
         root.addView(wallpaper, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -92,9 +95,13 @@ class BootstrapActivity : Activity() {
         ))
         setContentView(root)
 
-        content.animate().alpha(1f).translationY(0f).setDuration(260L).start()
-        avatar.animate().scaleX(1f).scaleY(1f).setDuration(320L).start()
-        root.postDelayed({ launchMain(animated = true) }, 420L)
+        wallpaper.animate().scaleX(1.035f).scaleY(1.035f).alpha(1f).setDuration(520L).start()
+        content.scaleX = 0.94f
+        content.scaleY = 0.94f
+        content.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).setDuration(400L).start()
+        avatar.rotation = -2.2f
+        avatar.animate().scaleX(1f).scaleY(1f).rotation(0f).setDuration(430L).start()
+        root.postDelayed({ launchMain(animated = true) }, 520L)
     }
 
     private fun launchMain(animated: Boolean = false) {

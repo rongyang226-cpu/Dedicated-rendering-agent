@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
@@ -19,6 +20,9 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceDataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
@@ -98,17 +102,24 @@ class MainActivity : ThemedActivity(),
         }
         navigation.setNavigationItemSelectedListener(this)
         setContentView(HuiVisuals.wrap(this, binding.root))
+        setupDockPager()
         setupDock()
 
         if (savedInstanceState == null) {
-            displayFragmentWithId(R.id.nav_home)
+            binding.dockPager.setCurrentItem(0, false)
+            currentDockId = R.id.nav_home
+            lastDockId = R.id.nav_home
+            updateDockSelection(currentDockId)
         } else {
+            val restored = dockOrder.getOrElse(binding.dockPager.currentItem) { R.id.nav_home }
+            currentDockId = restored
+            lastDockId = restored
             updateDockSelection(currentDockId)
         }
         onBackPressedDispatcher.addCallback {
             when {
-                currentDockId == -1 -> displayFragmentWithId(lastDockId)
-                currentDockId != R.id.nav_home -> displayFragmentWithId(R.id.nav_home)
+                currentDockId == -1 -> showDockFragment(lastDockId, true)
+                currentDockId != R.id.nav_home -> showDockFragment(R.id.nav_home, true)
                 else -> moveTaskToBack(true)
             }
         }
@@ -354,11 +365,44 @@ class MainActivity : ThemedActivity(),
     }
 
 
-    private val dockIds = setOf(
+    private val dockOrder = listOf(
         R.id.nav_home, R.id.nav_configuration, R.id.nav_group, R.id.nav_settings
     )
+    private val dockIds = dockOrder.toSet()
     private var currentDockId: Int = R.id.nav_home
     private var lastDockId: Int = R.id.nav_home
+
+    private inner class DockPagerAdapter : FragmentStateAdapter(this) {
+        override fun getItemCount(): Int = dockOrder.size
+        override fun createFragment(position: Int): Fragment = dockFragment(dockOrder[position])
+    }
+
+    private fun setupDockPager() {
+        binding.dockPager.adapter = DockPagerAdapter()
+        binding.dockPager.offscreenPageLimit = dockOrder.size - 1
+        binding.dockPager.isUserInputEnabled = true
+        (binding.dockPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView)?.apply {
+            itemAnimator = null
+            overScrollMode = View.OVER_SCROLL_NEVER
+            setItemViewCacheSize(dockOrder.size)
+        }
+        binding.dockPager.setPageTransformer { page, position ->
+            val distance = kotlin.math.abs(position).coerceAtMost(1f)
+            page.alpha = 1f - 0.05f * distance
+            val scale = 1f - 0.012f * distance
+            page.scaleX = scale
+            page.scaleY = scale
+        }
+        binding.dockPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                val id = dockOrder.getOrNull(position) ?: return
+                currentDockId = id
+                lastDockId = id
+                updateDockSelection(id)
+                if (::navigation.isInitialized) navigation.menu.findItem(id)?.isChecked = true
+            }
+        })
+    }
 
     private fun setupDock() {
         val items = listOf(
@@ -370,8 +414,8 @@ class MainActivity : ThemedActivity(),
         items.forEach { (view, id) ->
             HuiVisuals.applyLiquidPress(view)
             view.setOnClickListener {
-                val visible = supportFragmentManager.findFragmentByTag("hui-dock-$id")?.isVisible == true
-                if (!visible) displayFragmentWithId(id)
+                if (currentDockId == id && binding.fragmentHolder.visibility != View.VISIBLE) return@setOnClickListener
+                showDockFragment(id, true)
             }
         }
         updateDockSelection(currentDockId)
@@ -391,9 +435,9 @@ class MainActivity : ThemedActivity(),
             item.animate()
                 .scaleX(if (selected) 1f else 0.985f)
                 .scaleY(if (selected) 1f else 0.985f)
-                .translationY(0f)
-                .alpha(if (selected) 1f else 0.80f)
-                .setDuration(160L)
+                .translationY(if (selected) -2f * resources.displayMetrics.density else 0f)
+                .alpha(if (selected) 1f else 0.78f)
+                .setDuration(180L)
                 .start()
         }
     }
@@ -406,38 +450,19 @@ class MainActivity : ThemedActivity(),
         else -> error("Not a dock destination: $id")
     }
 
-    private fun showDockFragment(@IdRes id: Int) {
-        val tag = "hui-dock-$id"
+    private fun showDockFragment(@IdRes id: Int, smooth: Boolean = true) {
+        val targetIndex = dockOrder.indexOf(id)
+        if (targetIndex < 0) return
         val fm = supportFragmentManager
-        var target = fm.findFragmentByTag(tag) as? ToolbarFragment
-        val tx = fm.beginTransaction().setReorderingAllowed(true)
-        val hasVisiblePage = fm.fragments.any { it.id == R.id.fragment_holder && it.isAdded && it.isVisible }
-        if (hasVisiblePage) {
-            val order = listOf(R.id.nav_home, R.id.nav_configuration, R.id.nav_group, R.id.nav_settings)
-            val from = order.indexOf(currentDockId)
-            val to = order.indexOf(id)
-            val reverse = currentDockId == -1 || (from >= 0 && to >= 0 && to < from)
-            tx.setCustomAnimations(
-                if (reverse) R.anim.hui_page_enter_left else R.anim.hui_page_enter_right,
-                if (reverse) R.anim.hui_page_exit_right else R.anim.hui_page_exit_left,
-            )
+        val overlayFragments = fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded }
+        if (overlayFragments.isNotEmpty()) {
+            fm.beginTransaction().setReorderingAllowed(true).apply {
+                overlayFragments.forEach { remove(it) }
+            }.commitAllowingStateLoss()
+            binding.fragmentHolder.visibility = View.GONE
         }
-        fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded && it !== target }.forEach { fragment ->
-            if (fragment.tag?.startsWith("hui-dock-") == true) {
-                tx.hide(fragment)
-                tx.setMaxLifecycle(fragment, Lifecycle.State.STARTED)
-            } else {
-                tx.remove(fragment)
-            }
-        }
-        if (target == null) {
-            target = dockFragment(id)
-            tx.add(R.id.fragment_holder, target, tag)
-        } else {
-            tx.show(target)
-        }
-        tx.setMaxLifecycle(target, Lifecycle.State.RESUMED)
-        tx.commitAllowingStateLoss()
+        binding.dockPager.visibility = View.VISIBLE
+        binding.dockPager.setCurrentItem(targetIndex, smooth)
         currentDockId = id
         lastDockId = id
         updateDockSelection(id)
@@ -446,6 +471,9 @@ class MainActivity : ThemedActivity(),
 
     @SuppressLint("CommitTransaction")
     fun displayFragment(fragment: ToolbarFragment) {
+        currentDockId = -1
+        updateDockSelection(-1)
+        binding.fragmentHolder.visibility = View.VISIBLE
         val fm = supportFragmentManager
         val tx = fm.beginTransaction()
             .setReorderingAllowed(true)
@@ -466,10 +494,8 @@ class MainActivity : ThemedActivity(),
 
     fun displayFragmentWithId(@IdRes id: Int): Boolean {
         if (id in dockIds) {
-            showDockFragment(id)
+            showDockFragment(id, true)
         } else {
-            currentDockId = -1
-            updateDockSelection(-1)
             when (id) {
             R.id.nav_config_center -> displayFragment(ConfigCenterFragment())
             R.id.nav_route -> displayFragment(RouteFragment())
@@ -674,8 +700,11 @@ class MainActivity : ThemedActivity(),
         if (super.onKeyDown(keyCode, event)) return true
         if (binding.drawerLayout.isOpen) return false
 
-        val fragment =
+        val fragment = if (currentDockId == -1) {
             supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
+        } else {
+            supportFragmentManager.findFragmentByTag("f${binding.dockPager.currentItem}") as? ToolbarFragment
+        }
         return fragment != null && fragment.onKeyDown(keyCode, event)
     }
 

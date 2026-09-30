@@ -264,11 +264,16 @@ class HuiAmbientView(context: Context) : View(context) {
     private val petalScale = floatArrayOf(0.72f, 0.95f, 0.66f, 0.84f, 1.0f, 0.74f, 0.90f, 0.68f, 0.82f, 0.96f, 0.76f, 0.88f)
     private var phase = 0f
     private var running = false
+    private var lastPetalFrame = 0L
     private val ticker = object : Runnable {
         override fun run() {
             if (!running || !isAttachedToWindow) return
-            phase = (SystemClock.uptimeMillis() % 24000L) / 24000f
-            invalidate()
+            val now = SystemClock.uptimeMillis()
+            if (now - lastPetalFrame >= 33L) {
+                lastPetalFrame = now
+                phase = (now % 24000L) / 24000f
+                invalidate()
+            }
             postOnAnimation(this)
         }
     }

@@ -14,7 +14,7 @@
         <item
             android:id="@+id/nav_group"
             android:icon="@drawable/ic_baseline_view_list_24"
-            android:title="@string/menu_group" />
+            android:title="配置" />
 
         <item
             android:id="@+id/nav_route"

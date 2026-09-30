@@ -190,7 +190,8 @@ class ConfigurationFragment @JvmOverloads constructor(
         super.onViewCreated(view, savedInstanceState)
 
         if (!select) {
-            toolbar.inflateMenu(R.menu.add_profile_menu)
+            toolbar.setTitle("节点")
+            toolbar.inflateMenu(R.menu.node_actions_menu)
             toolbar.setOnMenuItemClickListener(this)
         } else {
             toolbar.setTitle(titleRes)
@@ -1401,6 +1402,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
                     dragDirections, ItemTouchHelper.START
                 ) {
+                    override fun isLongPressDragEnabled(): Boolean =
+                        DataStore.huiNodeLayout != "grid" && proxyGroup.order == GroupOrder.ORIGIN
+
                     override fun getSwipeDirs(
                         recyclerView: RecyclerView,
                         viewHolder: RecyclerView.ViewHolder,
@@ -1462,6 +1466,8 @@ class ConfigurationFragment @JvmOverloads constructor(
 
             var configurationIdList: MutableList<Long> = mutableListOf()
             val configurationList = HashMap<Long, ProxyEntity>()
+            private var appliedOrder: Int? = null
+            private val payloadRuntime = "hui-runtime"
 
             private fun getItem(profileId: Long): ProxyEntity {
                 var profile = configurationList[profileId]
@@ -1494,6 +1500,18 @@ class ConfigurationFragment @JvmOverloads constructor(
                 try {
                     holder.bind(getItemAt(position))
                 } catch (ignored: NullPointerException) { // when group deleted
+                }
+            }
+
+            override fun onBindViewHolder(
+                holder: ConfigurationHolder,
+                position: Int,
+                payloads: MutableList<Any>,
+            ) {
+                if (payloads.contains(payloadRuntime)) {
+                    runCatching { holder.bindRuntime(getItemAt(position)) }.onFailure(Logs::w)
+                } else {
+                    super.onBindViewHolder(holder, position, payloads)
                 }
             }
 
@@ -1585,24 +1603,22 @@ class ConfigurationFragment @JvmOverloads constructor(
             override suspend fun onUpdated(profile: ProxyEntity, noTraffic: Boolean) {
                 if (profile.groupId != proxyGroup.id) return
                 val index = configurationIdList.indexOf(profile.id)
+                val oldProfile = configurationList[profile.id]
+                configurationList[profile.id] = profile
                 if (index < 0) return
+                val runtimeOnly = oldProfile != null && runCatching {
+                    oldProfile.type == profile.type &&
+                        oldProfile.userOrder == profile.userOrder &&
+                        oldProfile.displayName() == profile.displayName() &&
+                        oldProfile.displayType() == profile.displayType() &&
+                        oldProfile.displayAddress() == profile.displayAddress()
+                }.getOrDefault(false)
                 configurationListView.post {
-                    if (::undoManager.isInitialized) {
-                        undoManager.flush()
-                    }
-                    configurationList[profile.id] = profile
-                    notifyItemChanged(index)
-                    //
-                    val oldProfile = configurationList[profile.id]
+                    if (::undoManager.isInitialized) undoManager.flush()
+                    notifyItemChanged(index, if (runtimeOnly) payloadRuntime else Unit)
                     if (noTraffic && oldProfile != null) {
                         runOnDefaultDispatcher {
-                            onUpdated(
-                                TrafficData(
-                                    id = profile.id,
-                                    rx = oldProfile.rx,
-                                    tx = oldProfile.tx
-                                )
-                            )
+                            onUpdated(TrafficData(id = profile.id, rx = oldProfile.rx, tx = oldProfile.tx))
                         }
                     }
                 }
@@ -1653,39 +1669,42 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             fun reloadProfiles() {
-                var newProfiles = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
-                when (proxyGroup.order) {
-                    GroupOrder.BY_NAME -> {
-                        newProfiles = newProfiles.sortedBy { it.displayName() }
-
-                    }
-
-                    GroupOrder.BY_DELAY -> {
-                        newProfiles =
-                            newProfiles.sortedBy { if (it.status == 1) it.ping else 114514 }
+                val dbProfiles = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
+                val profileById = dbProfiles.associateBy { it.id }
+                val orderChanged = appliedOrder != proxyGroup.order
+                val newProfiles = if (configurationIdList.isNotEmpty() && !orderChanged) {
+                    val kept = configurationIdList.mapNotNull(profileById::get)
+                    val keptIds = kept.asSequence().map { it.id }.toHashSet()
+                    kept + dbProfiles.filterNot { it.id in keptIds }.sortedBy { it.userOrder }
+                } else {
+                    when (proxyGroup.order) {
+                        GroupOrder.BY_NAME -> dbProfiles.sortedBy { it.displayName() }
+                        GroupOrder.BY_DELAY -> dbProfiles.sortedBy { if (it.status == 1) it.ping else Int.MAX_VALUE }
+                        else -> dbProfiles.sortedBy { it.userOrder }
                     }
                 }
-
-                configurationList.clear()
-                configurationList.putAll(newProfiles.associateBy { it.id })
+                appliedOrder = proxyGroup.order
                 val newProfileIds = newProfiles.map { it.id }
+                val oldProfileIds = configurationIdList.toList()
+                configurationList.clear()
+                configurationList.putAll(profileById)
 
-                var selectedProfileIndex = -1
-
-                if (selected) {
+                val selectedProfileIndex = if (selected) {
                     val selectedProxy = selectedItem?.id ?: DataStore.selectedProxy
-                    selectedProfileIndex = newProfileIds.indexOf(selectedProxy)
-                }
+                    newProfileIds.indexOf(selectedProxy)
+                } else -1
 
                 configurationListView.post {
-                    configurationIdList.clear()
-                    configurationIdList.addAll(newProfileIds)
-                    notifyDataSetChanged()
-
-                    if (selectedProfileIndex != -1) {
+                    if (oldProfileIds == newProfileIds) {
+                        if (newProfileIds.isNotEmpty()) notifyItemRangeChanged(0, newProfileIds.size, payloadRuntime)
+                    } else {
+                        configurationIdList.clear()
+                        configurationIdList.addAll(newProfileIds)
+                        notifyDataSetChanged()
+                    }
+                    if (selectedProfileIndex != -1 && select) {
                         configurationListView.scrollTo(selectedProfileIndex, true)
                     }
-
                 }
             }
 
@@ -1769,6 +1788,33 @@ class ConfigurationFragment @JvmOverloads constructor(
                     view.layoutParams = view.layoutParams.apply { height = dp(118) }
                     profileName.minLines = 2
                     profileStatus.layoutParams = profileStatus.layoutParams.apply { width = dp(64) }
+                }
+            }
+
+            fun bindRuntime(proxyEntity: ProxyEntity) {
+                entity = proxyEntity
+                when (proxyEntity.status) {
+                    1 -> {
+                        profileStatus.text = "${proxyEntity.ping} ms"
+                        profileStatus.setTextColor(requireContext().getColour(R.color.material_green_500))
+                    }
+                    2, 3 -> {
+                        profileStatus.text = getString(R.string.unavailable)
+                        profileStatus.setTextColor(requireContext().getColour(R.color.material_red_500))
+                    }
+                    else -> {
+                        profileStatus.text = "— ms"
+                        profileStatus.setTextColor(requireContext().getColorAttr(android.R.attr.textColorSecondary))
+                    }
+                }
+                profileStatus.setOnClickListener { (parentFragment as? ConfigurationFragment)?.manualPing(proxyEntity) }
+                val selectedNow = (selectedItem?.id ?: DataStore.selectedProxy) == proxyEntity.id
+                (view as? com.google.android.material.card.MaterialCardView)?.apply {
+                    setCardBackgroundColor(requireContext().getColour(
+                        if (selectedNow) R.color.hui_glass_strong else R.color.hui_glass_fill
+                    ))
+                    strokeColor = requireContext().getColour(R.color.hui_edge)
+                    strokeWidth = dp(1)
                 }
             }
 

@@ -2,6 +2,7 @@ package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.text.format.Formatter
 import android.view.MenuItem
 import android.view.View
@@ -15,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.*
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,18 +25,29 @@ import io.nekohasekai.sagernet.GroupType
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.*
+import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreEngine
+import io.nekohasekai.sagernet.bg.meta.MetaCoreManager
 import io.nekohasekai.sagernet.databinding.LayoutGroupItemBinding
 import io.nekohasekai.sagernet.fmt.toUniversalLink
+import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.group.GroupUpdater
+import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.widget.ListListener
 import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
+import io.nekohasekai.sagernet.ui.profile.*
+import moe.matsuri.nb4a.proxy.anytls.AnyTLSSettingsActivity
+import moe.matsuri.nb4a.proxy.config.ConfigSettingActivity
+import moe.matsuri.nb4a.proxy.shadowtls.ShadowTLSSettingsActivity
+import okhttp3.internal.closeQuietly
 import kotlinx.coroutines.delay
 import moe.matsuri.nb4a.utils.Util
 import moe.matsuri.nb4a.utils.toBytesString
 import java.lang.NumberFormatException
 import java.util.*
+import java.util.zip.ZipInputStream
 
 class GroupFragment : ToolbarFragment(R.layout.layout_group),
     Toolbar.OnMenuItemClickListener {
@@ -50,7 +63,7 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
         activity = requireActivity() as MainActivity
 
         ViewCompat.setOnApplyWindowInsetsListener(view, ListListener)
-        toolbar.setTitle(R.string.menu_group)
+        toolbar.setTitle("配置")
         toolbar.inflateMenu(R.menu.add_group_menu)
         toolbar.setOnMenuItemClickListener(this)
 
@@ -117,6 +130,32 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
 
             R.id.action_add_subscription -> showQuickSubscription()
 
+            R.id.action_scan_qr_code -> startActivity(Intent(context, ScannerActivity::class.java))
+
+            R.id.action_import_clipboard -> importClipboard()
+            R.id.action_import_url -> showManualUrlImport()
+            R.id.action_import_file -> startFilesForResult(importFile, "*/*")
+            R.id.action_import_meta_file -> startFilesForResult(importMetaFile, "*/*")
+            R.id.action_import_meta_url -> showMetaUrlImport()
+
+            R.id.action_new_socks -> startActivity(Intent(requireActivity(), SocksSettingsActivity::class.java))
+            R.id.action_new_http -> startActivity(Intent(requireActivity(), HttpSettingsActivity::class.java))
+            R.id.action_new_ss -> startActivity(Intent(requireActivity(), ShadowsocksSettingsActivity::class.java))
+            R.id.action_new_vmess -> startActivity(Intent(requireActivity(), VMessSettingsActivity::class.java))
+            R.id.action_new_vless -> startActivity(Intent(requireActivity(), VMessSettingsActivity::class.java).apply { putExtra("vless", true) })
+            R.id.action_new_trojan -> startActivity(Intent(requireActivity(), TrojanSettingsActivity::class.java))
+            R.id.action_new_trojan_go -> startActivity(Intent(requireActivity(), TrojanGoSettingsActivity::class.java))
+            R.id.action_new_mieru -> startActivity(Intent(requireActivity(), MieruSettingsActivity::class.java))
+            R.id.action_new_naive -> startActivity(Intent(requireActivity(), NaiveSettingsActivity::class.java))
+            R.id.action_new_hysteria -> startActivity(Intent(requireActivity(), HysteriaSettingsActivity::class.java))
+            R.id.action_new_tuic -> startActivity(Intent(requireActivity(), TuicSettingsActivity::class.java))
+            R.id.action_new_shadowtls -> startActivity(Intent(requireActivity(), ShadowTLSSettingsActivity::class.java))
+            R.id.action_new_anytls -> startActivity(Intent(requireActivity(), AnyTLSSettingsActivity::class.java))
+            R.id.action_new_ssh -> startActivity(Intent(requireActivity(), SSHSettingsActivity::class.java))
+            R.id.action_new_wg -> startActivity(Intent(requireActivity(), WireGuardSettingsActivity::class.java))
+            R.id.action_new_config -> startActivity(Intent(requireActivity(), ConfigSettingActivity::class.java))
+            R.id.action_new_chain -> startActivity(Intent(requireActivity(), ChainSettingsActivity::class.java))
+
             R.id.action_new_group -> {
                 startActivity(Intent(context, GroupSettingsActivity::class.java))
             }
@@ -136,6 +175,153 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group),
             }
         }
         return true
+    }
+
+    private val importMetaFile =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            val appContext = context?.applicationContext ?: return@registerForActivityResult
+            if (uri != null) runOnDefaultDispatcher {
+                runCatching { MetaCoreManager.importUri(appContext, uri) }
+                    .onSuccess {
+                        CoreController.selectEngine(CoreEngine.META)
+                        onMainDispatcher { snackbar("Meta YAML 已导入并设为当前内核").show() }
+                    }
+                    .onFailure { e ->
+                        Logs.w(e)
+                        onMainDispatcher { snackbar(e.readableMessage).show() }
+                    }
+            }
+        }
+
+    private val importFile =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { file ->
+            if (file != null) runOnDefaultDispatcher {
+                try {
+                    val fileName = requireContext().contentResolver.query(file, null, null, null, null)
+                        ?.use { cursor ->
+                            cursor.moveToFirst()
+                            cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME).let(cursor::getString)
+                        }
+                    val proxies = mutableListOf<AbstractBean>()
+                    if (fileName?.endsWith(".zip", true) == true) {
+                        val zip = ZipInputStream(requireContext().contentResolver.openInputStream(file)!!)
+                        while (true) {
+                            val entry = zip.nextEntry ?: break
+                            if (entry.isDirectory) continue
+                            val fileText = zip.bufferedReader().readText()
+                            RawUpdater.parseRaw(fileText, entry.name)?.let(proxies::addAll)
+                            zip.closeEntry()
+                        }
+                        zip.closeQuietly()
+                    } else {
+                        val fileText = requireContext().contentResolver.openInputStream(file)!!.use {
+                            it.bufferedReader().readText()
+                        }
+                        RawUpdater.parseRaw(fileText, fileName ?: "")?.let(proxies::addAll)
+                    }
+                    if (proxies.isEmpty()) onMainDispatcher {
+                        snackbar(getString(R.string.no_proxies_found_in_file)).show()
+                    } else importProfiles(proxies)
+                } catch (e: SubscriptionFoundException) {
+                    activity.importSubscription(e.link.toUri())
+                } catch (e: Exception) {
+                    Logs.w(e)
+                    onMainDispatcher { snackbar(e.readableMessage).show() }
+                }
+            }
+        }
+
+    private suspend fun importProfiles(proxies: List<AbstractBean>) {
+        val targetId = DataStore.selectedGroupForImport()
+        proxies.forEach { ProfileManager.createProfile(targetId, it) }
+        onMainDispatcher {
+            DataStore.editingGroup = targetId
+            snackbar(resources.getQuantityString(R.plurals.added, proxies.size, proxies.size)).show()
+        }
+    }
+
+    private fun importClipboard() {
+        val text = SagerNet.getClipboardText()
+        if (text.isBlank()) {
+            snackbar(getString(R.string.clipboard_empty)).show()
+            return
+        }
+        runOnDefaultDispatcher {
+            try {
+                val proxies = RawUpdater.parseRaw(text)
+                if (proxies.isNullOrEmpty()) onMainDispatcher {
+                    snackbar(getString(R.string.no_proxies_found_in_clipboard)).show()
+                } else importProfiles(proxies)
+            } catch (e: SubscriptionFoundException) {
+                activity.importSubscription(e.link.toUri())
+            } catch (e: Exception) {
+                Logs.w(e)
+                onMainDispatcher { snackbar(e.readableMessage).show() }
+            }
+        }
+    }
+
+    private fun showManualUrlImport() {
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.hui_import_url_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            isSingleLine = false
+            maxLines = 4
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.hui_import_url_title)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.hui_import_url) { _, _ ->
+                val text = input.text?.toString()?.trim().orEmpty()
+                if (text.isBlank()) return@setPositiveButton
+                runOnDefaultDispatcher {
+                    try {
+                        if (text.startsWith("http://", true) || text.startsWith("https://", true)) {
+                            activity.importSubscription("sn://subscription?url=${android.net.Uri.encode(text)}".toUri())
+                        } else {
+                            val proxies = RawUpdater.parseRaw(text)
+                            if (proxies.isNullOrEmpty()) onMainDispatcher {
+                                snackbar(R.string.hui_import_url_invalid).show()
+                            } else importProfiles(proxies)
+                        }
+                    } catch (e: SubscriptionFoundException) {
+                        activity.importSubscription(e.link.toUri())
+                    } catch (e: Exception) {
+                        Logs.w(e)
+                        onMainDispatcher { snackbar(e.readableMessage).show() }
+                    }
+                }
+            }.show()
+    }
+
+    private fun showMetaUrlImport() {
+        val input = EditText(requireContext()).apply {
+            hint = "https://example.com/config.yaml"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            isSingleLine = false
+            maxLines = 4
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("导入 Meta URL")
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton("导入") { _, _ ->
+                val raw = input.text?.toString()?.trim().orEmpty()
+                if (raw.isBlank()) return@setPositiveButton
+                val appContext = requireContext().applicationContext
+                runOnDefaultDispatcher {
+                    runCatching { MetaCoreManager.importUrl(appContext, raw) }
+                        .onSuccess {
+                            CoreController.selectEngine(CoreEngine.META)
+                            onMainDispatcher { snackbar("Meta URL 已导入并设为当前内核").show() }
+                        }
+                        .onFailure { e ->
+                            Logs.w(e)
+                            onMainDispatcher { snackbar(e.readableMessage).show() }
+                        }
+                }
+            }.show()
     }
 
     private fun showQuickSubscription() {

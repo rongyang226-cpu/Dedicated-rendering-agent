@@ -3,13 +3,13 @@
 
     <color name="hui_fallback">#CAB9BD</color>
     <color name="hui_splash_background">#E9D7D5</color>
-    <color name="hui_glass_fill">#5CFFFFFF</color>
-    <color name="hui_glass_fill_pressed">#78FFFFFF</color>
-    <color name="hui_edge">#A3FFFFFF</color>
+    <color name="hui_glass_fill">#48FFFFFF</color>
+    <color name="hui_glass_fill_pressed">#64FFFFFF</color>
+    <color name="hui_edge">#82FFFFFF</color>
     <color name="hui_ink">#15161D</color>
     <color name="hui_ink_secondary">#C6262830</color>
-    <color name="hui_glass_soft">#3AFFFFFF</color>
-    <color name="hui_glass_strong">#78FFFFFF</color>
+    <color name="hui_glass_soft">#2EFFFFFF</color>
+    <color name="hui_glass_strong">#5EFFFFFF</color>
     <color name="hui_selected">#FF4C5663</color>
     <color name="hui_selected_surface">#64FFFFFF</color>
     <integer-array name="material_colors">

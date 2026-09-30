@@ -329,7 +329,15 @@ public class SingBoxOptions {
 
     public static class DNSServerOptions extends SingBoxOption {
 
+        public String type;
+
         public String tag;
+
+        public String server;
+
+        public String inet4_range;
+
+        public String inet6_range;
 
         public String address;
 
