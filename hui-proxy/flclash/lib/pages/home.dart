@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/manager/app_manager.dart';
@@ -63,10 +64,31 @@ class _HomeShell extends ConsumerWidget {
     final state = ref.watch(navigationStateProvider);
     final isMobile = state.viewMode == ViewMode.mobile;
     final navigationItems = state.navigationItems;
-    return Material(
-      color: context.colorScheme.surface,
-      child: Column(
-        children: [
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/hui_background.webp'),
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x12FFFFFF), Color(0x08000000)],
+            ),
+          ),
+        ),
+        Material(
+          color: Colors.transparent,
+          child: Column(
+            children: [
           Flexible(
             flex: 1,
             child: FocusTraversalGroup(
@@ -89,9 +111,21 @@ class _HomeShell extends ConsumerWidget {
               removeLeft: true,
               removeRight: true,
               context: context,
-              child: NavigationBarTheme(
-                data: _NavigationBarDefaultsM3(context),
-                child: NavigationBar(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0x62FFFFFF),
+                        border: Border.all(color: const Color(0x70FFFFFF), width: 1),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: NavigationBarTheme(
+                        data: _NavigationBarDefaultsM3(context),
+                        child: NavigationBar(
                   destinations: [
                     for (final item in navigationItems)
                       NavigationDestination(
@@ -102,13 +136,19 @@ class _HomeShell extends ConsumerWidget {
                   onDestinationSelected: (index) {
                     _handleToPage(navigationItems[index].label, ref);
                   },
-                  selectedIndex: state.currentIndex,
+                          selectedIndex: state.currentIndex,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
+      ],
     );
   }
 }
@@ -259,8 +299,8 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
 class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   _NavigationBarDefaultsM3(this.context)
     : super(
-        height: 80.0,
-        elevation: 3.0,
+        height: 76.0,
+        elevation: 0.0,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       );
 
@@ -269,7 +309,7 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   late final TextTheme _textTheme = Theme.of(context).textTheme;
 
   @override
-  Color? get backgroundColor => _colors.surfaceContainer;
+  Color? get backgroundColor => Colors.transparent;
 
   @override
   Color? get shadowColor => Colors.transparent;
@@ -292,7 +332,7 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   }
 
   @override
-  Color? get indicatorColor => _colors.secondaryContainer;
+  Color? get indicatorColor => const Color(0x46FFFFFF);
 
   @override
   ShapeBorder? get indicatorShape => AppShape.full;

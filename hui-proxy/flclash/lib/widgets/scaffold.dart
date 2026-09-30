@@ -92,9 +92,7 @@ class CommonScaffoldState extends State<CommonScaffold> {
     return Theme(
       data: theme.copyWith(
         appBarTheme: theme.appBarTheme.copyWith(
-          backgroundColor: colorScheme.brightness == Brightness.dark
-              ? Colors.grey[900]
-              : Colors.white,
+          backgroundColor: colorScheme.surface.withValues(alpha: 0.82),
           iconTheme: theme.primaryIconTheme.copyWith(color: Colors.grey),
           titleTextStyle: theme.textTheme.titleLarge,
           toolbarTextStyle: theme.textTheme.bodyMedium,
@@ -396,7 +394,7 @@ class CommonScaffoldState extends State<CommonScaffold> {
         },
       ),
       resizeToAvoidBottomInset: widget.resizeToAvoidBottomInset,
-      backgroundColor: widget.backgroundColor,
+      backgroundColor: widget.backgroundColor ?? Colors.transparent,
       floatingActionButton: hasFab
           ? bottomInset > 0
                 ? Padding(

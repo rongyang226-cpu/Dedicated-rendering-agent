@@ -149,8 +149,8 @@ class CommonCard extends StatelessWidget {
     }
     return BorderSide(
       color: isSelected
-          ? colorScheme.primary
-          : colorScheme.surfaceContainerHighest,
+          ? Colors.white.withValues(alpha: 0.68)
+          : Colors.white.withValues(alpha: 0.38),
     );
   }
 
@@ -160,12 +160,12 @@ class CommonCard extends StatelessWidget {
       if (isSelected) {
         return colorScheme.secondaryContainer.opacity80;
       }
-      return colorScheme.surfaceContainerHigh;
+      return colorScheme.surface.withValues(alpha: 0.42);
     }
     if (isSelected) {
-      return colorScheme.secondaryContainer;
+      return colorScheme.primaryContainer.withValues(alpha: 0.50);
     }
-    return colorScheme.surfaceContainerLow;
+    return colorScheme.surface.withValues(alpha: 0.34);
   }
 
   Color? _buildForegroundColor(BuildContext context) {
@@ -366,7 +366,7 @@ class SettingsBlock extends StatelessWidget {
         children: [
           InfoHeader(info: Info(label: title)),
           Card(
-            color: context.colorScheme.surfaceContainer,
+            color: context.colorScheme.surface.withValues(alpha: 0.34),
             child: Column(children: settings),
           ),
         ],
