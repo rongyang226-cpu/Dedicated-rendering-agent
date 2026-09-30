@@ -27,6 +27,17 @@
             app:title="代理内核"
             app:summary="自动模式会按节点或导入配置切换 Box / Meta"
             app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:defaultValue="true"
+            app:icon="@drawable/ic_baseline_update_24"
+            app:key="huiCoreAutoUpdate"
+            app:title="自动更新内核"
+            app:summary="稳定通道有兼容更新时，在 Wi‑Fi 下自动下载；失败自动回退内置内核" />
+        <Preference
+            app:icon="@drawable/ic_baseline_download_24"
+            app:key="huiCoreUpdateNow"
+            app:title="检查内核更新"
+            app:summary="Box 1.14.2 · Meta/CMFA 2.11.34" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
             app:defaultValue="grid"
             app:entries="@array/hui_node_layout_entries"

@@ -21,6 +21,7 @@ import android.util.Log;
 import com.github.kr328.clash.core.bridge.Bridge;
 import com.github.kr328.clash.core.bridge.TunInterface;
 import io.nekohasekai.sagernet.R;
+import io.nekohasekai.sagernet.bg.core.CoreNativeOverride;
 import io.nekohasekai.sagernet.ui.MainActivity;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -439,7 +440,12 @@ public final class MetaVpnService extends VpnService {
         try { Bridge.INSTANCE.nativeReset(); } catch (Throwable ignored) { }
         if (!preserveError) writeStatus("STOPPED", "未连接", 0, 0, 0, 0);
         try { stopForeground(true); } catch (Throwable ignored) { }
+        boolean restartProcess = CoreNativeOverride.consumeRestartRequired(this, "meta");
         stopSelf();
+        if (restartProcess) new Thread(() -> {
+            try { Thread.sleep(120L); } catch (InterruptedException ignored) { }
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }, "hui-meta-core-restart").start();
     }
 
     @Override public void onRevoke() { stopCurrent(false); super.onRevoke(); }

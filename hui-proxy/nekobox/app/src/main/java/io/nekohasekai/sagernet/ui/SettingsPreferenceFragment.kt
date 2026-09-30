@@ -10,12 +10,15 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.core.app.ActivityCompat
 import androidx.preference.*
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.bg.core.CoreController
+import io.nekohasekai.sagernet.bg.core.CoreUpdateManager
 import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.utils.Theme
@@ -70,6 +73,26 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             // Recreating here raced ViewPager2's nested preference fragment and caused
             // "No view found for id/settings" during manual Box/Meta switching.
             true
+        }
+        findPreference<Preference>("huiCoreUpdateNow")?.let { updatePreference ->
+            updatePreference.summary = CoreUpdateManager.currentSummary(requireContext())
+            updatePreference.setOnPreferenceClickListener {
+                if (!updatePreference.isEnabled) return@setOnPreferenceClickListener true
+                updatePreference.isEnabled = false
+                updatePreference.summary = "正在检查官方稳定版…"
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val report = CoreUpdateManager.updateAll(requireContext().applicationContext, manual = true)
+                    if (!isAdded) return@launch
+                    updatePreference.isEnabled = true
+                    updatePreference.summary = CoreUpdateManager.currentSummary(requireContext())
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(if (report.changed) "内核已更新" else "内核检查完成")
+                        .setMessage(report.message + if (report.changed) "\n\n更新会在对应内核进程下次启动时生效。" else "")
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+                true
+            }
         }
         findPreference<SimpleMenuPreference>("huiNodeLayout")?.setOnPreferenceChangeListener { _, _ ->
             requireActivity().window.decorView.post {

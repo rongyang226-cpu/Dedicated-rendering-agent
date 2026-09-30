@@ -5,6 +5,7 @@
 package go;
 
 import android.content.Context;
+import io.nekohasekai.sagernet.bg.core.CoreNativeOverride;
 
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -37,7 +38,11 @@ public class Seq {
 		// Hui runs legacy Box and modern SFA in separate Android processes.
 		// Each process must bind go.Seq to exactly one Go runtime.
 		String runtime = System.getProperty("hui.go.runtime", "gojni");
-		System.loadLibrary("box".equals(runtime) ? "box" : "gojni");
+		if ("box".equals(runtime)) {
+			if (!CoreNativeOverride.loadBox()) System.loadLibrary("box");
+		} else {
+			System.loadLibrary("gojni");
+		}
 		init();
 		Universe.touch();
 	}

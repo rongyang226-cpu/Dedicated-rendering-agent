@@ -5,6 +5,7 @@ import android.os.ParcelFileDescriptor;
 import java.io.File;
 import io.nekohasekai.sagernet.BuildConfig;
 import io.nekohasekai.sagernet.SagerNet;
+import io.nekohasekai.sagernet.bg.core.CoreNativeOverride;
 import kotlinx.coroutines.CompletableDeferred;
 import kotlin.Unit;
 
@@ -12,8 +13,10 @@ import kotlin.Unit;
 public final class Bridge {
     public static final Bridge INSTANCE = new Bridge();
     static {
-        System.loadLibrary("clash");
-        System.loadLibrary("bridge");
+        if (!CoreNativeOverride.loadMeta()) {
+            System.loadLibrary("clash");
+            System.loadLibrary("bridge");
+        }
     }
     private Bridge() {
         try {

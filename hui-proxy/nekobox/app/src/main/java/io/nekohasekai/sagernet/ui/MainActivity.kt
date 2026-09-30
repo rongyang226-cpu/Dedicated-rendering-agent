@@ -434,11 +434,11 @@ class MainActivity : ThemedActivity(),
             item.isSelected = selected
             item.animate().cancel()
             item.animate()
-                .scaleX(if (selected) 1f else 0.985f)
-                .scaleY(if (selected) 1f else 0.985f)
-                .translationY(if (selected) -2f * resources.displayMetrics.density else 0f)
-                .alpha(if (selected) 1f else 0.78f)
-                .setDuration(180L)
+                .scaleX(if (selected) 1.035f else 1f)
+                .scaleY(if (selected) 1.035f else 1f)
+                .translationY(if (selected) -3f * resources.displayMetrics.density else 0f)
+                .alpha(if (selected) 1f else 0.88f)
+                .setDuration(165L)
                 .start()
         }
     }
@@ -456,7 +456,7 @@ class MainActivity : ThemedActivity(),
         binding.dockPager.visibility = if (active) View.GONE else View.VISIBLE
         binding.huiBottomDock.visibility = if (active) View.GONE else View.VISIBLE
         (binding.fragmentHolder.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
-            lp.bottomMargin = if (active) 0 else (92 * resources.displayMetrics.density).toInt()
+            lp.bottomMargin = if (active) 0 else (104 * resources.displayMetrics.density).toInt()
             binding.fragmentHolder.layoutParams = lp
         }
         binding.fragmentHolder.isClickable = active

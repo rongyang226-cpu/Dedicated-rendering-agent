@@ -5,30 +5,35 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     tools:openDrawer="start">
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/coordinator"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipChildren="false">
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/dock_pager"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginBottom="92dp"
+                android:layout_marginBottom="104dp"
                 android:overScrollMode="never" />
 
             <FrameLayout
                 android:id="@+id/fragment_holder"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginBottom="92dp"
+                android:layout_marginBottom="104dp"
                 android:visibility="gone" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
@@ -70,16 +75,18 @@
             <LinearLayout
                 android:id="@+id/hui_bottom_dock"
                 android:layout_width="match_parent"
-                android:layout_height="72dp"
+                android:layout_height="86dp"
                 android:layout_gravity="bottom"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:layout_marginStart="12dp"
                 android:layout_marginEnd="12dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="8dp"
                 android:background="@drawable/hui_glass"
                 android:elevation="0dp"
                 android:gravity="center"
                 android:orientation="horizontal"
-                android:padding="6dp">
+                android:padding="9dp">
 
                 <TextView
                     android:id="@+id/dock_home"

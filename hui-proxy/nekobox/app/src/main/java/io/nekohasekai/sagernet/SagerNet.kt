@@ -18,6 +18,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import go.Seq
 import io.nekohasekai.sagernet.bg.SagerConnection
+import io.nekohasekai.sagernet.bg.core.CoreNativeOverride
+import io.nekohasekai.sagernet.bg.core.CoreUpdateManager
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.isOss
@@ -56,6 +58,7 @@ class SagerNet : Application(),
 
         // Keep attachBaseContext identical to the RC3 startup path. Select the Go runtime
         // only after Application is fully attached, before either gomobile runtime is touched.
+        CoreNativeOverride.configure(this, process)
         System.setProperty("hui.go.runtime", if (process.endsWith(":box")) "box" else "gojni")
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler)
 
@@ -90,6 +93,7 @@ class SagerNet : Application(),
                 }
 
                 updateNotificationChannels()
+                CoreUpdateManager.autoUpdateIfDue(this@SagerNet)
             }
         }
 

@@ -90,6 +90,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var huiNodeLayout by configurationStore.string("huiNodeLayout") { "grid" }
     var huiCoreEngine by configurationStore.string("huiCoreEngine") { "auto" }
     var huiAutoEngine by configurationStore.string("huiAutoEngine") { "box" }
+    var huiCoreAutoUpdate by configurationStore.boolean("huiCoreAutoUpdate") { true }
 
     private fun huiFullConfigOverrideKey(profileId: Long) = "huiFullConfigOverride.$profileId"
 

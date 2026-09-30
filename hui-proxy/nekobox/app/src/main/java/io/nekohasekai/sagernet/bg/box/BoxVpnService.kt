@@ -18,6 +18,7 @@ import io.nekohasekai.libbox.*
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.core.CoreBuildInfo
+import io.nekohasekai.sagernet.bg.core.CoreNativeOverride
 import io.nekohasekai.sagernet.ui.MainActivity
 import org.json.JSONObject
 import java.io.File
@@ -37,6 +38,11 @@ class BoxVpnService : VpnService(), CommandServerHandler, CommandClientHandler {
     private var wanted = false
     private val stopping = AtomicBoolean(false)
     private var worker: Thread? = null
+    private var heartbeat: Thread? = null
+    @Volatile private var lastTxRate = 0L
+    @Volatile private var lastRxRate = 0L
+    @Volatile private var lastTxTotal = 0L
+    @Volatile private var lastRxTotal = 0L
     private var tun: ParcelFileDescriptor? = null
     private var commandServer: CommandServer? = null
     private var commandClient: CommandClient? = null
@@ -127,6 +133,7 @@ class BoxVpnService : VpnService(), CommandServerHandler, CommandClientHandler {
             if (!wanted) return
             startStatusClient()
             writeStatus("RUNNING", "Box 已连接 · $version")
+            startHeartbeat()
             getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification("Box 已连接 · $version"))
         } catch (t: Throwable) {
             preserveError = true
@@ -234,6 +241,19 @@ class BoxVpnService : VpnService(), CommandServerHandler, CommandClientHandler {
         return PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT), flags)
     }
 
+    private fun startHeartbeat() {
+        heartbeat?.interrupt()
+        heartbeat = Thread({
+            while (wanted && !Thread.currentThread().isInterrupted) {
+                try { Thread.sleep(4_000L) } catch (_: InterruptedException) { break }
+                if (wanted) writeStatus(
+                    "RUNNING", "Box 已连接 · $version",
+                    lastTxRate, lastRxRate, lastTxTotal, lastRxTotal,
+                )
+            }
+        }, "hui-box-heartbeat").apply { isDaemon = true; start() }
+    }
+
     @Synchronized
     private fun writeStatus(state: String, message: String, txRate: Long = 0L, rxRate: Long = 0L, txTotal: Long = 0L, rxTotal: Long = 0L) {
         runCatching {
@@ -268,9 +288,16 @@ class BoxVpnService : VpnService(), CommandServerHandler, CommandClientHandler {
         runCatching { tun?.close() }
         tun = null
         worker = null
+        heartbeat?.interrupt()
+        heartbeat = null
         if (!preserveError) writeStatus("STOPPED", "未连接")
         runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
+        val restartProcess = CoreNativeOverride.consumeRestartRequired(this, "box")
         stopSelf()
+        if (restartProcess) Thread {
+            try { Thread.sleep(120L) } catch (_: InterruptedException) { }
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }.start()
     }
 
     override fun serviceStop() {
@@ -315,9 +342,13 @@ class BoxVpnService : VpnService(), CommandServerHandler, CommandClientHandler {
     override fun writeOutbounds(message: OutboundGroupItemIterator?) = Unit
     override fun writeStatus(status: StatusMessage?) {
         status ?: return
+        lastTxRate = status.uplink
+        lastRxRate = status.downlink
+        lastTxTotal = status.uplinkTotal
+        lastRxTotal = status.downlinkTotal
         writeStatus(
             "RUNNING", "Box 已连接 · $version",
-            status.uplink, status.downlink, status.uplinkTotal, status.downlinkTotal,
+            lastTxRate, lastRxRate, lastTxTotal, lastRxTotal,
         )
     }
 

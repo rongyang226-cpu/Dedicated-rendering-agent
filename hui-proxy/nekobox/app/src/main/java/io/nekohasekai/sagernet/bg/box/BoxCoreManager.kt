@@ -147,17 +147,38 @@ object BoxCoreManager {
         val rcodeTags = linkedSetOf<String>()
 
         for (index in 0 until servers.length()) {
-            val source = servers.optJSONObject(index) ?: continue
+            val raw = servers.opt(index)
+            val source = when (raw) {
+                is JSONObject -> raw
+                is String -> JSONObject()
+                    .put("tag", "dns-$index")
+                    .put("address", raw)
+                else -> continue
+            }
             if (source.optString("type").isNotBlank()) {
+                // A typed server is already 1.14+ format. Never keep a stray legacy address.
+                source.remove("address")
+                source.remove("address_resolver")
+                source.remove("address_strategy")
                 migrated.put(source)
                 continue
             }
             val address = source.optString("address").trim()
+            require(address.isNotBlank()) { "DNS 服务器 #${index + 1} 缺少 address/type" }
             if (address.startsWith("rcode://", ignoreCase = true)) {
                 source.optString("tag").takeIf(String::isNotBlank)?.let(rcodeTags::add)
                 continue
             }
             migrated.put(migrateLegacyDnsServer(source, address, legacyFake))
+        }
+        // Hard guard: nothing handed to libbox may retain the removed server.address field.
+        for (index in 0 until migrated.length()) {
+            require(migrated.getJSONObject(index).optString("type").isNotBlank()) {
+                "DNS 服务器 #${index + 1} 未迁移到新格式"
+            }
+            require(!migrated.getJSONObject(index).has("address")) {
+                "DNS 服务器 #${index + 1} 仍包含旧 address 字段"
+            }
         }
         dns.put("servers", migrated)
         dns.remove("fakeip")
@@ -399,7 +420,7 @@ object BoxCoreManager {
         val json = JSONObject(file.readText())
         val updated = json.optLong("updatedAt", 0L)
         val rawState = json.optString("state", "STOPPED")
-        val stale = updated > 0 && System.currentTimeMillis() - updated > 12_000L
+        val stale = updated > 0 && System.currentTimeMillis() - updated > 20_000L
         val wasActive = rawState == "STARTING" || rawState == "RUNNING" || rawState == "STOPPING"
         val state = if (stale && wasActive) CoreStatus.State.ERROR else runCatching {
             CoreStatus.State.valueOf(rawState)
