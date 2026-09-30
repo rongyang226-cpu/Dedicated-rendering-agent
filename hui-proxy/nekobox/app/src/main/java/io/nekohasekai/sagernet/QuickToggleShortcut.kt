@@ -43,7 +43,7 @@ class QuickToggleShortcut : Activity() {
         val oldProfile = DataStore.selectedProxy
         if (profileId >= 0L) {
             DataStore.selectedProxy = profileId
-            DataStore.huiCoreEngine = CoreEngine.BOX.id
+            CoreController.selectEngine(CoreEngine.BOX)
         }
 
         val status = CoreController.status(this)

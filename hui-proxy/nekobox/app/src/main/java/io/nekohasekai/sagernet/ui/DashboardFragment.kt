@@ -69,7 +69,8 @@ class DashboardFragment : ToolbarFragment(R.layout.layout_dashboard) {
             "↑ ${Formatter.formatFileSize(context, status.txRate)}/s    ↓ ${Formatter.formatFileSize(context, status.rxRate)}/s"
         view.findViewById<TextView>(R.id.dashboard_total).text =
             "↑ ${Formatter.formatFileSize(context, status.txTotal)}    ↓ ${Formatter.formatFileSize(context, status.rxTotal)}"
-        view.findViewById<TextView>(R.id.dashboard_engine).text = engine.displayName
+        view.findViewById<TextView>(R.id.dashboard_engine).text =
+            if (CoreController.isAutoMode()) "自动 · ${engine.displayName}" else engine.displayName
         view.findViewById<TextView>(R.id.dashboard_version).text =
             if (status.state == CoreStatus.State.ERROR) status.message
             else status.version.ifBlank { status.message }

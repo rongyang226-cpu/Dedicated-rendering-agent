@@ -203,7 +203,7 @@ class HuiBackdropLayout(context: Context) : FrameLayout(context) {
     private var lastDriftFrame = 0L
     private val readabilityScrim = View(context).apply {
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-        setBackgroundColor(0x24FFFFFF)
+        setBackgroundColor(0x18FFFFFF)
         isClickable = false
         isFocusable = false
     }

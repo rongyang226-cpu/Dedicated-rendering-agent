@@ -261,7 +261,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                     while (isActive) {
                         silentAutoPing()
-                        delay(60_000L)
+                        delay(300_000L)
                     }
                 }
             }
@@ -311,7 +311,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             if (uri != null) runOnDefaultDispatcher {
                 runCatching { MetaCoreManager.importUri(appContext, uri) }
                     .onSuccess {
-                        DataStore.huiCoreEngine = MetaCoreManager.ENGINE_META
+                        CoreController.selectEngine(CoreEngine.META)
                         onMainDispatcher { snackbar("Meta YAML 已导入并设为当前内核").show() }
                     }
                     .onFailure { e ->
@@ -449,7 +449,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 runOnDefaultDispatcher {
                     runCatching { MetaCoreManager.importUrl(appContext, raw) }
                         .onSuccess {
-                            DataStore.huiCoreEngine = MetaCoreManager.ENGINE_META
+                            CoreController.selectEngine(CoreEngine.META)
                             onMainDispatcher { snackbar("Meta URL 已导入并设为当前内核").show() }
                         }
                         .onFailure { e ->
@@ -872,6 +872,8 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     private fun silentAutoPing() {
         if (DataStore.runningTest) return
+        val visibleList = runCatching { getCurrentGroupFragment()?.configurationListView }.getOrNull()
+        if (visibleList != null && visibleList.scrollState != RecyclerView.SCROLL_STATE_IDLE) return
         DataStore.runningTest = true
         val groupId = DataStore.currentGroupId()
         runOnDefaultDispatcher {
@@ -1317,7 +1319,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 onViewCreated(requireView(), null)
             }
             checkOrderMenu()
-            configurationListView.requestFocus()
+            if (SagerNet.isTv) configurationListView.requestFocus()
         }
 
         fun checkOrderMenu() {
@@ -1381,10 +1383,11 @@ class ConfigurationFragment @JvmOverloads constructor(
             ProfileManager.addListener(adapter!!)
             GroupManager.addListener(adapter!!)
             configurationListView.adapter = adapter
-            configurationListView.setItemViewCacheSize(20)
-            // Latency refreshes should update text, not cross-fade/re-layout the entire card.
-            (configurationListView.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)
-                ?.supportsChangeAnimations = false
+            configurationListView.setItemViewCacheSize(36)
+            configurationListView.setHasFixedSize(DataStore.huiNodeLayout == "grid" && !select)
+            configurationListView.layoutAnimation = null
+            // A latency refresh must never animate or reflow the grid.
+            configurationListView.itemAnimator = null
 
             if (!select) {
 
@@ -1681,8 +1684,6 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                     if (selectedProfileIndex != -1) {
                         configurationListView.scrollTo(selectedProfileIndex, true)
-                    } else if (newProfiles.isNotEmpty()) {
-                        configurationListView.scrollTo(0, true)
                     }
 
                 }
@@ -1764,6 +1765,11 @@ class ConfigurationFragment @JvmOverloads constructor(
                 editButton.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
                 shareLayer.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
                 removeButton.setPadding(dp(iconPad), dp(iconPad), dp(iconPad), dp(iconPad))
+                if (DataStore.huiNodeLayout == "grid" && !select) {
+                    view.layoutParams = view.layoutParams.apply { height = dp(118) }
+                    profileName.minLines = 2
+                    profileStatus.layoutParams = profileStatus.layoutParams.apply { width = dp(64) }
+                }
             }
 
             fun bind(proxyEntity: ProxyEntity, trafficData: TrafficData? = null) {
@@ -1780,6 +1786,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                         val appContext = requireContext().applicationContext
                         runOnDefaultDispatcher {
                             val previousEngine = CoreController.selected
+                            val requestedEngine = CoreController.engineForProfile(proxyEntity)
                             val wasActive = CoreController.status(appContext).active
                             var update: Boolean
                             var lastSelected: Long
@@ -1787,11 +1794,11 @@ class ConfigurationFragment @JvmOverloads constructor(
                                 update = DataStore.selectedProxy != proxyEntity.id
                                 lastSelected = DataStore.selectedProxy
                                 DataStore.selectedProxy = proxyEntity.id
-                                if (previousEngine != CoreEngine.BOX) DataStore.huiCoreEngine = CoreEngine.BOX.id
-                                onMainDispatcher { selectedView.visibility = View.VISIBLE }
+                                CoreController.selectEngine(requestedEngine)
+                                onMainDispatcher { selectedView.visibility = View.INVISIBLE }
                             }
 
-                            if (update || previousEngine != CoreEngine.BOX) {
+                            if (update || previousEngine != requestedEngine) {
                                 ProfileManager.postUpdate(lastSelected)
                                 if (wasActive && reloadAccess.tryLock()) {
                                     try {
@@ -1920,19 +1927,15 @@ class ConfigurationFragment @JvmOverloads constructor(
                     coreStatus.active && DataStore.currentProfile == proxyEntity.id
                 editButton.isEnabled = !started
                 removeButton.isEnabled = !started
-                selectedView.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+                selectedView.visibility = View.INVISIBLE
                 (view as? com.google.android.material.card.MaterialCardView)?.apply {
                     setCardBackgroundColor(
                         requireContext().getColour(
-                            if (selected) R.color.hui_selected_surface else R.color.hui_glass_fill
+                            if (selected) R.color.hui_glass_strong else R.color.hui_glass_fill
                         )
                     )
-                    strokeColor = if (selected) {
-                        requireContext().getColorAttr(R.attr.colorAccent)
-                    } else {
-                        requireContext().getColour(R.color.hui_edge)
-                    }
-                    strokeWidth = dp(if (selected) 2 else 1)
+                    strokeColor = requireContext().getColour(R.color.hui_edge)
+                    strokeWidth = dp(1)
                 }
 
                 fun showShare(anchor: View) {

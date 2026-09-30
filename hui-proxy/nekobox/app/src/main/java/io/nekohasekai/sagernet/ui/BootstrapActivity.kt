@@ -5,15 +5,22 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Outline
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.utils.CrashHandler
+import io.nekohasekai.sagernet.utils.HuiVisuals
 
 /**
  * Tiny launcher kept independent from the proxy UI.
@@ -24,18 +31,79 @@ class BootstrapActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!CrashHandler.consumePendingCrash()) {
-            launchMain()
+            showLaunchTransition()
             return
         }
         showRecovery()
     }
 
-    private fun launchMain() {
+    private fun showLaunchTransition() {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+
+        val root = FrameLayout(this)
+        val wallpaper = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageDrawable(HuiVisuals.backdrop(this@BootstrapActivity))
+        }
+        root.addView(wallpaper, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        root.addView(View(this).apply { setBackgroundColor(0x28FFFFFF) }, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            alpha = 0f
+            translationY = dp(10).toFloat()
+        }
+        val avatar = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageResource(R.drawable.hui_avatar)
+            clipToOutline = true
+            outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, dp(24).toFloat())
+                }
+            }
+            scaleX = 0.88f
+            scaleY = 0.88f
+        }
+        content.addView(avatar, LinearLayout.LayoutParams(dp(96), dp(96)))
+        content.addView(TextView(this).apply {
+            text = "绘"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            setTextColor(0xE6181920.toInt())
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, dp(14), 0, 0)
+        })
+        content.addView(TextView(this).apply {
+            text = "Box + Meta"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setTextColor(0xA6262830.toInt())
+            setPadding(0, dp(4), 0, 0)
+        })
+        root.addView(content, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER
+        ))
+        setContentView(root)
+
+        content.animate().alpha(1f).translationY(0f).setDuration(260L).start()
+        avatar.animate().scaleX(1f).scaleY(1f).setDuration(320L).start()
+        root.postDelayed({ launchMain(animated = true) }, 420L)
+    }
+
+    private fun launchMain(animated: Boolean = false) {
         startActivity(Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         })
         finish()
-        overridePendingTransition(0, 0)
+        if (animated) overridePendingTransition(R.anim.hui_launch_enter, R.anim.hui_launch_exit)
+        else overridePendingTransition(0, 0)
     }
 
     private fun showRecovery() {

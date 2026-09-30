@@ -19,13 +19,13 @@
             app:title="恢复默认背景"
             app:summary="恢复绘的默认背景与液态光影" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
-            app:defaultValue="box"
+            app:defaultValue="auto"
             app:entries="@array/hui_core_entries"
             app:entryValues="@array/hui_core_values"
             app:icon="@drawable/ic_device_developer_mode"
             app:key="huiCoreEngine"
             app:title="代理内核"
-            app:summary="Box 与 Meta 完全独立，切换时只运行一个"
+            app:summary="自动模式会按节点或导入配置切换 Box / Meta"
             app:useSimpleSummaryProvider="true" />
         <moe.matsuri.nb4a.ui.SimpleMenuPreference
             app:defaultValue="grid"

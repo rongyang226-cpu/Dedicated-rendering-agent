@@ -88,7 +88,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var enableClashAPI by configurationStore.boolean(Key.ENABLE_CLASH_API)
     var showBottomBar by configurationStore.boolean(Key.SHOW_BOTTOM_BAR)
     var huiNodeLayout by configurationStore.string("huiNodeLayout") { "grid" }
-    var huiCoreEngine by configurationStore.string("huiCoreEngine") { "box" }
+    var huiCoreEngine by configurationStore.string("huiCoreEngine") { "auto" }
+    var huiAutoEngine by configurationStore.string("huiAutoEngine") { "box" }
 
     private fun huiFullConfigOverrideKey(profileId: Long) = "huiFullConfigOverride.$profileId"
 

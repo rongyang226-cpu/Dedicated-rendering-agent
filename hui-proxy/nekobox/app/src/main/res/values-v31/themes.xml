@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Start" parent="Theme.MaterialComponents.Light">
+        <item name="android:windowSplashScreenBackground">@color/hui_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/hui_avatar</item>
+        <item name="android:windowSplashScreenAnimationDuration">180</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/hui_splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+</resources>

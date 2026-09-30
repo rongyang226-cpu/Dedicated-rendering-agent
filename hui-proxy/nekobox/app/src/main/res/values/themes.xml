@@ -184,7 +184,7 @@
     </style>
 
     <style name="ThemeOverlay.MaterialComponents.MaterialAlertDialog.SagerNet" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <item name="colorSurface">#D9FFFFFF</item>
+        <item name="colorSurface">#BFFFFFFF</item>
         <item name="colorOnSurface">@color/hui_ink</item>
         <item name="android:textColorPrimary">@color/hui_ink</item>
         <item name="android:textColorSecondary">@color/hui_ink_secondary</item>
@@ -563,7 +563,8 @@
     </style>
 
     <style name="Theme.Start" parent="Theme.MaterialComponents.Light">
-        <item name="android:navigationBarColor">@color/hui_fallback</item>
+        <item name="android:windowBackground">@color/hui_splash_background</item>
+        <item name="android:navigationBarColor">@color/hui_splash_background</item>
         <item name="colorPrimary">@android:color/transparent</item>
         <item name="colorPrimaryDark">@android:color/transparent</item>
         <item name="android:backgroundDimEnabled">false</item>

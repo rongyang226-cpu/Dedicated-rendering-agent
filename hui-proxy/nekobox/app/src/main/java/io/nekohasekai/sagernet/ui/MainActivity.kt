@@ -75,6 +75,12 @@ class MainActivity : ThemedActivity(),
         super.onCreate(savedInstanceState)
 
         binding = LayoutMainBinding.inflate(layoutInflater)
+        if (!DataStore.configurationStore.getBoolean("huiAutoCoreMigrated", false)) {
+            val previous = CoreEngine.fromId(DataStore.huiCoreEngine)
+            DataStore.huiAutoEngine = previous.id
+            DataStore.huiCoreEngine = "auto"
+            DataStore.configurationStore.putBoolean("huiAutoCoreMigrated", true)
+        }
         if (!DataStore.configurationStore.getBoolean("huiRc3LayoutMigrated", false)) {
             if (DataStore.huiNodeLayout == "standard") DataStore.huiNodeLayout = "grid"
             DataStore.configurationStore.putBoolean("huiRc3LayoutMigrated", true)
@@ -100,8 +106,11 @@ class MainActivity : ThemedActivity(),
             updateDockSelection(currentDockId)
         }
         onBackPressedDispatcher.addCallback {
-            val homeVisible = supportFragmentManager.findFragmentByTag("hui-dock-${R.id.nav_home}")?.isVisible == true
-            if (homeVisible) moveTaskToBack(true) else displayFragmentWithId(lastDockId)
+            when {
+                currentDockId == -1 -> displayFragmentWithId(lastDockId)
+                currentDockId != R.id.nav_home -> displayFragmentWithId(R.id.nav_home)
+                else -> moveTaskToBack(true)
+            }
         }
 
         CoreController.normalizeSelection()
@@ -375,17 +384,16 @@ class MainActivity : ThemedActivity(),
             binding.dockConfig to R.id.nav_group,
             binding.dockSettings to R.id.nav_settings,
         )
-        val lift = 2f * resources.displayMetrics.density
         items.forEach { (item, itemId) ->
             val selected = itemId == id
             item.isSelected = selected
             item.animate().cancel()
             item.animate()
-                .scaleX(if (selected) 1f else 0.94f)
-                .scaleY(if (selected) 1f else 0.94f)
-                .translationY(if (selected) -lift else 0f)
-                .alpha(if (selected) 1f else 0.76f)
-                .setDuration(170L)
+                .scaleX(if (selected) 1f else 0.985f)
+                .scaleY(if (selected) 1f else 0.985f)
+                .translationY(0f)
+                .alpha(if (selected) 1f else 0.80f)
+                .setDuration(160L)
                 .start()
         }
     }
@@ -403,7 +411,17 @@ class MainActivity : ThemedActivity(),
         val fm = supportFragmentManager
         var target = fm.findFragmentByTag(tag) as? ToolbarFragment
         val tx = fm.beginTransaction().setReorderingAllowed(true)
-            .setCustomAnimations(R.anim.hui_page_enter, R.anim.hui_page_exit)
+        val hasVisiblePage = fm.fragments.any { it.id == R.id.fragment_holder && it.isAdded && it.isVisible }
+        if (hasVisiblePage) {
+            val order = listOf(R.id.nav_home, R.id.nav_configuration, R.id.nav_group, R.id.nav_settings)
+            val from = order.indexOf(currentDockId)
+            val to = order.indexOf(id)
+            val reverse = currentDockId == -1 || (from >= 0 && to >= 0 && to < from)
+            tx.setCustomAnimations(
+                if (reverse) R.anim.hui_page_enter_left else R.anim.hui_page_enter_right,
+                if (reverse) R.anim.hui_page_exit_right else R.anim.hui_page_exit_left,
+            )
+        }
         fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded && it !== target }.forEach { fragment ->
             if (fragment.tag?.startsWith("hui-dock-") == true) {
                 tx.hide(fragment)
@@ -431,7 +449,7 @@ class MainActivity : ThemedActivity(),
         val fm = supportFragmentManager
         val tx = fm.beginTransaction()
             .setReorderingAllowed(true)
-            .setCustomAnimations(R.anim.hui_page_enter, R.anim.hui_page_exit)
+            .setCustomAnimations(R.anim.hui_page_enter_right, R.anim.hui_page_exit_left)
         fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded }.forEach { current ->
             if (current.tag?.startsWith("hui-dock-") == true) {
                 tx.hide(current)

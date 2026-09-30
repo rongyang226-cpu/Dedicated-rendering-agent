@@ -7,16 +7,40 @@ import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.box.BoxCoreManager
 import io.nekohasekai.sagernet.bg.meta.MetaCoreManager
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ProxyEntity
 
 /** Single entry point for UI code. Core-specific details stay behind this boundary. */
 object CoreController {
-    val selected: CoreEngine get() = CoreEngine.fromId(DataStore.huiCoreEngine)
+    fun isAutoMode(): Boolean = DataStore.huiCoreEngine.equals("auto", ignoreCase = true)
+
+    val selected: CoreEngine
+        get() = if (isAutoMode()) CoreEngine.fromId(DataStore.huiAutoEngine)
+        else CoreEngine.fromId(DataStore.huiCoreEngine)
 
     fun isSelected(engine: CoreEngine): Boolean = selected == engine
 
+    fun selectEngine(engine: CoreEngine): CoreEngine {
+        if (isAutoMode()) DataStore.huiAutoEngine = engine.id
+        else DataStore.huiCoreEngine = engine.id
+        return engine
+    }
+
+    /** NekoBox-style node profiles are built into sing-box. Meta YAML is selected at import time. */
+    fun engineForProfile(profile: ProxyEntity): CoreEngine = when (profile.type) {
+        ProxyEntity.TYPE_CONFIG -> CoreEngine.BOX
+        else -> CoreEngine.BOX
+    }
+
+    fun selectForProfile(profile: ProxyEntity): CoreEngine = selectEngine(engineForProfile(profile))
+
     fun normalizeSelection() {
-        val normalized = selected.id
-        if (DataStore.huiCoreEngine != normalized) DataStore.huiCoreEngine = normalized
+        if (isAutoMode()) {
+            val normalized = CoreEngine.fromId(DataStore.huiAutoEngine).id
+            if (DataStore.huiAutoEngine != normalized) DataStore.huiAutoEngine = normalized
+        } else {
+            val normalized = selected.id
+            if (DataStore.huiCoreEngine != normalized) DataStore.huiCoreEngine = normalized
+        }
     }
 
     fun status(context: Context): CoreStatus = when (selected) {
@@ -42,7 +66,7 @@ object CoreController {
             CoreEngine.META -> if (BoxCoreManager.hasPreparedConfig(context) || DataStore.selectedProxy > 0L) CoreEngine.BOX else current
             CoreEngine.BOX -> if (MetaCoreManager.hasConfig(context)) CoreEngine.META else current
         }
-        if (fallback != current) DataStore.huiCoreEngine = fallback.id
+        if (fallback != current) selectEngine(fallback)
         return fallback
     }
 
