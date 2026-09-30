@@ -1,0 +1,30 @@
+name: Publish Hui APK
+
+on:
+  push:
+    tags:
+      - 'v0.35.0-rc*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify APK
+        run: |
+          test -s 'release-assets/绘-0.35.0-arm64-release.apk'
+          sha256sum 'release-assets/绘-0.35.0-arm64-release.apk'
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" 'release-assets/绘-0.35.0-arm64-release.apk#绘-0.35.0-arm64-release.apk' \
+            --repo "$GITHUB_REPOSITORY" \
+            --title '绘 0.35.0 RC2' \
+            --notes '真机测试版：基于 FlClash + Mihomo，arm64。旧莹宝 Android 客户端已停止维护。' \
+            --latest

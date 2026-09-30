@@ -1,63 +1,53 @@
-# 莹宝
+# 绘
+
+「绘」是基于 **FlClash** 成熟客户端改造的 Android 代理客户端。
+
+核心路线固定：
+
+- FlClash 作为客户端底座
+- Mihomo / Clash.Meta 作为唯一代理内核
+- 保留成熟的订阅、节点、规则、日志与 VPN 能力
+- 在稳定功能上重新设计「绘」的界面与交互
 
 ## 📦 直接下载 APK
 
-[**标准版下载**](https://github.com/rongyang226-cpu/yingbao/releases/latest/download/Yingbao.apk) · [**vivo 兼容版下载**](https://github.com/rongyang226-cpu/yingbao/releases/latest/download/Yingbao-vivo-compat.apk)
+[**下载「绘」0.35.0 RC2（arm64）**](https://github.com/rongyang226-cpu/yingbao/releases/download/v0.35.0-rc2/%E7%BB%98-0.35.0-arm64-release.apk)
 
-GitHub Release 附件，文件名固定为 Yingbao.apk。
+当前为真机测试版，仅提供 Android arm64 构建。
 
-莹宝是“萤”的 Android 手机端入口。
+SHA256：
 
-## 2.0
+`2831434a37405a1a7668722d6ec25c0a99f1f3147b49d3cbe249b86890d16529`
 
-- Android 原生客户端
-- 专属密钥首次绑定设备
-- OWNER 沿用现有身份、关系与长期记忆
-- 其他用户拥有独立人物画像与记忆
-- 手机端聊天复用 VPS 上的萤核心
-- 国内网络兼容：nip.io / sslip.io / 裸 IP HTTPS 三级自动切换，域名 DNS 失败时仍可直连 VPS
-- 原比例二次元人物悬浮模型，不做 Q 版
-- 透明悬浮窗，无黑色底板
-- 人物本体可拖动
-- 双指整体等比例缩放，头身比例不变
-- 轻点人物触发“戳一戳”
-- 长按人物打开聊天
-- 状态气泡约每 4.5～5.5 分钟自然出现
+## 当前版本
 
-当前版本：3.1.0
+- 版本：0.35.0 RC2
+- 包名：`com.yingbao.hui.flclash`
+- 最低 Android：API 24
+- Target SDK：36
+- 架构：arm64-v8a
 
-包名：com.yingbao.app
+## 已保留的 FlClash 能力
 
-最低系统：Android 8.0
+- URL / 剪贴板导入订阅
+- 节点搜索、延迟测试与分组切换
+- 规则 / 全局 / 直连模式
+- Fake-IP / DNS 配置
+- 应用分流与访问控制
+- 日志查看、筛选、导出
+- Mihomo 原生核心与 VPN 服务
 
-## 模型状态
+## 「绘」界面
 
-2.0 已包含可实际显示和交互的透明 2D 人物资源。
+- 绘梨衣风格背景
+- 自定义背景
+- 透明液态玻璃卡片与导航
+- 可调背景亮度、遮罩、模糊和玻璃强度
+- 樱花粒子动画，可关闭并调节密度
+- 保留连接暂停、恢复、运行时间等成熟状态逻辑
 
-正式 Cubism Live2D（model3.json / moc3 / physics / 分层纹理）仍未制作，因此当前 2D 悬浮人物不冒充 Cubism 模型。后续可直接替换为正式 Cubism 资源。
+## 旧莹宝 Android 客户端
 
-## 安全
+旧「莹宝」Android 客户端已停止继续开发，不再作为仓库首页与下载入口。
 
-公开仓库不包含 VPS 密钥、API Key、Bot Token、10 把用户密钥、数据库、人物记忆、SSH 私钥或 APK 签名私钥。
-
-## v2.1.0
-- VPS raw-IP direct connection is now the first Android route, with an app-pinned HTTPS certificate; DNS domains remain fallback routes.
-- Mobile long-term-memory extraction is deferred so it no longer blocks the visible reply.
-- DeepSeek HTTP connections are reused to reduce repeated connection setup latency.
-- Life/sleep clock is normalized to the shared UTC+8 timeline.
-- Character artwork is bundled locally for the floating-window/model fallback.
-- Access keys keep permanent first-device binding semantics.
-
-
-## v3.0.0
-- TG 和软件均可使用 `/search 关键词` 调用 VPS 本机 SearXNG，并显示实际来源；联网失败会明确回复。
-- TG 和软件均可用 `/image 关键词` 接收真正的图片；软件聊天页可从相册选图发送，收到的原图只暂存用于识图，长期仅留摘要。
-- 普通版与 vivo 兼容版使用相同包名和既有签名；兼容版版本码更高，已安装兼容版请继续安装兼容版。
-- 固定人设与聊天规则优先发送，提高上下文缓存复用；DeepSeek 建连超时最多重试两次。
-- 程序时间和软件时钟跟随 VPS，虚拟活动和记忆以数据库真实记录为准；不把未发生的动作或梦境写成事实。
-- 新增 `vps/` 源码快照与部署说明；私人数据库、密钥与签名材料继续留在 VPS。
-
-## v3.1.0
-- 角色呼吸、发梢和裙摆分别渲染，并在醒着时偶尔挥手、短暂眨眼。
-- vivo 兼容页采用轻量 Canvas 动画；安卓桌面悬浮窗改为分段绘制，并在触碰时做姿态响应。
-- 仍为由现有透明 2D 姿态图驱动的动画，尚无 Cubism 分层模型。
+历史源码保留在 `legacy-yingbao-app` 分支，便于需要时回看；VPS、Telegram 与 AI 后端项目不受这次迁移影响。
