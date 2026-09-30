@@ -11,7 +11,7 @@
 
 ## 📦 直接下载 APK
 
-[**下载「绘」0.35.0 RC2（arm64）**](https://github.com/rongyang226-cpu/yingbao/releases/download/v0.35.0-rc2/%E7%BB%98-0.35.0-arm64-release.apk)
+[**下载「绘」0.35.0 RC3（arm64）**](https://github.com/rongyang226-cpu/yingbao/releases/download/v0.35.0-rc3/Hui-0.35.0-arm64-release.apk)
 
 当前为真机测试版，仅提供 Android arm64 构建。
 
@@ -21,7 +21,7 @@ SHA256：
 
 ## 当前版本
 
-- 版本：0.35.0 RC2
+- 版本：0.35.0 RC3
 - 包名：`com.yingbao.hui.flclash`
 - 最低 Android：API 24
 - Target SDK：36
