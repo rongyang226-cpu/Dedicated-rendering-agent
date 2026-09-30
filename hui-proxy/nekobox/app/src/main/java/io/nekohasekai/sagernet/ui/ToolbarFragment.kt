@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.utils.HuiVisuals
 
 open class ToolbarFragment : Fragment {
 
@@ -19,6 +20,7 @@ open class ToolbarFragment : Fragment {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        HuiVisuals.suppressFocusHighlights(view)
         toolbar = view.findViewById(R.id.toolbar)
         val appBar = view.findViewById<View>(R.id.appbar)
         if (appBar != null) {
@@ -33,9 +35,16 @@ open class ToolbarFragment : Fragment {
             }
             ViewCompat.requestApplyInsets(appBar)
         }
-        toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-        toolbar.setNavigationOnClickListener {
-            (activity as MainActivity).binding.drawerLayout.openDrawer(GravityCompat.START)
+        val host = activity as? MainActivity
+        if (id == R.id.fragment_holder) {
+            toolbar.setNavigationIcon(R.drawable.ic_navigation_close)
+            toolbar.setNavigationContentDescription("关闭")
+            toolbar.setNavigationOnClickListener { host?.onBackPressedDispatcher?.onBackPressed() }
+        } else {
+            toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
+            toolbar.setNavigationOnClickListener {
+                host?.binding?.drawerLayout?.openDrawer(GravityCompat.START)
+            }
         }
     }
 

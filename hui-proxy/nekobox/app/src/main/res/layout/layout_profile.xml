@@ -13,7 +13,7 @@
     app:cardCornerRadius="22dp"
     android:stateListAnimator="@null"
     app:cardBackgroundColor="@color/hui_glass_fill"
-    app:rippleColor="#66FFFFFF"
+    app:rippleColor="#24FFFFFF"
     app:strokeColor="@color/hui_edge"
     app:strokeWidth="1dp">
 

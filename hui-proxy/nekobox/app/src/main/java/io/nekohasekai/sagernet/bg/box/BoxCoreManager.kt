@@ -14,6 +14,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URI
 
 /** File/config boundary for the modern SFA engine. No libbox JNI is touched in the UI process. */
 object BoxCoreManager {
@@ -106,6 +107,8 @@ object BoxCoreManager {
     }
 
     private fun migrateToModernBox(root: JSONObject): JSONObject {
+        migrateDnsToModernFormat(root)
+        migrateLegacyRoutingFields(root)
         val inbounds = root.optJSONArray("inbounds") ?: error("Box 配置缺少 inbounds")
         var foundTun = false
         for (index in 0 until inbounds.length()) {
@@ -134,6 +137,214 @@ object BoxCoreManager {
         }
         require(foundTun) { "当前配置没有 TUN 入站，不能作为 Box VPN 启动" }
         return root
+    }
+
+    private fun migrateDnsToModernFormat(root: JSONObject) {
+        val dns = root.optJSONObject("dns") ?: return
+        val servers = dns.optJSONArray("servers") ?: return
+        val legacyFake = dns.optJSONObject("fakeip")
+        val migrated = JSONArray()
+        val rcodeTags = linkedSetOf<String>()
+
+        for (index in 0 until servers.length()) {
+            val source = servers.optJSONObject(index) ?: continue
+            if (source.optString("type").isNotBlank()) {
+                migrated.put(source)
+                continue
+            }
+            val address = source.optString("address").trim()
+            if (address.startsWith("rcode://", ignoreCase = true)) {
+                source.optString("tag").takeIf(String::isNotBlank)?.let(rcodeTags::add)
+                continue
+            }
+            migrated.put(migrateLegacyDnsServer(source, address, legacyFake))
+        }
+        dns.put("servers", migrated)
+        dns.remove("fakeip")
+
+        val rules = dns.optJSONArray("rules")
+        if (rules != null) {
+            val modernRules = JSONArray()
+            for (index in 0 until rules.length()) {
+                val rule = rules.optJSONObject(index) ?: continue
+                // `outbound` DNS matchers were removed in sing-box 1.14. Dial-side DNS
+                // resolution is handled by route.default_domain_resolver below.
+                if (rule.has("outbound")) continue
+                if (rcodeTags.isNotEmpty()) rewriteLegacyRcodeRule(rule, rcodeTags)
+                modernRules.put(rule)
+            }
+            dns.put("rules", modernRules)
+        }
+
+        val route = root.optJSONObject("route") ?: JSONObject().also { root.put("route", it) }
+        if (!route.has("default_domain_resolver")) {
+            val tags = (0 until migrated.length()).mapNotNull { index ->
+                migrated.optJSONObject(index)?.optString("tag")?.takeIf(String::isNotBlank)
+            }
+            val resolver = when {
+                "dns-direct" in tags -> "dns-direct"
+                "dns-local" in tags -> "dns-local"
+                else -> tags.firstOrNull { it != "dns-fake" }
+            }
+            if (!resolver.isNullOrBlank()) route.put("default_domain_resolver", resolver)
+        }
+    }
+
+    private fun migrateLegacyDnsServer(
+        source: JSONObject,
+        address: String,
+        legacyFake: JSONObject?,
+    ): JSONObject {
+        val target = JSONObject()
+        source.optString("tag").takeIf(String::isNotBlank)?.let { target.put("tag", it) }
+
+        fun copyDialOptions() {
+            source.optString("detour").takeIf(String::isNotBlank)?.let { target.put("detour", it) }
+            val resolver = source.optString("address_resolver")
+            val strategy = source.optString("address_strategy")
+            if (resolver.isNotBlank()) {
+                if (strategy.isBlank()) target.put("domain_resolver", resolver)
+                else target.put("domain_resolver", JSONObject().put("server", resolver).put("strategy", strategy))
+            }
+        }
+
+        if (address.equals("local", ignoreCase = true)) {
+            target.put("type", "local")
+            copyDialOptions()
+            return target
+        }
+        if (address.equals("fakeip", ignoreCase = true)) {
+            target.put("type", "fakeip")
+            target.put("inet4_range", legacyFake?.optString("inet4_range")?.ifBlank { "198.18.0.0/15" } ?: "198.18.0.0/15")
+            target.put("inet6_range", legacyFake?.optString("inet6_range")?.ifBlank { "fc00::/18" } ?: "fc00::/18")
+            return target
+        }
+
+        val hasScheme = address.contains("://")
+        val rawForUri = if (hasScheme) address else {
+            val hostPart = if (address.count { it == ':' } > 1 && !address.startsWith("[")) "[$address]" else address
+            "udp://$hostPart"
+        }
+        val uri = runCatching { URI(rawForUri) }.getOrElse {
+            error("无法迁移旧 DNS 地址：$address")
+        }
+        val scheme = (uri.scheme ?: "udp").lowercase()
+        val type = when (scheme) {
+            "udp", "tcp", "tls", "quic", "https", "h3", "dhcp" -> scheme
+            else -> error("不支持的旧 DNS 类型：$scheme")
+        }
+        target.put("type", type)
+
+        if (type == "dhcp") {
+            uri.host?.takeIf { it.isNotBlank() && !it.equals("auto", true) }?.let { target.put("interface", it) }
+            copyDialOptions()
+            return target
+        }
+
+        val host = uri.host?.takeIf(String::isNotBlank)
+            ?: error("DNS 地址缺少服务器：$address")
+        target.put("server", host)
+        val defaultPort = when (type) {
+            "udp", "tcp" -> 53
+            "tls", "quic" -> 853
+            else -> 443
+        }
+        if (uri.port > 0 && uri.port != defaultPort) target.put("server_port", uri.port)
+        if ((type == "https" || type == "h3") &&
+            !uri.rawPath.isNullOrBlank() && uri.rawPath != "/dns-query"
+        ) target.put("path", uri.rawPath)
+        copyDialOptions()
+        return target
+    }
+
+    private fun rewriteLegacyRcodeRule(rule: JSONObject, rcodeTags: Set<String>) {
+        val server = rule.optString("server")
+        if (server in rcodeTags) {
+            rule.remove("server")
+            rule.remove("disable_cache")
+            // rcode://success historically returned an empty NOERROR response. Preserve
+            // that behavior using the modern predefined DNS action instead of reject.
+            rule.put("action", "predefined")
+            rule.put("rcode", "NOERROR")
+        }
+        val nested = rule.optJSONArray("rules") ?: return
+        for (index in 0 until nested.length()) {
+            nested.optJSONObject(index)?.let { rewriteLegacyRcodeRule(it, rcodeTags) }
+        }
+    }
+
+    private fun migrateLegacyRoutingFields(root: JSONObject) {
+        val route = root.optJSONObject("route") ?: JSONObject().also { root.put("route", it) }
+        val resolver = route.optString("default_domain_resolver").ifBlank { "dns-direct" }
+        val prefixRules = JSONArray()
+        val inbounds = root.optJSONArray("inbounds")
+        if (inbounds != null) {
+            for (index in 0 until inbounds.length()) {
+                val inbound = inbounds.optJSONObject(index) ?: continue
+                val tag = inbound.optString("tag")
+                val sniff = inbound.optBoolean("sniff", false)
+                val sniffTimeout = inbound.optString("sniff_timeout")
+                val strategy = inbound.optString("domain_strategy")
+                val udpDisableUnmap = inbound.optBoolean("udp_disable_domain_unmapping", false)
+                val detour = inbound.optString("detour")
+
+                inbound.remove("sniff")
+                inbound.remove("sniff_override_destination")
+                inbound.remove("sniff_timeout")
+                inbound.remove("domain_strategy")
+                inbound.remove("udp_disable_domain_unmapping")
+                inbound.remove("detour")
+
+                if (tag.isBlank()) continue
+                if (sniff) {
+                    val rule = JSONObject().put("inbound", JSONArray().put(tag)).put("action", "sniff")
+                    if (sniffTimeout.isNotBlank()) rule.put("timeout", sniffTimeout)
+                    prefixRules.put(rule)
+                }
+                if (strategy.isNotBlank() && strategy != "as_is") {
+                    prefixRules.put(
+                        JSONObject().put("inbound", JSONArray().put(tag))
+                            .put("action", "resolve").put("strategy", strategy)
+                    )
+                }
+                if (udpDisableUnmap) {
+                    prefixRules.put(
+                        JSONObject().put("inbound", JSONArray().put(tag))
+                            .put("action", "route-options").put("udp_disable_domain_unmapping", true)
+                    )
+                }
+                if (detour.isNotBlank()) {
+                    prefixRules.put(
+                        JSONObject().put("inbound", JSONArray().put(tag))
+                            .put("action", "route").put("outbound", detour)
+                    )
+                }
+            }
+        }
+
+        val oldRules = route.optJSONArray("rules") ?: JSONArray()
+        if (prefixRules.length() > 0) {
+            val merged = JSONArray()
+            for (index in 0 until prefixRules.length()) merged.put(prefixRules.get(index))
+            for (index in 0 until oldRules.length()) merged.put(oldRules.get(index))
+            route.put("rules", merged)
+        }
+
+        val outbounds = root.optJSONArray("outbounds") ?: return
+        for (index in 0 until outbounds.length()) {
+            val outbound = outbounds.optJSONObject(index) ?: continue
+            if (!outbound.has("domain_strategy")) continue
+            val strategy = outbound.optString("domain_strategy")
+            outbound.remove("domain_strategy")
+            if (strategy.isBlank()) continue
+            if (!outbound.has("domain_resolver")) {
+                if (strategy == "as_is") outbound.put("domain_resolver", resolver)
+                else outbound.put(
+                    "domain_resolver",
+                    JSONObject().put("server", resolver).put("strategy", strategy),
+                )
+            }
+        }
     }
 
     private fun mergeKeys(target: JSONObject, destination: String, vararg legacy: String) {

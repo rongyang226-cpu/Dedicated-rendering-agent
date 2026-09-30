@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
@@ -118,7 +119,10 @@ class MainActivity : ThemedActivity(),
         }
         onBackPressedDispatcher.addCallback {
             when {
-                currentDockId == -1 -> showDockFragment(lastDockId, true)
+                currentDockId == -1 -> {
+                    val overlay = supportFragmentManager.findFragmentById(R.id.fragment_holder) as? ToolbarFragment
+                    if (overlay?.onBackPressed() != true) closeSecondary()
+                }
                 currentDockId != R.id.nav_home -> showDockFragment(R.id.nav_home, true)
                 else -> moveTaskToBack(true)
             }
@@ -379,20 +383,16 @@ class MainActivity : ThemedActivity(),
 
     private fun setupDockPager() {
         binding.dockPager.adapter = DockPagerAdapter()
-        binding.dockPager.offscreenPageLimit = dockOrder.size - 1
+        binding.dockPager.offscreenPageLimit = 2
         binding.dockPager.isUserInputEnabled = true
         (binding.dockPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView)?.apply {
             itemAnimator = null
             overScrollMode = View.OVER_SCROLL_NEVER
-            setItemViewCacheSize(dockOrder.size)
+            setItemViewCacheSize(3)
         }
-        binding.dockPager.setPageTransformer { page, position ->
-            val distance = kotlin.math.abs(position).coerceAtMost(1f)
-            page.alpha = 1f - 0.05f * distance
-            val scale = 1f - 0.012f * distance
-            page.scaleX = scale
-            page.scaleY = scale
-        }
+        // Keep ViewPager2's native translation untouched. Scaling/alpha transforms exposed
+        // the background between pages and made the page junction feel disconnected.
+        binding.dockPager.setPageTransformer(null)
         binding.dockPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 val id = dockOrder.getOrNull(position) ?: return
@@ -400,6 +400,7 @@ class MainActivity : ThemedActivity(),
                 lastDockId = id
                 updateDockSelection(id)
                 if (::navigation.isInitialized) navigation.menu.findItem(id)?.isChecked = true
+                binding.root.post { HuiVisuals.suppressFocusHighlights(binding.root) }
             }
         })
     }
@@ -450,19 +451,38 @@ class MainActivity : ThemedActivity(),
         else -> error("Not a dock destination: $id")
     }
 
+    private fun setSecondaryMode(active: Boolean) {
+        binding.dockPager.isUserInputEnabled = !active
+        binding.dockPager.visibility = if (active) View.GONE else View.VISIBLE
+        binding.huiBottomDock.visibility = if (active) View.GONE else View.VISIBLE
+        (binding.fragmentHolder.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            lp.bottomMargin = if (active) 0 else (92 * resources.displayMetrics.density).toInt()
+            binding.fragmentHolder.layoutParams = lp
+        }
+        binding.fragmentHolder.isClickable = active
+        binding.fragmentHolder.isFocusable = active
+    }
+
+    fun closeSecondary() {
+        showDockFragment(lastDockId, false)
+    }
+
     private fun showDockFragment(@IdRes id: Int, smooth: Boolean = true) {
         val targetIndex = dockOrder.indexOf(id)
         if (targetIndex < 0) return
         val fm = supportFragmentManager
         val overlayFragments = fm.fragments.filter { it.id == R.id.fragment_holder && it.isAdded }
         if (overlayFragments.isNotEmpty()) {
-            fm.beginTransaction().setReorderingAllowed(true).apply {
-                overlayFragments.forEach { remove(it) }
-            }.commitAllowingStateLoss()
+            fm.beginTransaction()
+                .setReorderingAllowed(true)
+                .setCustomAnimations(0, R.anim.hui_page_exit_right)
+                .apply { overlayFragments.forEach { remove(it) } }
+                .commitAllowingStateLoss()
             binding.fragmentHolder.visibility = View.GONE
         }
-        binding.dockPager.visibility = View.VISIBLE
-        binding.dockPager.setCurrentItem(targetIndex, smooth)
+        setSecondaryMode(false)
+        val distance = kotlin.math.abs(binding.dockPager.currentItem - targetIndex)
+        binding.dockPager.setCurrentItem(targetIndex, smooth && distance == 1)
         currentDockId = id
         lastDockId = id
         updateDockSelection(id)
@@ -473,6 +493,7 @@ class MainActivity : ThemedActivity(),
     fun displayFragment(fragment: ToolbarFragment) {
         currentDockId = -1
         updateDockSelection(-1)
+        setSecondaryMode(true)
         binding.fragmentHolder.visibility = View.VISIBLE
         val fm = supportFragmentManager
         val tx = fm.beginTransaction()

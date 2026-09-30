@@ -51,6 +51,10 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/config_save"
                     style="@style/HuiGlassActionButton.Small"
+                    android:maxLines="1"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:textSize="13sp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -59,20 +63,28 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/config_apply"
                     style="@style/HuiGlassActionButton.Small"
+                    android:maxLines="1"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:textSize="13sp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="保存并应用" />
+                    android:text="应用" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/config_update"
                     style="@style/HuiGlassActionButton.Small"
+                    android:maxLines="1"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:textSize="13sp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="更新来源" />
+                    android:text="更新" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

@@ -65,13 +65,10 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<SimpleMenuPreference>("huiCoreEngine")?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue.toString() != DataStore.huiCoreEngine) {
-                CoreController.stopAll(requireContext())
-                requireActivity().window.decorView.postDelayed({
-                    if (isAdded) ActivityCompat.recreate(requireActivity())
-                }, 350L)
-            }
+        findPreference<SimpleMenuPreference>("huiCoreEngine")?.setOnPreferenceChangeListener { _, _ ->
+            // MainActivity observes the persisted value and performs the stop/reset.
+            // Recreating here raced ViewPager2's nested preference fragment and caused
+            // "No view found for id/settings" during manual Box/Meta switching.
             true
         }
         findPreference<SimpleMenuPreference>("huiNodeLayout")?.setOnPreferenceChangeListener { _, _ ->

@@ -59,6 +59,15 @@ object HuiVisuals {
         }
     }
 
+    fun suppressFocusHighlights(root: View) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            root.defaultFocusHighlightEnabled = false
+        }
+        if (root is ViewGroup) {
+            for (index in 0 until root.childCount) suppressFocusHighlights(root.getChildAt(index))
+        }
+    }
+
     fun applyLiquidPress(view: View) {
         if (!view.isClickable || !view.isEnabled) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

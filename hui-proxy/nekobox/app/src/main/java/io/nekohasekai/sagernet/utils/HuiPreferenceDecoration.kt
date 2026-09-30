@@ -10,15 +10,14 @@ import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 
 class HuiPreferenceDecoration : RecyclerView.ItemDecoration() {
-    private var phase = 0f
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 1f
-        color = 0xEAFFFFFF.toInt()
+        color = 0x8CFFFFFF.toInt()
     }
     private val shine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(105, 255, 255, 255)
+        color = Color.argb(58, 255, 255, 255)
     }
 
     override fun getItemOffsets(
@@ -45,11 +44,11 @@ class HuiPreferenceDecoration : RecyclerView.ItemDecoration() {
             fill.shader = LinearGradient(
                 left, top, right, bottom,
                 intArrayOf(
-                    Color.argb(166, 255, 255, 255),
-                    Color.argb(108, 255, 242, 249),
-                    Color.argb(142, 239, 234, 255)
+                    Color.argb(94, 255, 255, 255),
+                    Color.argb(52, 255, 246, 250),
+                    Color.argb(72, 244, 240, 255)
                 ),
-                floatArrayOf(0f, 0.50f + phase * 0.06f, 1f),
+                floatArrayOf(0f, 0.52f, 1f),
                 Shader.TileMode.CLAMP
             )
             canvas.drawRoundRect(left, top, right, bottom, radius, radius, fill)
@@ -59,10 +58,5 @@ class HuiPreferenceDecoration : RecyclerView.ItemDecoration() {
             shine.strokeWidth = maxOf(1f, d * 0.7f)
             canvas.drawLine(left + radius, top + d, right - radius, top + d, shine)
         }
-        phase += 0.018f
-        if (phase > 1f) phase = 0f
-        if (parent.scrollState == RecyclerView.SCROLL_STATE_IDLE &&
-            HuiVisuals.animationsEnabled(parent.context)
-        ) parent.postInvalidateDelayed(66L)
     }
 }

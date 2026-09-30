@@ -7,6 +7,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.blacksquircle.ui.editorkit.widget.TextProcessor
 import com.blacksquircle.ui.language.json.JsonLanguage
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.core.CoreController
 import io.nekohasekai.sagernet.bg.core.CoreEngine
@@ -28,7 +29,9 @@ class ConfigCenterFragment : ToolbarFragment(R.layout.layout_config_center) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        toolbar.title = "配置"
+        toolbar.title = "配置编辑"
+        toolbar.setNavigationIcon(R.drawable.ic_navigation_close)
+        toolbar.setNavigationOnClickListener { requestClose() }
         editor = view.findViewById(R.id.config_editor)
         listOf(R.id.config_save, R.id.config_apply, R.id.config_update).forEach { id ->
             HuiVisuals.applyLiquidPress(view.findViewById(id))
@@ -148,6 +151,26 @@ class ConfigCenterFragment : ToolbarFragment(R.layout.layout_config_center) {
             }.onFailure { notifyUser(it.readableMessage) }
         }
     }
+
+    private fun requestClose() {
+        val host = activity as? MainActivity ?: return
+        if (!dirty) {
+            host.closeSecondary()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("有未保存的修改")
+            .setMessage("关闭后，本次未保存的配置修改会丢失。")
+            .setNegativeButton("继续编辑", null)
+            .setPositiveButton("放弃并关闭") { _, _ -> host.closeSecondary() }
+            .show()
+    }
+
+    override fun onBackPressed(): Boolean {
+        requestClose()
+        return true
+    }
+
     override fun onResume() {
         super.onResume()
         if (::editor.isInitialized && loadedEngine != CoreController.selected) {

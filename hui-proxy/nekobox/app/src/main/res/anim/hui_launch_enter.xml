@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="300"
+    android:duration="190"
     android:interpolator="@android:interpolator/fast_out_slow_in">
-    <alpha android:fromAlpha="0.72" android:toAlpha="1.0" />
-    <scale android:fromXScale="0.985" android:fromYScale="0.985" android:toXScale="1.0" android:toYScale="1.0" android:pivotX="50%" android:pivotY="50%" />
-    <translate android:fromYDelta="2.4%p" android:toYDelta="0" />
+    <alpha android:fromAlpha="0.90" android:toAlpha="1.0" />
+    <translate android:fromYDelta="0.7%p" android:toYDelta="0" />
 </set>
