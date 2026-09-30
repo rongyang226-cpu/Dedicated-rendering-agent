@@ -51,6 +51,7 @@ class LogsView extends ConsumerStatefulWidget {
 class _LogsViewState extends ConsumerState<LogsView> {
   final _listController = LogListController();
   late final ScrollController _scrollController;
+  String _levelFilter = 'all';
 
   @override
   void initState() {
@@ -64,6 +65,29 @@ class _LogsViewState extends ConsumerState<LogsView> {
 
   List<Widget> _buildActions() {
     return [
+      PopupMenuButton<String>(
+        tooltip: '日志级别',
+        initialValue: _levelFilter,
+        icon: const Icon(Icons.filter_alt_outlined),
+        onSelected: (value) {
+          setState(() => _levelFilter = value);
+          _listController.updateKeywords(value == 'all' ? [] : [value]);
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'all', child: Text('全部')),
+          PopupMenuItem(value: 'info', child: Text('INFO')),
+          PopupMenuItem(value: 'warning', child: Text('WARN')),
+          PopupMenuItem(value: 'error', child: Text('ERROR')),
+        ],
+      ),
+      IconButton(
+        tooltip: '清空日志',
+        onPressed: () {
+          ref.read(logsProvider.notifier).clear();
+          _listController.setLogs(const []);
+        },
+        icon: const Icon(Icons.delete_sweep_outlined),
+      ),
       IconButton(
         tooltip: context.appLocalizations.exportLogs,
         onPressed: () {

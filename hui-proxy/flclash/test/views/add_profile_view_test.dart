@@ -23,7 +23,7 @@ ProviderContainer _containerFor(WidgetTester tester) {
 }
 
 void main() {
-  testWidgets('lists the QR code, file, and URL import entries', (
+  testWidgets('lists URL, clipboard, file, manual, and QR import entries', (
     tester,
   ) async {
     final container = _containerFor(tester);
@@ -43,9 +43,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = currentAppLocalizations;
-    expect(find.text(l10n.qrcode), findsOne);
+    expect(find.text(l10n.importFromURL), findsOne);
+    expect(find.text(l10n.clipboardImport), findsOne);
     expect(find.text(l10n.file), findsOne);
-    expect(find.text(l10n.url), findsOne);
+    expect(find.text('手动创建'), findsOne);
+    expect(find.text(l10n.qrcode), findsOne);
     expect(tester.takeException(), null);
   });
 

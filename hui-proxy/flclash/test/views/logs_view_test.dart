@@ -1,3 +1,4 @@
+import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
@@ -114,8 +115,32 @@ void main() {
     expect(hintFinder(), findsNothing);
   });
 
+  testWidgets('clear action empties the provider log buffer', (tester) async {
+    await pumpLogsView(tester);
+    expect(container.read(logsProvider).list, isNotEmpty);
+
+    await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
+    await tester.pump();
+
+    expect(container.read(logsProvider).list, isEmpty);
+  });
+
   group('LogListController', () {
     final logs = seedLogs();
+
+    test('filters logs by exact log level keyword', () {
+      final controller = LogListController();
+      addTearDown(controller.dispose);
+      controller.setLogs(const [
+        Log(logLevel: LogLevel.info, payload: 'info', dateTime: '1'),
+        Log(logLevel: LogLevel.warning, payload: 'warn', dateTime: '2'),
+        Log(logLevel: LogLevel.error, payload: 'error', dateTime: '3'),
+      ]);
+
+      controller.updateKeywords(const ['warning']);
+
+      expect(controller.value.list.map((log) => log.payload), ['warn']);
+    });
 
     test('keeps trimmed logs while auto scroll is off', () {
       final controller = LogListController();

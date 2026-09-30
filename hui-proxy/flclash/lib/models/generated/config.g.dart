@@ -253,6 +253,7 @@ const _$ProxiesTypeEnumMap = {ProxiesType.tab: 'tab', ProxiesType.list: 'list'};
 const _$ProxiesSortTypeEnumMap = {
   ProxiesSortType.none: 'none',
   ProxiesSortType.delay: 'delay',
+  ProxiesSortType.region: 'region',
   ProxiesSortType.name: 'name',
 };
 
@@ -302,6 +303,14 @@ _ThemeProps _$ThemePropsFromJson(Map<String, dynamic> json) => _ThemeProps(
   textScale: json['textScale'] == null
       ? const TextScale()
       : TextScale.fromJson(json['textScale'] as Map<String, dynamic>),
+  backgroundImagePath: json['backgroundImagePath'] as String? ?? '',
+  backgroundBlur: (json['backgroundBlur'] as num?)?.toDouble() ?? 0.0,
+  backgroundBrightness:
+      (json['backgroundBrightness'] as num?)?.toDouble() ?? 1.0,
+  backgroundMask: (json['backgroundMask'] as num?)?.toDouble() ?? 0.10,
+  glassBlur: (json['glassBlur'] as num?)?.toDouble() ?? 12.0,
+  sakuraEnabled: json['sakuraEnabled'] as bool? ?? true,
+  sakuraLevel: (json['sakuraLevel'] as num?)?.toInt() ?? 1,
 );
 
 Map<String, dynamic> _$ThemePropsToJson(_ThemeProps instance) =>
@@ -312,6 +321,13 @@ Map<String, dynamic> _$ThemePropsToJson(_ThemeProps instance) =>
       'schemeVariant': _$DynamicSchemeVariantEnumMap[instance.schemeVariant]!,
       'pureBlack': instance.pureBlack,
       'textScale': instance.textScale,
+      'backgroundImagePath': instance.backgroundImagePath,
+      'backgroundBlur': instance.backgroundBlur,
+      'backgroundBrightness': instance.backgroundBrightness,
+      'backgroundMask': instance.backgroundMask,
+      'glassBlur': instance.glassBlur,
+      'sakuraEnabled': instance.sakuraEnabled,
+      'sakuraLevel': instance.sakuraLevel,
     };
 
 const _$ThemeModeEnumMap = {

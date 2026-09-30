@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:fl_clash/common/common.dart';
@@ -7,6 +8,7 @@ import 'package:fl_clash/providers/config.dart';
 import 'package:fl_clash/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:material_color_utilities/hct/hct.dart';
 
 class ThemeModeItem {
@@ -40,6 +42,8 @@ class ThemeView extends StatelessWidget {
         slivers: [
           _ThemeModeItem(),
           SliverToBoxAdapter(child: SizedBox(height: 16)),
+          _HuiVisualItem(),
+          SliverToBoxAdapter(child: SizedBox(height: 16)),
           _PrimaryColorItem(),
           SliverToBoxAdapter(child: SizedBox(height: 16)),
           _PrueBlackItem(),
@@ -72,6 +76,209 @@ class ItemCard extends StatelessWidget {
         InfoHeader(info: info, actions: actions),
         child,
       ],
+    );
+  }
+}
+
+class _HuiVisualItem extends ConsumerWidget {
+  const _HuiVisualItem();
+
+  Future<void> _pickBackground(BuildContext context, WidgetRef ref) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+      maxWidth: 4096,
+      maxHeight: 4096,
+    );
+    if (picked == null) return;
+    final homePath = await appPath.homeDirPath;
+    final target = File('$homePath/hui_background_custom');
+    final bytes = await picked.readAsBytes();
+    await target.writeAsBytes(bytes, flush: true);
+    if (!context.mounted) return;
+    ref
+        .read(themeSettingProvider.notifier)
+        .update((state) => state.copyWith(backgroundImagePath: target.path));
+  }
+
+  Future<void> _restoreBackground(BuildContext context, WidgetRef ref) async {
+    final homePath = await appPath.homeDirPath;
+    final target = File('$homePath/hui_background_custom');
+    if (await target.exists()) {
+      await target.delete();
+    }
+    if (!context.mounted) return;
+    ref
+        .read(themeSettingProvider.notifier)
+        .update((state) => state.copyWith(backgroundImagePath: ''));
+  }
+
+  Widget _slider({
+    required BuildContext context,
+    required String title,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required String label,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: context.textTheme.bodyMedium),
+              Text(label, style: context.textTheme.labelMedium),
+            ],
+          ),
+          Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: divisions,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visual = ref.watch(themeSettingProvider);
+    final hasCustomBackground = visual.backgroundImagePath.isNotEmpty;
+    return SliverToBoxAdapter(
+      child: ItemCard(
+        info: const Info(label: '绘视觉', iconData: Icons.auto_awesome_rounded),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => _pickBackground(context, ref),
+                      icon: const Icon(Icons.wallpaper_rounded),
+                      label: Text(hasCustomBackground ? '更换背景' : '自定义背景'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: hasCustomBackground
+                          ? () => _restoreBackground(context, ref)
+                          : null,
+                      icon: const Icon(Icons.restore_rounded),
+                      label: const Text('恢复默认'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _slider(
+              context: context,
+              title: '背景模糊',
+              value: visual.backgroundBlur,
+              min: 0,
+              max: 12,
+              divisions: 12,
+              label: visual.backgroundBlur < 0.5
+                  ? '关闭'
+                  : visual.backgroundBlur.toStringAsFixed(0),
+              onChanged: (value) {
+                ref
+                    .read(themeSettingProvider.notifier)
+                    .update((state) => state.copyWith(backgroundBlur: value));
+              },
+            ),
+            _slider(
+              context: context,
+              title: '背景亮度',
+              value: visual.backgroundBrightness,
+              min: 0.55,
+              max: 1.25,
+              divisions: 14,
+              label: '${(visual.backgroundBrightness * 100).round()}%',
+              onChanged: (value) {
+                ref
+                    .read(themeSettingProvider.notifier)
+                    .update(
+                      (state) => state.copyWith(backgroundBrightness: value),
+                    );
+              },
+            ),
+            _slider(
+              context: context,
+              title: '背景遮罩',
+              value: visual.backgroundMask,
+              min: 0,
+              max: 0.40,
+              divisions: 20,
+              label: '${(visual.backgroundMask * 100).round()}%',
+              onChanged: (value) {
+                ref
+                    .read(themeSettingProvider.notifier)
+                    .update((state) => state.copyWith(backgroundMask: value));
+              },
+            ),
+            _slider(
+              context: context,
+              title: '玻璃模糊',
+              value: visual.glassBlur,
+              min: 0,
+              max: 20,
+              divisions: 20,
+              label: visual.glassBlur < 0.5
+                  ? '关闭'
+                  : visual.glassBlur.toStringAsFixed(0),
+              onChanged: (value) {
+                ref
+                    .read(themeSettingProvider.notifier)
+                    .update((state) => state.copyWith(glassBlur: value));
+              },
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              title: const Text('樱花动画'),
+              subtitle: const Text('独立粒子层，页面切换不会重新生成'),
+              value: visual.sakuraEnabled,
+              onChanged: (value) {
+                ref
+                    .read(themeSettingProvider.notifier)
+                    .update((state) => state.copyWith(sakuraEnabled: value));
+              },
+            ),
+            if (visual.sakuraEnabled)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('低')),
+                      ButtonSegment(value: 1, label: Text('中')),
+                      ButtonSegment(value: 2, label: Text('高')),
+                    ],
+                    selected: {visual.sakuraLevel.clamp(0, 2)},
+                    onSelectionChanged: (values) {
+                      ref
+                          .read(themeSettingProvider.notifier)
+                          .update(
+                            (state) =>
+                                state.copyWith(sakuraLevel: values.first),
+                          );
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

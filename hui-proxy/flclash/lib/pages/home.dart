@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/manager/app_manager.dart';
-import 'package:fl_clash/models/common.dart';
+import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
+import 'package:fl_clash/widgets/hui_sakura.dart';
 import 'package:fl_clash/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,95 +61,172 @@ class _HomeShell extends ConsumerWidget {
     ref.read(currentPageLabelProvider.notifier).toPage(pageLabel);
   }
 
+  Widget _buildBackground(ThemeProps visual) {
+    final customPath = visual.backgroundImagePath.trim();
+    final customFile = customPath.isEmpty ? null : File(customPath);
+    final hasCustom = customFile?.existsSync() ?? false;
+    final image = hasCustom
+        ? FileImage(customFile!) as ImageProvider
+        : const AssetImage('assets/images/hui_background.webp');
+    Widget result = DecoratedBox(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: image,
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+    final brightness = visual.backgroundBrightness.clamp(0.55, 1.25);
+    if ((brightness - 1).abs() > 0.01) {
+      result = ColorFiltered(
+        colorFilter: ColorFilter.matrix([
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+        ]),
+        child: result,
+      );
+    }
+    final blur = visual.backgroundBlur.clamp(0.0, 12.0);
+    if (blur > 0.1) {
+      result = ClipRect(
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: Transform.scale(scale: 1.035, child: result),
+        ),
+      );
+    }
+    return RepaintBoundary(child: result);
+  }
+
+  Widget _buildMobileNavigation({
+    required BuildContext context,
+    required WidgetRef ref,
+    required NavigationState state,
+    required List<NavigationItem> navigationItems,
+    required ThemeProps visual,
+  }) {
+    final dark = Theme.brightnessOf(context) == Brightness.dark;
+    final blur = visual.glassBlur.clamp(0.0, 20.0);
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0x46202024) : const Color(0x62FFFFFF),
+        border: Border.all(
+          color: dark ? const Color(0x34FFFFFF) : const Color(0x70FFFFFF),
+        ),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.18 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: NavigationBarTheme(
+        data: _NavigationBarDefaultsM3(context),
+        child: NavigationBar(
+          destinations: [
+            for (final item in navigationItems)
+              NavigationDestination(icon: item.icon, label: item.label.label),
+          ],
+          onDestinationSelected: (index) {
+            _handleToPage(navigationItems[index].label, ref);
+          },
+          selectedIndex: state.currentIndex,
+        ),
+      ),
+    );
+    if (blur <= 0.1) return body;
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+      child: body,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(navigationStateProvider);
+    final visual = ref.watch(themeSettingProvider);
     final isMobile = state.viewMode == ViewMode.mobile;
     final navigationItems = state.navigationItems;
+    final dark = Theme.brightnessOf(context) == Brightness.dark;
+    final mask = visual.backgroundMask.clamp(0.0, 0.40);
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/hui_background.webp'),
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-            ),
-          ),
+        _buildBackground(visual),
+        ColoredBox(
+          color: (dark ? Colors.black : Colors.white).withValues(alpha: mask),
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0x12FFFFFF), Color(0x08000000)],
-            ),
-          ),
+        HuiSakuraLayer(
+          key: const ValueKey('hui-sakura-layer'),
+          enabled: visual.sakuraEnabled,
+          level: visual.sakuraLevel,
         ),
         Material(
           color: Colors.transparent,
           child: Column(
             children: [
-          Flexible(
-            flex: 1,
-            child: FocusTraversalGroup(
-              policy: PageTraversalPolicy(),
-              child: MediaQuery.removePadding(
-                removeTop: false,
-                removeBottom: isMobile,
-                removeLeft: isMobile,
-                removeRight: isMobile,
-                context: context,
-                child: child,
+              Flexible(
+                child: FocusTraversalGroup(
+                  policy: PageTraversalPolicy(),
+                  child: MediaQuery.removePadding(
+                    removeTop: false,
+                    removeBottom: isMobile,
+                    removeLeft: isMobile,
+                    removeRight: isMobile,
+                    context: context,
+                    child: child,
+                  ),
+                ),
               ),
-            ),
-          ),
-          AnimatedVisibility.bottomNavigation(
-            visible: isMobile,
-            child: MediaQuery.removePadding(
-              removeTop: true,
-              removeBottom: false,
-              removeLeft: true,
-              removeRight: true,
-              context: context,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0x62FFFFFF),
-                        border: Border.all(color: const Color(0x70FFFFFF), width: 1),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: NavigationBarTheme(
-                        data: _NavigationBarDefaultsM3(context),
-                        child: NavigationBar(
-                  destinations: [
-                    for (final item in navigationItems)
-                      NavigationDestination(
-                        icon: item.icon,
-                        label: item.label.label,
-                      ),
-                  ],
-                  onDestinationSelected: (index) {
-                    _handleToPage(navigationItems[index].label, ref);
-                  },
-                          selectedIndex: state.currentIndex,
-                        ),
+              AnimatedVisibility.bottomNavigation(
+                visible: isMobile,
+                child: MediaQuery.removePadding(
+                  removeTop: true,
+                  removeBottom: false,
+                  removeLeft: true,
+                  removeRight: true,
+                  context: context,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: _buildMobileNavigation(
+                        context: context,
+                        ref: ref,
+                        state: state,
+                        navigationItems: navigationItems,
+                        visual: visual,
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ],
     );
   }

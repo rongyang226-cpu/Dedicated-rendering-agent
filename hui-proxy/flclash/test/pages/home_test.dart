@@ -16,8 +16,20 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../helpers/test_app.dart';
+
+ProviderContainer _homeTestContainer({List<Override> overrides = const []}) {
+  return ProviderContainer(
+    overrides: [
+      themeSettingProvider.overrideWithBuild(
+        (_, _) => const ThemeProps(sakuraEnabled: false),
+      ),
+      ...overrides,
+    ],
+  );
+}
 
 void main() {
   setUp(() {
@@ -33,7 +45,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final container = ProviderContainer(
+    final container = _homeTestContainer(
       overrides: [
         navigationItemsStateProvider.overrideWithValue(
           NavigationItemsState(
@@ -87,7 +99,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           navigationItemsStateProvider.overrideWithValue(
             NavigationItemsState(
@@ -191,7 +203,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           navigationItemsStateProvider.overrideWithValue(
             NavigationItemsState(
@@ -242,7 +254,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           navigationItemsStateProvider.overrideWithValue(
             NavigationItemsState(
@@ -330,7 +342,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final profile = Profile.normal();
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           profilesProvider.overrideWith(() => _HomeTestProfiles([profile])),
           currentProfileIdProvider.overrideWithBuild((_, _) => profile.id),
@@ -372,7 +384,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final container = ProviderContainer();
+      final container = _homeTestContainer();
       addTearDown(container.dispose);
       globalState.container = container;
       container.read(viewSizeProvider.notifier).value = const Size(1400, 1000);
@@ -419,7 +431,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           navigationItemsStateProvider.overrideWithValue(
             NavigationItemsState(
@@ -548,7 +560,7 @@ void main() {
       );
     }
 
-    final container = ProviderContainer(
+    final container = _homeTestContainer(
       overrides: [
         navigationItemsStateProvider.overrideWithValue(
           NavigationItemsState(
@@ -651,7 +663,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     var query = '';
-    final container = ProviderContainer(
+    final container = _homeTestContainer(
       overrides: [
         navigationItemsStateProvider.overrideWithValue(
           NavigationItemsState(
@@ -715,7 +727,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     var query = '';
-    final container = ProviderContainer(
+    final container = _homeTestContainer(
       overrides: [
         navigationItemsStateProvider.overrideWithValue(
           NavigationItemsState(
@@ -801,7 +813,7 @@ void main() {
         );
       }
 
-      final container = ProviderContainer(
+      final container = _homeTestContainer(
         overrides: [
           navigationItemsStateProvider.overrideWithValue(
             NavigationItemsState(

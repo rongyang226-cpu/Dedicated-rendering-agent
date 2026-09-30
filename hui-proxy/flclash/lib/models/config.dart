@@ -237,6 +237,13 @@ abstract class ThemeProps with _$ThemeProps {
     @Default(DynamicSchemeVariant.content) DynamicSchemeVariant schemeVariant,
     @Default(false) bool pureBlack,
     @Default(TextScale()) TextScale textScale,
+    @Default('') String backgroundImagePath,
+    @Default(0.0) double backgroundBlur,
+    @Default(1.0) double backgroundBrightness,
+    @Default(0.10) double backgroundMask,
+    @Default(12.0) double glassBlur,
+    @Default(true) bool sakuraEnabled,
+    @Default(1) int sakuraLevel,
   }) = _ThemeProps;
 
   factory ThemeProps.fromJson(Map<String, Object?> json) =>

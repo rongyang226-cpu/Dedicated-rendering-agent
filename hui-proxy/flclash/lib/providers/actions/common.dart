@@ -8,18 +8,14 @@ class CommonAction extends _$CommonAction {
   @override
   void build() {}
 
-  void toggleRunning() {
+  Future<bool> toggleRunning() async {
     final running = !ref.read(isStartProvider);
-    unawaited(
-      globalState.safeRun(
-        () => ref
-            .read(setupActionProvider.notifier)
-            .setRunning(
-              running,
-              initialize: running && !ref.read(initProvider),
-            ),
-      ),
+    final result = await globalState.safeRun(
+      () => ref
+          .read(setupActionProvider.notifier)
+          .setRunning(running, initialize: running && !ref.read(initProvider)),
     );
+    return result ?? false;
   }
 
   void updateSpeedStatistics() {

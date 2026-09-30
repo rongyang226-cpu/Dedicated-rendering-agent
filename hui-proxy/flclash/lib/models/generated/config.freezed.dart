@@ -2380,7 +2380,7 @@ as double,
 /// @nodoc
 mixin _$ThemeProps {
 
- int? get primaryColor; List<int> get primaryColors; ThemeMode get themeMode; DynamicSchemeVariant get schemeVariant; bool get pureBlack; TextScale get textScale;
+ int? get primaryColor; List<int> get primaryColors; ThemeMode get themeMode; DynamicSchemeVariant get schemeVariant; bool get pureBlack; TextScale get textScale; String get backgroundImagePath; double get backgroundBlur; double get backgroundBrightness; double get backgroundMask; double get glassBlur; bool get sakuraEnabled; int get sakuraLevel;
 /// Create a copy of ThemeProps
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2394,20 +2394,20 @@ $ThemePropsCopyWith<ThemeProps> get copyWith => _$ThemePropsCopyWithImpl<ThemePr
 @override
 bool operator ==(Object other) {
   final _this = this as ThemeProps;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ThemeProps&&(identical(other.primaryColor, _this.primaryColor) || other.primaryColor == _this.primaryColor)&&const DeepCollectionEquality().equals(other.primaryColors, _this.primaryColors)&&(identical(other.themeMode, _this.themeMode) || other.themeMode == _this.themeMode)&&(identical(other.schemeVariant, _this.schemeVariant) || other.schemeVariant == _this.schemeVariant)&&(identical(other.pureBlack, _this.pureBlack) || other.pureBlack == _this.pureBlack)&&(identical(other.textScale, _this.textScale) || other.textScale == _this.textScale));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ThemeProps&&(identical(other.primaryColor, _this.primaryColor) || other.primaryColor == _this.primaryColor)&&const DeepCollectionEquality().equals(other.primaryColors, _this.primaryColors)&&(identical(other.themeMode, _this.themeMode) || other.themeMode == _this.themeMode)&&(identical(other.schemeVariant, _this.schemeVariant) || other.schemeVariant == _this.schemeVariant)&&(identical(other.pureBlack, _this.pureBlack) || other.pureBlack == _this.pureBlack)&&(identical(other.textScale, _this.textScale) || other.textScale == _this.textScale)&&(identical(other.backgroundImagePath, _this.backgroundImagePath) || other.backgroundImagePath == _this.backgroundImagePath)&&(identical(other.backgroundBlur, _this.backgroundBlur) || other.backgroundBlur == _this.backgroundBlur)&&(identical(other.backgroundBrightness, _this.backgroundBrightness) || other.backgroundBrightness == _this.backgroundBrightness)&&(identical(other.backgroundMask, _this.backgroundMask) || other.backgroundMask == _this.backgroundMask)&&(identical(other.glassBlur, _this.glassBlur) || other.glassBlur == _this.glassBlur)&&(identical(other.sakuraEnabled, _this.sakuraEnabled) || other.sakuraEnabled == _this.sakuraEnabled)&&(identical(other.sakuraLevel, _this.sakuraLevel) || other.sakuraLevel == _this.sakuraLevel));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ThemeProps;
-  return Object.hash(runtimeType,_this.primaryColor,const DeepCollectionEquality().hash(_this.primaryColors),_this.themeMode,_this.schemeVariant,_this.pureBlack,_this.textScale);
+  return Object.hash(runtimeType,_this.primaryColor,const DeepCollectionEquality().hash(_this.primaryColors),_this.themeMode,_this.schemeVariant,_this.pureBlack,_this.textScale,_this.backgroundImagePath,_this.backgroundBlur,_this.backgroundBrightness,_this.backgroundMask,_this.glassBlur,_this.sakuraEnabled,_this.sakuraLevel);
 }
 
 @override
 String toString() {
   final _this = this as ThemeProps;
-  return 'ThemeProps(primaryColor: ${_this.primaryColor}, primaryColors: ${_this.primaryColors}, themeMode: ${_this.themeMode}, schemeVariant: ${_this.schemeVariant}, pureBlack: ${_this.pureBlack}, textScale: ${_this.textScale})';
+  return 'ThemeProps(primaryColor: ${_this.primaryColor}, primaryColors: ${_this.primaryColors}, themeMode: ${_this.themeMode}, schemeVariant: ${_this.schemeVariant}, pureBlack: ${_this.pureBlack}, textScale: ${_this.textScale}, backgroundImagePath: ${_this.backgroundImagePath}, backgroundBlur: ${_this.backgroundBlur}, backgroundBrightness: ${_this.backgroundBrightness}, backgroundMask: ${_this.backgroundMask}, glassBlur: ${_this.glassBlur}, sakuraEnabled: ${_this.sakuraEnabled}, sakuraLevel: ${_this.sakuraLevel})';
 }
 
 
@@ -2418,7 +2418,7 @@ abstract mixin class $ThemePropsCopyWith<$Res>  {
   factory $ThemePropsCopyWith(ThemeProps value, $Res Function(ThemeProps) _then) = _$ThemePropsCopyWithImpl;
 @useResult
 $Res call({
- int? primaryColor, List<int> primaryColors, ThemeMode themeMode, DynamicSchemeVariant schemeVariant, bool pureBlack, TextScale textScale
+ int? primaryColor, List<int> primaryColors, ThemeMode themeMode, DynamicSchemeVariant schemeVariant, bool pureBlack, TextScale textScale, String backgroundImagePath, double backgroundBlur, double backgroundBrightness, double backgroundMask, double glassBlur, bool sakuraEnabled, int sakuraLevel
 });
 
 
@@ -2435,7 +2435,7 @@ class _$ThemePropsCopyWithImpl<$Res>
 
 /// Create a copy of ThemeProps
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? primaryColor = freezed,Object? primaryColors = null,Object? themeMode = null,Object? schemeVariant = null,Object? pureBlack = null,Object? textScale = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? primaryColor = freezed,Object? primaryColors = null,Object? themeMode = null,Object? schemeVariant = null,Object? pureBlack = null,Object? textScale = null,Object? backgroundImagePath = null,Object? backgroundBlur = null,Object? backgroundBrightness = null,Object? backgroundMask = null,Object? glassBlur = null,Object? sakuraEnabled = null,Object? sakuraLevel = null,}) {
   return _then(ThemeProps(
 primaryColor: freezed == primaryColor ? _self.primaryColor : primaryColor // ignore: cast_nullable_to_non_nullable
 as int?,primaryColors: null == primaryColors ? _self.primaryColors : primaryColors // ignore: cast_nullable_to_non_nullable
@@ -2443,7 +2443,14 @@ as List<int>,themeMode: null == themeMode ? _self.themeMode : themeMode // ignor
 as ThemeMode,schemeVariant: null == schemeVariant ? _self.schemeVariant : schemeVariant // ignore: cast_nullable_to_non_nullable
 as DynamicSchemeVariant,pureBlack: null == pureBlack ? _self.pureBlack : pureBlack // ignore: cast_nullable_to_non_nullable
 as bool,textScale: null == textScale ? _self.textScale : textScale // ignore: cast_nullable_to_non_nullable
-as TextScale,
+as TextScale,backgroundImagePath: null == backgroundImagePath ? _self.backgroundImagePath : backgroundImagePath // ignore: cast_nullable_to_non_nullable
+as String,backgroundBlur: null == backgroundBlur ? _self.backgroundBlur : backgroundBlur // ignore: cast_nullable_to_non_nullable
+as double,backgroundBrightness: null == backgroundBrightness ? _self.backgroundBrightness : backgroundBrightness // ignore: cast_nullable_to_non_nullable
+as double,backgroundMask: null == backgroundMask ? _self.backgroundMask : backgroundMask // ignore: cast_nullable_to_non_nullable
+as double,glassBlur: null == glassBlur ? _self.glassBlur : glassBlur // ignore: cast_nullable_to_non_nullable
+as double,sakuraEnabled: null == sakuraEnabled ? _self.sakuraEnabled : sakuraEnabled // ignore: cast_nullable_to_non_nullable
+as bool,sakuraLevel: null == sakuraLevel ? _self.sakuraLevel : sakuraLevel // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 /// Create a copy of ThemeProps
@@ -2537,10 +2544,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale,  String backgroundImagePath,  double backgroundBlur,  double backgroundBrightness,  double backgroundMask,  double glassBlur,  bool sakuraEnabled,  int sakuraLevel)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ThemeProps() when $default != null:
-return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale);case _:
+return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale,_that.backgroundImagePath,_that.backgroundBlur,_that.backgroundBrightness,_that.backgroundMask,_that.glassBlur,_that.sakuraEnabled,_that.sakuraLevel);case _:
   return orElse();
 
 }
@@ -2558,10 +2565,10 @@ return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.sch
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale,  String backgroundImagePath,  double backgroundBlur,  double backgroundBrightness,  double backgroundMask,  double glassBlur,  bool sakuraEnabled,  int sakuraLevel)  $default,) {final _that = this;
 switch (_that) {
 case _ThemeProps():
-return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale);case _:
+return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale,_that.backgroundImagePath,_that.backgroundBlur,_that.backgroundBrightness,_that.backgroundMask,_that.glassBlur,_that.sakuraEnabled,_that.sakuraLevel);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2578,10 +2585,10 @@ return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.sch
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? primaryColor,  List<int> primaryColors,  ThemeMode themeMode,  DynamicSchemeVariant schemeVariant,  bool pureBlack,  TextScale textScale,  String backgroundImagePath,  double backgroundBlur,  double backgroundBrightness,  double backgroundMask,  double glassBlur,  bool sakuraEnabled,  int sakuraLevel)?  $default,) {final _that = this;
 switch (_that) {
 case _ThemeProps() when $default != null:
-return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale);case _:
+return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.schemeVariant,_that.pureBlack,_that.textScale,_that.backgroundImagePath,_that.backgroundBlur,_that.backgroundBrightness,_that.backgroundMask,_that.glassBlur,_that.sakuraEnabled,_that.sakuraLevel);case _:
   return null;
 
 }
@@ -2593,7 +2600,7 @@ return $default(_that.primaryColor,_that.primaryColors,_that.themeMode,_that.sch
 @JsonSerializable()
 
 class _ThemeProps implements ThemeProps {
-  const _ThemeProps({this.primaryColor,  List<int> primaryColors = defaultPrimaryColors, this.themeMode = ThemeMode.dark, this.schemeVariant = DynamicSchemeVariant.content, this.pureBlack = false, this.textScale = const TextScale()}): _primaryColors = primaryColors;
+  const _ThemeProps({this.primaryColor,  List<int> primaryColors = defaultPrimaryColors, this.themeMode = ThemeMode.dark, this.schemeVariant = DynamicSchemeVariant.content, this.pureBlack = false, this.textScale = const TextScale(), this.backgroundImagePath = '', this.backgroundBlur = 0.0, this.backgroundBrightness = 1.0, this.backgroundMask = 0.10, this.glassBlur = 12.0, this.sakuraEnabled = true, this.sakuraLevel = 1}): _primaryColors = primaryColors;
   factory _ThemeProps.fromJson(Map<String, dynamic> json) => _$ThemePropsFromJson(json);
 
 @override final  int? primaryColor;
@@ -2608,6 +2615,13 @@ class _ThemeProps implements ThemeProps {
 @override@JsonKey() final  DynamicSchemeVariant schemeVariant;
 @override@JsonKey() final  bool pureBlack;
 @override@JsonKey() final  TextScale textScale;
+@override@JsonKey() final  String backgroundImagePath;
+@override@JsonKey() final  double backgroundBlur;
+@override@JsonKey() final  double backgroundBrightness;
+@override@JsonKey() final  double backgroundMask;
+@override@JsonKey() final  double glassBlur;
+@override@JsonKey() final  bool sakuraEnabled;
+@override@JsonKey() final  int sakuraLevel;
 
 /// Create a copy of ThemeProps
 /// with the given fields replaced by the non-null parameter values.
@@ -2622,18 +2636,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ThemeProps&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor)&&const DeepCollectionEquality().equals(other.primaryColors, _primaryColors)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.schemeVariant, schemeVariant) || other.schemeVariant == schemeVariant)&&(identical(other.pureBlack, pureBlack) || other.pureBlack == pureBlack)&&(identical(other.textScale, textScale) || other.textScale == textScale));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ThemeProps&&(identical(other.primaryColor, primaryColor) || other.primaryColor == primaryColor)&&const DeepCollectionEquality().equals(other.primaryColors, _primaryColors)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.schemeVariant, schemeVariant) || other.schemeVariant == schemeVariant)&&(identical(other.pureBlack, pureBlack) || other.pureBlack == pureBlack)&&(identical(other.textScale, textScale) || other.textScale == textScale)&&(identical(other.backgroundImagePath, backgroundImagePath) || other.backgroundImagePath == backgroundImagePath)&&(identical(other.backgroundBlur, backgroundBlur) || other.backgroundBlur == backgroundBlur)&&(identical(other.backgroundBrightness, backgroundBrightness) || other.backgroundBrightness == backgroundBrightness)&&(identical(other.backgroundMask, backgroundMask) || other.backgroundMask == backgroundMask)&&(identical(other.glassBlur, glassBlur) || other.glassBlur == glassBlur)&&(identical(other.sakuraEnabled, sakuraEnabled) || other.sakuraEnabled == sakuraEnabled)&&(identical(other.sakuraLevel, sakuraLevel) || other.sakuraLevel == sakuraLevel));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,primaryColor,const DeepCollectionEquality().hash(_primaryColors),themeMode,schemeVariant,pureBlack,textScale);
+    return Object.hash(runtimeType,primaryColor,const DeepCollectionEquality().hash(_primaryColors),themeMode,schemeVariant,pureBlack,textScale,backgroundImagePath,backgroundBlur,backgroundBrightness,backgroundMask,glassBlur,sakuraEnabled,sakuraLevel);
 }
 
 @override
 String toString() {
-    return 'ThemeProps(primaryColor: $primaryColor, primaryColors: $primaryColors, themeMode: $themeMode, schemeVariant: $schemeVariant, pureBlack: $pureBlack, textScale: $textScale)';
+    return 'ThemeProps(primaryColor: $primaryColor, primaryColors: $primaryColors, themeMode: $themeMode, schemeVariant: $schemeVariant, pureBlack: $pureBlack, textScale: $textScale, backgroundImagePath: $backgroundImagePath, backgroundBlur: $backgroundBlur, backgroundBrightness: $backgroundBrightness, backgroundMask: $backgroundMask, glassBlur: $glassBlur, sakuraEnabled: $sakuraEnabled, sakuraLevel: $sakuraLevel)';
 }
 
 
@@ -2644,7 +2658,7 @@ abstract mixin class _$ThemePropsCopyWith<$Res> implements $ThemePropsCopyWith<$
   factory _$ThemePropsCopyWith(_ThemeProps value, $Res Function(_ThemeProps) _then) = __$ThemePropsCopyWithImpl;
 @override @useResult
 $Res call({
- int? primaryColor, List<int> primaryColors, ThemeMode themeMode, DynamicSchemeVariant schemeVariant, bool pureBlack, TextScale textScale
+ int? primaryColor, List<int> primaryColors, ThemeMode themeMode, DynamicSchemeVariant schemeVariant, bool pureBlack, TextScale textScale, String backgroundImagePath, double backgroundBlur, double backgroundBrightness, double backgroundMask, double glassBlur, bool sakuraEnabled, int sakuraLevel
 });
 
 
@@ -2661,7 +2675,7 @@ class __$ThemePropsCopyWithImpl<$Res>
 
 /// Create a copy of ThemeProps
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? primaryColor = freezed,Object? primaryColors = null,Object? themeMode = null,Object? schemeVariant = null,Object? pureBlack = null,Object? textScale = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? primaryColor = freezed,Object? primaryColors = null,Object? themeMode = null,Object? schemeVariant = null,Object? pureBlack = null,Object? textScale = null,Object? backgroundImagePath = null,Object? backgroundBlur = null,Object? backgroundBrightness = null,Object? backgroundMask = null,Object? glassBlur = null,Object? sakuraEnabled = null,Object? sakuraLevel = null,}) {
   return _then(_ThemeProps(
 primaryColor: freezed == primaryColor ? _self.primaryColor : primaryColor // ignore: cast_nullable_to_non_nullable
 as int?,primaryColors: null == primaryColors ? _self._primaryColors : primaryColors // ignore: cast_nullable_to_non_nullable
@@ -2669,7 +2683,14 @@ as List<int>,themeMode: null == themeMode ? _self.themeMode : themeMode // ignor
 as ThemeMode,schemeVariant: null == schemeVariant ? _self.schemeVariant : schemeVariant // ignore: cast_nullable_to_non_nullable
 as DynamicSchemeVariant,pureBlack: null == pureBlack ? _self.pureBlack : pureBlack // ignore: cast_nullable_to_non_nullable
 as bool,textScale: null == textScale ? _self.textScale : textScale // ignore: cast_nullable_to_non_nullable
-as TextScale,
+as TextScale,backgroundImagePath: null == backgroundImagePath ? _self.backgroundImagePath : backgroundImagePath // ignore: cast_nullable_to_non_nullable
+as String,backgroundBlur: null == backgroundBlur ? _self.backgroundBlur : backgroundBlur // ignore: cast_nullable_to_non_nullable
+as double,backgroundBrightness: null == backgroundBrightness ? _self.backgroundBrightness : backgroundBrightness // ignore: cast_nullable_to_non_nullable
+as double,backgroundMask: null == backgroundMask ? _self.backgroundMask : backgroundMask // ignore: cast_nullable_to_non_nullable
+as double,glassBlur: null == glassBlur ? _self.glassBlur : glassBlur // ignore: cast_nullable_to_non_nullable
+as double,sakuraEnabled: null == sakuraEnabled ? _self.sakuraEnabled : sakuraEnabled // ignore: cast_nullable_to_non_nullable
+as bool,sakuraLevel: null == sakuraLevel ? _self.sakuraLevel : sakuraLevel // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

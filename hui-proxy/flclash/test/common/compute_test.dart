@@ -263,6 +263,38 @@ void main() {
       ]);
     });
 
+    test('ProxiesSortType.region groups common regions predictably', () {
+      final regionGroups = [
+        const Group(
+          name: 'regions',
+          type: GroupType.Selector,
+          all: [
+            Proxy(name: 'Other', type: 'ss'),
+            Proxy(name: 'US 01', type: 'ss'),
+            Proxy(name: 'JP02', type: 'ss'),
+            Proxy(name: 'TW01', type: 'ss'),
+            Proxy(name: '香港 01', type: 'ss'),
+            Proxy(name: 'DE 01', type: 'ss'),
+          ],
+        ),
+      ];
+      final result = computeSort(
+        groups: regionGroups,
+        sortType: ProxiesSortType.region,
+        delayMap: {},
+        selectedMap: {},
+        defaultTestUrl: '',
+      );
+      expect(result.single.all.map((p) => p.name).toList(), [
+        '香港 01',
+        'TW01',
+        'JP02',
+        'US 01',
+        'DE 01',
+        'Other',
+      ]);
+    });
+
     test('ProxiesSortType.delay sorts by delay value', () {
       final result = computeSort(
         groups: groups,

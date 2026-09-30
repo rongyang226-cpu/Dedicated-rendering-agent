@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:fl_clash/common/exception.dart';
 import 'package:fl_clash/core/desktop/launch_policy.dart';
 import 'package:fl_clash/core/method.dart';
 import 'package:fl_clash/l10n/l10n.dart';
@@ -37,9 +38,52 @@ String? coreLaunchBlockedMessage(
   };
 }
 
+String? configValidationErrorMessage(Object error) {
+  if (error is! MessageException) return null;
+  final raw = error.message.trim();
+  if (raw.isEmpty) return null;
+  final lower = raw.toLowerCase();
+
+  String? category;
+  if (lower.contains('yaml') ||
+      lower.contains('unmarshal') ||
+      lower.contains('mapping values') ||
+      (lower.contains('line ') && lower.contains('column'))) {
+    category = 'YAML';
+  } else if (lower.contains('proxy-provider') ||
+      lower.contains('rule-provider') ||
+      lower.contains('provider')) {
+    category = 'Provider';
+  } else if (lower.contains('nameserver') ||
+      lower.contains('fake-ip') ||
+      lower.contains('dns')) {
+    category = 'DNS';
+  } else if (lower.contains('vless') ||
+      lower.contains('vmess') ||
+      lower.contains('trojan') ||
+      lower.contains('hysteria') ||
+      lower.contains('tuic') ||
+      lower.contains('reality') ||
+      lower.contains('proxy')) {
+    category = '节点';
+  } else if (lower.contains('permission') || lower.contains('denied')) {
+    category = '权限';
+  } else if (lower.contains('no such file') ||
+      lower.contains('not exist') ||
+      lower.contains('path')) {
+    category = '路径';
+  } else if (lower.contains('unsupported') ||
+      lower.contains('not support') ||
+      lower.contains('unknown type')) {
+    category = 'Mihomo';
+  }
+  return category == null ? null : '$category · $raw';
+}
+
 String userFacingErrorMessage(Object error, AppLocalizations appLocalizations) {
   return networkErrorMessage(error, appLocalizations) ??
       coreLaunchBlockedMessage(error, appLocalizations) ??
+      configValidationErrorMessage(error) ??
       switch (error) {
         CoreMethodException(:final message) => message,
         _ => error.toString(),

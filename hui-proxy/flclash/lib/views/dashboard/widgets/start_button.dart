@@ -1,40 +1,16 @@
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/state.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const _threeDigitHourThreshold = 100 * 60 * 60 * 1000;
-const _widthAnimationDuration = Duration(milliseconds: 200);
-const _buttonHeight = 56.0;
-
-TextStyle? _runTimeTextStyle(BuildContext context) {
-  return context.textTheme.titleMedium?.toSoftBold.copyWith(
-    color: context.colorScheme.onPrimaryContainer,
-  );
-}
-
-TextStyle? _hundredsTextStyle(BuildContext context) {
-  return context.textTheme.titleMedium?.toSoftBold.copyWith(
-    color: context.colorScheme.primary,
-    fontWeight: FontWeight.w600,
-  );
-}
-
-double _computeRunTimeTextWidth(
-  BuildContext context, {
-  required bool hasThreeDigitHours,
-}) {
-  final regularWidth = globalState.measure
-      .computeTextSize(Text('99:99:99', style: _runTimeTextStyle(context)))
-      .width;
-  if (!hasThreeDigitHours) {
-    return regularWidth + 16;
-  }
-  final hundredsWidth = globalState.measure
-      .computeTextSize(Text('9', style: _hundredsTextStyle(context)))
-      .width;
-  return hundredsWidth + regularWidth + 16;
+enum _ConnectionUiState {
+  starting,
+  connected,
+  suspended,
+  disconnecting,
+  disconnected,
+  error,
 }
 
 class RunTimeText extends StatelessWidget {
@@ -44,21 +20,15 @@ class RunTimeText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = getTimeText(timeStamp);
-    final style = _runTimeTextStyle(context);
-    final textWidget = text.length < 9
-        ? Text(text, maxLines: 1, overflow: TextOverflow.visible, style: style)
-        : Text.rich(
-            TextSpan(
-              text: text.substring(0, 1),
-              style: _hundredsTextStyle(context),
-              children: [TextSpan(text: text.substring(1), style: style)],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.visible,
-            style: style,
-          );
-    return textWidget;
+    return Text(
+      getTimeText(timeStamp),
+      maxLines: 1,
+      overflow: TextOverflow.visible,
+      style: context.textTheme.labelSmall?.toSoftBold.copyWith(
+        color: context.colorScheme.onPrimaryContainer,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
   }
 }
 
@@ -69,112 +39,48 @@ class StartButton extends ConsumerStatefulWidget {
   ConsumerState<StartButton> createState() => _StartButtonState();
 }
 
-class _StartButtonState extends ConsumerState<StartButton>
-    with SingleTickerProviderStateMixin {
-  AnimationController? _controller;
-  late Animation<double> _animation;
-  double? _twoDigitTextWidth;
-  double? _threeDigitTextWidth;
-  double? _suspendedTextWidth;
-  int? _displayRunTime;
+class _StartButtonState extends ConsumerState<StartButton> {
+  bool _switching = false;
+  bool _lastFailed = false;
+  bool? _targetRunning;
 
-  @override
-  void initState() {
-    super.initState();
-    final isStart = ref.read(isStartProvider);
-    _displayRunTime = ref.read(runTimeProvider);
-    _controller = AnimationController(
-      vsync: this,
-      value: isStart ? 1 : 0,
-      duration: const Duration(milliseconds: 200),
-    );
-    _animation = CurvedAnimation(
-      parent: _controller!,
-      curve: Curves.easeOutBack,
-    );
-    ref.listenManual(runTimeProvider, (_, next) {
-      _updateDisplayRunTime(next);
-    });
-    ref.listenManual(isStartProvider, (prev, next) {
-      updateController(next);
-    }, fireImmediately: true);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _twoDigitTextWidth = null;
-    _threeDigitTextWidth = null;
-    _suspendedTextWidth = null;
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
-    super.dispose();
-  }
-
-  void handleSwitchStart() {
-    ref.read(commonActionProvider.notifier).toggleRunning();
-  }
-
-  void _updateDisplayRunTime(int? runTime) {
-    if (!mounted ||
-        _displayRunTime == runTime ||
-        (runTime == null && !(_controller?.isDismissed ?? true))) {
-      return;
-    }
+  Future<void> _handleSwitchStart() async {
+    if (_switching) return;
+    final targetRunning = !ref.read(isStartProvider);
     setState(() {
-      _displayRunTime = runTime;
+      _switching = true;
+      _lastFailed = false;
+      _targetRunning = targetRunning;
+    });
+    final success = await ref
+        .read(commonActionProvider.notifier)
+        .toggleRunning();
+    if (!mounted) return;
+    setState(() {
+      _switching = false;
+      _lastFailed = !success;
+      _targetRunning = null;
     });
   }
 
-  void updateController(bool isStart) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final controller = _controller;
-      if (controller == null) {
-        return;
-      }
-      if (isStart) {
-        controller.forward();
-        return;
-      }
-      controller.reverse().whenCompleteOrCancel(() {
-        if (mounted && controller.isDismissed) {
-          _updateDisplayRunTime(ref.read(runTimeProvider));
-        }
-      });
-    });
-  }
-
-  double _getRunTimeTextWidth(
-    BuildContext context, {
-    required bool hasThreeDigitHours,
+  _ConnectionUiState _resolveState({
+    required bool isStart,
+    required bool suspend,
+    required CoreStatus coreStatus,
   }) {
-    if (hasThreeDigitHours) {
-      return _threeDigitTextWidth ??= _computeRunTimeTextWidth(
-        context,
-        hasThreeDigitHours: true,
-      );
+    if (_switching) {
+      return _targetRunning == true
+          ? _ConnectionUiState.starting
+          : _ConnectionUiState.disconnecting;
     }
-    return _twoDigitTextWidth ??= _computeRunTimeTextWidth(
-      context,
-      hasThreeDigitHours: false,
-    );
-  }
-
-  double _getSuspendedTextWidth(BuildContext context, String suspendedText) {
-    return _suspendedTextWidth ??=
-        globalState.measure
-            .computeTextSize(
-              Text(suspendedText, style: context.textTheme.titleMedium),
-            )
-            .width +
-        24;
+    if (_lastFailed) return _ConnectionUiState.error;
+    if (!isStart) return _ConnectionUiState.disconnected;
+    if (suspend) return _ConnectionUiState.suspended;
+    return switch (coreStatus) {
+      CoreStatus.connected => _ConnectionUiState.connected,
+      CoreStatus.connecting => _ConnectionUiState.starting,
+      CoreStatus.disconnected => _ConnectionUiState.error,
+    };
   }
 
   @override
@@ -182,79 +88,133 @@ class _StartButtonState extends ConsumerState<StartButton>
     final hasProfile = ref.watch(
       profilesProvider.select((state) => state.isNotEmpty),
     );
-    if (!hasProfile) {
-      return Container();
-    }
+    if (!hasProfile) return const SizedBox.shrink();
+
+    final isStart = ref.watch(isStartProvider);
+    final coreStatus = ref.watch(coreStatusProvider);
     final suspend = ref.watch(suspendProvider);
-    final hasThreeDigitHours =
-        (_displayRunTime ?? 0) >= _threeDigitHourThreshold;
-    final theme = Theme.of(context);
-    final appLocalizations = context.appLocalizations;
-    final textWidth = suspend
-        ? _getSuspendedTextWidth(context, appLocalizations.suspended)
-        : _getRunTimeTextWidth(context, hasThreeDigitHours: hasThreeDigitHours);
+    final runTime = ref.watch(runTimeProvider);
+    final state = _resolveState(
+      isStart: isStart,
+      suspend: suspend,
+      coreStatus: coreStatus,
+    );
+    final colorScheme = context.colorScheme;
+    final isBusy =
+        state == _ConnectionUiState.starting ||
+        state == _ConnectionUiState.disconnecting;
+    final isConnected = state == _ConnectionUiState.connected;
+
+    final backgroundColor = switch (state) {
+      _ConnectionUiState.connected => colorScheme.primaryContainer,
+      _ConnectionUiState.suspended => colorScheme.tertiaryContainer,
+      _ConnectionUiState.starting ||
+      _ConnectionUiState.disconnecting => colorScheme.surfaceContainerHigh,
+      _ConnectionUiState.error => colorScheme.errorContainer,
+      _ConnectionUiState.disconnected => colorScheme.surfaceContainerLow,
+    };
+    final foregroundColor = switch (state) {
+      _ConnectionUiState.connected => colorScheme.onPrimaryContainer,
+      _ConnectionUiState.suspended => colorScheme.onTertiaryContainer,
+      _ConnectionUiState.error => colorScheme.onErrorContainer,
+      _ => colorScheme.onSurfaceVariant,
+    };
+    final semanticLabel = switch (state) {
+      _ConnectionUiState.starting => context.appLocalizations.connecting,
+      _ConnectionUiState.connected => context.appLocalizations.connected,
+      _ConnectionUiState.suspended => context.appLocalizations.suspended,
+      _ConnectionUiState.disconnecting => context.appLocalizations.stopVpn,
+      _ConnectionUiState.disconnected => context.appLocalizations.disconnected,
+      _ConnectionUiState.error => context.appLocalizations.disconnected,
+    };
+
     return RepaintBoundary(
-      child: Theme(
-        data: theme.copyWith(
-          floatingActionButtonTheme: theme.floatingActionButtonTheme.copyWith(
-            sizeConstraints: const BoxConstraints(
-              minWidth: 56,
-              maxWidth: 220,
-              minHeight: _buttonHeight,
-              maxHeight: _buttonHeight,
+      child: Semantics(
+        button: true,
+        enabled: !isBusy,
+        label: semanticLabel,
+        child: SizedBox.square(
+          dimension: 72,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: backgroundColor.withValues(alpha: 0.86),
+              border: Border.all(
+                color: isConnected
+                    ? colorScheme.primary.withValues(alpha: 0.55)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.65),
+              ),
+              boxShadow: isConnected
+                  ? [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.18),
+                        blurRadius: 20,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : const [],
             ),
-          ),
-        ),
-        child: FloatingActionButton(
-          clipBehavior: Clip.antiAlias,
-          materialTapTargetSize: MaterialTapTargetSize.padded,
-          heroTag: null,
-          onPressed: () {
-            handleSwitchStart();
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedBuilder(
-                animation: _animation,
-                builder: (_, child) {
-                  return Container(
-                    height: _buttonHeight,
-                    padding: EdgeInsets.only(
-                      left: 16,
-                      right: 16 - 8 * _animation.value,
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: child,
-                  );
-                },
-                child: AnimatedIcon(
-                  icon: AnimatedIcons.play_pause,
-                  progress: _animation,
-                ),
-              ),
-              SizeTransition(
-                axis: Axis.horizontal,
-                alignment: Alignment.centerLeft,
-                sizeFactor: _animation,
-                child: AnimatedContainer(
-                  width: textWidth,
-                  duration: _widthAnimationDuration,
-                  curve: Curves.easeOut,
-                  child: suspend
-                      ? Text(
-                          appLocalizations.suspended,
-                          maxLines: 1,
-                          overflow: TextOverflow.visible,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: context.colorScheme.onPrimaryContainer,
+            child: Material(
+              type: MaterialType.transparency,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkResponse(
+                onTap: isBusy ? null : _handleSwitchStart,
+                containedInkWell: true,
+                customBorder: const CircleBorder(),
+                radius: 36,
+                overlayColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.pressed)) {
+                    return foregroundColor.withValues(alpha: 0.10);
+                  }
+                  if (states.contains(WidgetState.hovered) ||
+                      states.contains(WidgetState.focused)) {
+                    return foregroundColor.withValues(alpha: 0.06);
+                  }
+                  return null;
+                }),
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 160),
+                    child: isBusy
+                        ? SizedBox.square(
+                            key: ValueKey(state),
+                            dimension: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              color: foregroundColor,
+                            ),
+                          )
+                        : state == _ConnectionUiState.error
+                        ? Icon(
+                            Icons.error_outline_rounded,
+                            key: const ValueKey('error'),
+                            color: foregroundColor,
+                            size: 28,
+                          )
+                        : Column(
+                            key: ValueKey(state),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                state == _ConnectionUiState.suspended
+                                    ? Icons.pause_rounded
+                                    : Icons.power_settings_new_rounded,
+                                color: foregroundColor,
+                                size: 28,
                               ),
-                        )
-                      : RunTimeText(timeStamp: _displayRunTime),
+                              if (isConnected) ...[
+                                const SizedBox(height: 2),
+                                RunTimeText(timeStamp: runTime),
+                              ],
+                            ],
+                          ),
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

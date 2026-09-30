@@ -305,11 +305,109 @@ const dnsItems = <Widget>[
   FallbackFilterOptions(),
 ];
 
-class DnsListView extends ConsumerWidget {
+class DnsHijackingItem extends ConsumerWidget {
+  const DnsHijackingItem({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ConfigToggleItem(
+      title: (l) => l.dnsHijacking,
+      selector: vpnSettingProvider.select((state) => state.dnsHijacking),
+      onChanged: (ref, value) => ref
+          .read(vpnSettingProvider.notifier)
+          .update((state) => state.copyWith(dnsHijacking: value)),
+    );
+  }
+}
+
+class _BasicDnsOptions extends StatelessWidget {
+  const _BasicDnsOptions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: generateSection(
+        title: context.appLocalizations.options,
+        items: [
+          const StatusItem(),
+          const IPv6Item(),
+          const DnsHijackingItem(),
+          const DnsModeItem(),
+          _dnsList(
+            title: (l) => l.defaultNameserver,
+            subtitle: (l) => l.defaultNameserverDesc,
+            select: (dns) => dns.defaultNameserver,
+            update: (state, value) =>
+                state.copyWith.dns(defaultNameserver: value),
+            itemMaxLength: TextInputLimits.dnsServer,
+          ),
+          _dnsList(
+            title: (l) => l.nameserver,
+            subtitle: (l) => l.nameserverDesc,
+            select: (dns) => dns.nameserver,
+            update: (state, value) => state.copyWith.dns(nameserver: value),
+            itemMaxLength: TextInputLimits.dnsServer,
+          ),
+          _dnsList(
+            title: (l) => l.fallback,
+            subtitle: (l) => l.fallbackDesc,
+            select: (dns) => dns.fallback,
+            update: (state, value) => state.copyWith.dns(fallback: value),
+            itemMaxLength: TextInputLimits.dnsServer,
+          ),
+          _dnsList(
+            title: (l) => l.fakeipFilter,
+            select: (dns) => dns.fakeIpFilter,
+            update: (state, value) => state.copyWith.dns(fakeIpFilter: value),
+            itemMaxLength: TextInputLimits.domain,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DnsListView extends StatefulWidget {
   const DnsListView({super.key});
 
   @override
-  Widget build(BuildContext context, ref) {
-    return generateListView(dnsItems);
+  State<DnsListView> createState() => _DnsListViewState();
+}
+
+class _DnsListViewState extends State<DnsListView> {
+  bool _advanced = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                value: false,
+                icon: const Icon(Icons.tune_rounded),
+                label: Text(context.appLocalizations.basicConfig),
+              ),
+              ButtonSegment(
+                value: true,
+                icon: const Icon(Icons.code_rounded),
+                label: Text(context.appLocalizations.advancedConfig),
+              ),
+            ],
+            selected: {_advanced},
+            onSelectionChanged: (value) {
+              setState(() => _advanced = value.first);
+            },
+          ),
+        ),
+        Expanded(
+          child: _advanced
+              ? generateListView(dnsItems)
+              : generateListView(const [OverrideItem(), _BasicDnsOptions()]),
+        ),
+      ],
+    );
   }
 }

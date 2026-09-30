@@ -104,7 +104,7 @@ void main() {
       expect(restored.openLogs, false);
       expect(restored.closeConnections, true);
       expect(restored.isAnimateToPage, true);
-      expect(restored.autoCheckUpdate, true);
+      expect(restored.autoCheckUpdate, false);
       expect(restored.showLabel, false);
       expect(restored.minimizeOnExit, true);
       expect(restored.restoreStrategy, RestoreStrategy.compatible);
@@ -317,6 +317,13 @@ void main() {
       expect(props.themeMode, ThemeMode.dark);
       expect(props.pureBlack, false);
       expect(props.textScale.scale, 1.0);
+      expect(props.backgroundImagePath, '');
+      expect(props.backgroundBlur, 0.0);
+      expect(props.backgroundBrightness, 1.0);
+      expect(props.backgroundMask, 0.10);
+      expect(props.glassBlur, 12.0);
+      expect(props.sakuraEnabled, true);
+      expect(props.sakuraLevel, 1);
     });
 
     test('safeFromJson returns default on null', () {
@@ -330,12 +337,26 @@ void main() {
         themeMode: ThemeMode.light,
         pureBlack: true,
         textScale: TextScale(enable: true, scale: 1.5),
+        backgroundImagePath: '/tmp/hui.jpg',
+        backgroundBlur: 5,
+        backgroundBrightness: 0.85,
+        backgroundMask: 0.22,
+        glassBlur: 16,
+        sakuraEnabled: false,
+        sakuraLevel: 2,
       );
       final restored = roundTrip(() => props.toJson(), ThemeProps.fromJson);
       expect(restored.primaryColor, 0xFF123456);
       expect(restored.themeMode, ThemeMode.light);
       expect(restored.pureBlack, true);
       expect(restored.textScale.scale, 1.5);
+      expect(restored.backgroundImagePath, '/tmp/hui.jpg');
+      expect(restored.backgroundBlur, 5);
+      expect(restored.backgroundBrightness, 0.85);
+      expect(restored.backgroundMask, 0.22);
+      expect(restored.glassBlur, 16);
+      expect(restored.sakuraEnabled, false);
+      expect(restored.sakuraLevel, 2);
     });
   });
 

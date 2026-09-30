@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
@@ -5,11 +8,51 @@ import 'package:fl_clash/views/dashboard/widgets/start_button.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../helpers/test_app.dart';
 
+ProviderContainer _container({SetupAction Function()? setupAction}) {
+  final overrides = <Override>[
+    profilesProvider.overrideWithValue([
+      const Profile(id: 1, autoUpdateDuration: Duration.zero),
+    ]),
+    initProvider.overrideWithBuild((_, _) => true),
+  ];
+  if (setupAction != null) {
+    overrides.add(setupActionProvider.overrideWith(setupAction));
+  }
+  return ProviderContainer(overrides: overrides);
+}
+
+Future<void> _pumpButton(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  globalState.container = container;
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: TestApp(
+        includeNavigatorKey: false,
+        setTheme: false,
+        homeBuilder: (child) => Scaffold(body: Center(child: child)),
+        child: const StartButton(),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+Finder _buttonTapTarget() => find.descendant(
+  of: find.byType(StartButton),
+  matching: find.byType(InkResponse),
+);
+
 void main() {
-  testWidgets('RunTimeText emphasizes the hundreds hour digit', (tester) async {
+  testWidgets('RunTimeText renders long runtimes without special-case spans', (
+    tester,
+  ) async {
     const colorScheme = ColorScheme.light(
       primary: Color(0xFF6750A4),
       onPrimaryContainer: Color(0xFF21005D),
@@ -27,201 +70,88 @@ void main() {
         matching: find.byType(Text),
       ),
     );
-    final span = text.textSpan! as TextSpan;
-
-    expect(span.toPlainText(), '100:00:00');
-    expect(span.text, '1');
-    expect(span.style?.color, colorScheme.primary);
-    expect(span.style?.fontWeight, FontWeight.w600);
-    expect(span.children, hasLength(1));
-    expect(
-      (span.children!.single as TextSpan).style?.color,
-      colorScheme.onPrimaryContainer,
-    );
-  });
-
-  testWidgets('RunTimeText uses one color below 100 hours', (tester) async {
-    const colorScheme = ColorScheme.light(
-      primary: Color(0xFF6750A4),
-      onPrimaryContainer: Color(0xFF21005D),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(colorScheme: colorScheme),
-        home: const RunTimeText(timeStamp: 99 * 60 * 60 * 1000),
-      ),
-    );
-
-    final text = tester.widget<Text>(
-      find.descendant(
-        of: find.byType(RunTimeText),
-        matching: find.byType(Text),
-      ),
-    );
-
-    expect(text.data, '99:00:00');
+    expect(text.data, '100:00:00');
     expect(text.style?.color, colorScheme.onPrimaryContainer);
   });
 
-  testWidgets('StartButton animates its width when hours reach three digits', (
+  testWidgets('StartButton stays a fixed 72px circle and shows runtime', (
     tester,
   ) async {
-    final container = ProviderContainer(
-      overrides: [
-        profilesProvider.overrideWithValue([
-          const Profile(id: 1, autoUpdateDuration: Duration.zero),
-        ]),
-        suspendProvider.overrideWithValue(false),
-      ],
-    );
+    final container = _container();
     addTearDown(container.dispose);
-    globalState.container = container;
-    container.read(runTimeProvider.notifier).value = 99 * 60 * 60 * 1000;
-
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: TestApp(
-          includeNavigatorKey: false,
-          setTheme: false,
-          homeBuilder: (child) => Scaffold(floatingActionButton: child),
-          child: const StartButton(),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    final button = find.byType(FloatingActionButton);
-    expect(tester.getSize(button).height, 56);
-    final twoDigitWidth = tester.getSize(button).width;
-
     container.read(runTimeProvider.notifier).value = 100 * 60 * 60 * 1000;
-    await tester.pump();
-    expect(tester.getSize(button).width, twoDigitWidth);
+    container.read(coreStatusProvider.notifier).value = CoreStatus.connected;
 
-    await tester.pump(const Duration(milliseconds: 100));
-    final animatedWidth = tester.getSize(button).width;
-    expect(animatedWidth, greaterThan(twoDigitWidth));
+    await _pumpButton(tester, container);
 
-    await tester.pumpAndSettle();
-    expect(tester.getSize(button).width, greaterThan(animatedWidth));
-  });
-
-  testWidgets('StartButton resets its text after the close animation', (
-    tester,
-  ) async {
-    final container = ProviderContainer(
-      overrides: [
-        profilesProvider.overrideWithValue([
-          const Profile(id: 1, autoUpdateDuration: Duration.zero),
-        ]),
-        suspendProvider.overrideWithValue(false),
-      ],
-    );
-    addTearDown(container.dispose);
-    globalState.container = container;
-    container.read(runTimeProvider.notifier).value = const Duration(
-      hours: 100,
-      minutes: 2,
-      seconds: 3,
-    ).inMilliseconds;
-
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: TestApp(
-          includeNavigatorKey: false,
-          setTheme: false,
-          homeBuilder: (child) => Scaffold(floatingActionButton: child),
-          child: const StartButton(),
-        ),
+    final fixedBox = find.descendant(
+      of: find.byType(StartButton),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is SizedBox && widget.width == 72 && widget.height == 72,
       ),
     );
-    await tester.pump();
-
-    final button = find.byType(FloatingActionButton);
-    String runTimeText() {
-      final text = tester.widget<Text>(
-        find.descendant(
-          of: find.byType(RunTimeText),
-          matching: find.byType(Text),
-        ),
-      );
-      return text.data ?? text.textSpan!.toPlainText();
-    }
-
-    final expandedTextWidth = tester
-        .widget<AnimatedContainer>(find.byType(AnimatedContainer))
-        .constraints
-        ?.maxWidth;
-    final expandedButtonWidth = tester.getSize(button).width;
-    expect(runTimeText(), '100:02:03');
-
-    container.read(runTimeProvider.notifier).value = null;
-    await tester.pump();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(tester.getSize(button).width, greaterThan(expandedButtonWidth));
-    expect(
-      tester
-          .widget<AnimatedContainer>(find.byType(AnimatedContainer))
-          .constraints
-          ?.maxWidth,
-      expandedTextWidth,
-    );
-    expect(runTimeText(), '100:02:03');
-
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(tester.getSize(button).width, 56);
-    expect(runTimeText(), '100:02:03');
-
-    await tester.pumpAndSettle();
-
-    expect(tester.getSize(button).width, 56);
-    expect(runTimeText(), '00:00:00');
+    expect(fixedBox, findsOneWidget);
+    expect(tester.getSize(fixedBox), const Size.square(72));
+    expect(find.text('100:00:00'), findsOneWidget);
+    expect(_buttonTapTarget(), findsOneWidget);
   });
 
-  testWidgets('dispatches each toggle through the shared running state', (
+  testWidgets('StartButton is hidden until a profile exists', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await _pumpButton(tester, container);
+
+    expect(_buttonTapTarget(), findsNothing);
+    expect(find.byIcon(Icons.power_settings_new_rounded), findsNothing);
+  });
+
+  testWidgets('dispatches start and stop through the shared setup action', (
     tester,
   ) async {
-    final container = ProviderContainer(
-      overrides: [
-        initProvider.overrideWithBuild((_, _) => true),
-        profilesProvider.overrideWithValue([
-          const Profile(id: 1, autoUpdateDuration: Duration.zero),
-        ]),
-        setupActionProvider.overrideWith(_RecordingSetupAction.new),
-      ],
-    );
+    final container = _container(setupAction: _RecordingSetupAction.new);
     addTearDown(container.dispose);
-    globalState.container = container;
-    container.read(runTimeProvider.notifier).value = 1;
-
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: TestApp(
-          includeNavigatorKey: false,
-          setTheme: false,
-          homeBuilder: (child) => Scaffold(floatingActionButton: child),
-          child: const StartButton(),
-        ),
-      ),
-    );
+    await _pumpButton(tester, container);
 
     final action =
         container.read(setupActionProvider.notifier) as _RecordingSetupAction;
-    final button = find.byType(FloatingActionButton);
+    final button = _buttonTapTarget();
 
     await tester.tap(button);
-    expect(action.requests, [false]);
-    expect(container.read(isStartProvider), isFalse);
-
-    await tester.tap(button);
-    expect(action.requests, [false, true]);
+    await tester.pump();
+    expect(action.requests, [true]);
     expect(container.read(isStartProvider), isTrue);
+
+    await tester.tap(button);
+    await tester.pump();
+    expect(action.requests, [true, false]);
+    expect(container.read(isStartProvider), isFalse);
+  });
+
+  testWidgets('ignores repeated taps while a state change is pending', (
+    tester,
+  ) async {
+    final container = _container(setupAction: _DelayedSetupAction.new);
+    addTearDown(container.dispose);
+    await _pumpButton(tester, container);
+
+    final action =
+        container.read(setupActionProvider.notifier) as _DelayedSetupAction;
+    final button = _buttonTapTarget();
+
+    await tester.tap(button);
+    await tester.pump();
+    expect(action.requests, [true]);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.tap(button);
+    await tester.pump();
+    expect(action.requests, [true]);
+
+    action.complete(success: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }
 
@@ -229,9 +159,38 @@ class _RecordingSetupAction extends SetupAction {
   final requests = <bool>[];
 
   @override
-  Future<bool> setRunning(bool running, {bool initialize = false}) {
+  Future<bool> setRunning(bool running, {bool initialize = false}) async {
     requests.add(running);
     ref.read(runTimeProvider.notifier).value = running ? 1 : null;
-    return Future.value(true);
+    ref.read(coreStatusProvider.notifier).value = running
+        ? CoreStatus.connected
+        : CoreStatus.disconnected;
+    return true;
+  }
+}
+
+class _DelayedSetupAction extends SetupAction {
+  final requests = <bool>[];
+  Completer<bool>? _completer;
+  bool? _pendingRunning;
+
+  @override
+  Future<bool> setRunning(bool running, {bool initialize = false}) {
+    requests.add(running);
+    _pendingRunning = running;
+    _completer = Completer<bool>();
+    return _completer!.future;
+  }
+
+  void complete({required bool success}) {
+    if (success && _pendingRunning != null) {
+      ref.read(runTimeProvider.notifier).value = _pendingRunning! ? 1 : null;
+      ref.read(coreStatusProvider.notifier).value = _pendingRunning!
+          ? CoreStatus.connected
+          : CoreStatus.disconnected;
+    }
+    _completer?.complete(success);
+    _completer = null;
+    _pendingRunning = null;
   }
 }

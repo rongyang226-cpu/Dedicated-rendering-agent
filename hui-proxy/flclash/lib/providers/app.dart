@@ -37,6 +37,10 @@ class Logs extends _$Logs with AutoDisposeNotifierMixin {
     this.value = state.append(value);
   }
 
+  void clear() {
+    value = FixedList(maxLogsLength);
+  }
+
   Future<bool> exportLogs() async {
     final logString = await encodeLogsTask(value.list);
     final tempFilePath = await appPath.tempFilePath;

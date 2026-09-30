@@ -1,9 +1,11 @@
+import 'package:fl_clash/common/app_localizations.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/app.dart';
 import 'package:fl_clash/providers/config.dart';
 import 'package:fl_clash/providers/database.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/views/theme.dart';
+import 'package:fl_clash/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +45,14 @@ void main() {
 
   ThemeProps readTheme() => container.read(themeSettingProvider);
 
+  Finder toggleForLabel(String label) {
+    final item = find.ancestor(
+      of: find.text(label),
+      matching: find.byType(ListItem),
+    );
+    return find.descendant(of: item, matching: find.byType(Switch));
+  }
+
   group('theme mode', () {
     testWidgets('defaults to the dark theme', (tester) async {
       await pumpThemeView(tester);
@@ -70,7 +80,7 @@ void main() {
   group('pure black', () {
     testWidgets('toggles both ways', (tester) async {
       await pumpThemeView(tester);
-      final toggle = find.byType(Switch).first;
+      final toggle = toggleForLabel(currentAppLocalizations.pureBlackMode);
 
       expect(readTheme().pureBlack, isFalse);
 
@@ -90,7 +100,7 @@ void main() {
 
       expect(readTheme().textScale.enable, isFalse);
 
-      await tester.tap(find.byType(Switch).last);
+      await tester.tap(toggleForLabel(currentAppLocalizations.textScale));
       await tester.pumpAndSettle();
 
       expect(readTheme().textScale.enable, isTrue);
@@ -98,11 +108,13 @@ void main() {
 
     testWidgets('the slider writes a new scale once enabled', (tester) async {
       await pumpThemeView(tester);
-      await tester.tap(find.byType(Switch).last);
+      await tester.tap(toggleForLabel(currentAppLocalizations.textScale));
       await tester.pumpAndSettle();
       final before = readTheme().textScale.scale;
 
-      final slider = find.byType(Slider);
+      final slider = find.byWidgetPredicate(
+        (widget) => widget is Slider && widget.min == 0.8 && widget.max == 1.4,
+      );
       expect(slider, findsOneWidget);
       await tester.drag(slider, const Offset(120, 0));
       await tester.pumpAndSettle();

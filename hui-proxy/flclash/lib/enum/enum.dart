@@ -160,7 +160,7 @@ enum NavigationItemMode { mobile, desktop, more }
 
 enum Network { tcp, udp }
 
-enum ProxiesSortType { none, delay, name }
+enum ProxiesSortType { none, delay, region, name }
 
 enum TunStack { gvisor, system, mixed }
 
