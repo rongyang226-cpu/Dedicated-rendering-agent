@@ -320,7 +320,7 @@ void main() {
       expect(props.backgroundImagePath, '');
       expect(props.backgroundBlur, 0.0);
       expect(props.backgroundBrightness, 1.0);
-      expect(props.backgroundMask, 0.10);
+      expect(props.backgroundMask, 0.16);
       expect(props.glassBlur, 12.0);
       expect(props.sakuraEnabled, true);
       expect(props.sakuraLevel, 1);

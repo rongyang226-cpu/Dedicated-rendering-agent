@@ -330,31 +330,48 @@ class ListItem<T> extends StatelessWidget {
     Widget? trailing,
     Widget? leading,
   }) {
-    final tile = ListTile(
-      key: key,
-      dense: dense,
-      visualDensity: visualDensity,
-      tileColor: Colors.transparent,
-      titleTextStyle: titleTextStyle,
-      subtitleTextStyle: subtitleTextStyle,
-      leading: leading ?? this.leading,
-      horizontalTitleGap: horizontalTitleGap,
-      title: title,
-      minTileHeight: minTileHeight,
-      minVerticalPadding: minVerticalPadding,
-      subtitle: subtitle,
-      titleAlignment: tileTitleAlignment,
-      onTap: onTap,
-      trailing: trailing ?? this.trailing,
-      contentPadding: padding,
-    );
-    return HuiGlassSurface(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      borderRadius: BorderRadius.circular(20),
-      blurFactor: 0.52,
-      opacity: 0.72,
-      tint: color,
-      child: tile,
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        final tile = ListTile(
+          key: key,
+          dense: dense,
+          visualDensity: visualDensity,
+          tileColor: Colors.transparent,
+          iconColor: scheme.onSurfaceVariant.withValues(alpha: 0.94),
+          titleTextStyle:
+              titleTextStyle ??
+              theme.textTheme.titleMedium?.copyWith(
+                color: scheme.onSurface.withValues(alpha: 0.98),
+                fontWeight: FontWeight.w600,
+              ),
+          subtitleTextStyle:
+              subtitleTextStyle ??
+              theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.88),
+                fontWeight: FontWeight.w500,
+              ),
+          leading: leading ?? this.leading,
+          horizontalTitleGap: horizontalTitleGap,
+          title: title,
+          minTileHeight: minTileHeight,
+          minVerticalPadding: minVerticalPadding,
+          subtitle: subtitle,
+          titleAlignment: tileTitleAlignment,
+          onTap: onTap,
+          trailing: trailing ?? this.trailing,
+          contentPadding: padding,
+        );
+        return HuiGlassSurface(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          borderRadius: BorderRadius.circular(20),
+          blurFactor: 0.48,
+          opacity: 0.82,
+          tint: color,
+          child: tile,
+        );
+      },
     );
   }
 

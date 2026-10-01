@@ -240,7 +240,7 @@ abstract class ThemeProps with _$ThemeProps {
     @Default('') String backgroundImagePath,
     @Default(0.0) double backgroundBlur,
     @Default(1.0) double backgroundBrightness,
-    @Default(0.10) double backgroundMask,
+    @Default(0.16) double backgroundMask,
     @Default(12.0) double glassBlur,
     @Default(true) bool sakuraEnabled,
     @Default(1) int sakuraLevel,

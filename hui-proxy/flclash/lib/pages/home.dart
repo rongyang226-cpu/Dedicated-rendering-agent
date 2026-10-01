@@ -351,6 +351,7 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   final BuildContext context;
   late final ColorScheme _colors = Theme.of(context).colorScheme;
   late final TextTheme _textTheme = Theme.of(context).textTheme;
+  late final bool _dark = Theme.of(context).brightness == Brightness.dark;
 
   @override
   Color? get backgroundColor => Colors.transparent;
@@ -370,13 +371,14 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
             ? _colors.onSurfaceVariant.opacity38
             : states.contains(WidgetState.selected)
             ? _colors.onSecondaryContainer
-            : _colors.onSurfaceVariant,
+            : _colors.onSurfaceVariant.withValues(alpha: 0.92),
       );
     });
   }
 
   @override
-  Color? get indicatorColor => const Color(0x46FFFFFF);
+  Color? get indicatorColor =>
+      _colors.secondaryContainer.withValues(alpha: _dark ? 0.68 : 0.78);
 
   @override
   ShapeBorder? get indicatorShape => AppShape.full;
@@ -384,14 +386,16 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   @override
   WidgetStateProperty<TextStyle?>? get labelTextStyle {
     return WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+      final selected = states.contains(WidgetState.selected);
       final TextStyle style = _textTheme.labelMedium!;
-      return style.apply(
+      return style.copyWith(
         overflow: TextOverflow.ellipsis,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         color: states.contains(WidgetState.disabled)
             ? _colors.onSurfaceVariant.opacity38
-            : states.contains(WidgetState.selected)
+            : selected
             ? _colors.onSurface
-            : _colors.onSurfaceVariant,
+            : _colors.onSurfaceVariant.withValues(alpha: 0.92),
       );
     });
   }

@@ -307,7 +307,7 @@ _ThemeProps _$ThemePropsFromJson(Map<String, dynamic> json) => _ThemeProps(
   backgroundBlur: (json['backgroundBlur'] as num?)?.toDouble() ?? 0.0,
   backgroundBrightness:
       (json['backgroundBrightness'] as num?)?.toDouble() ?? 1.0,
-  backgroundMask: (json['backgroundMask'] as num?)?.toDouble() ?? 0.10,
+  backgroundMask: (json['backgroundMask'] as num?)?.toDouble() ?? 0.16,
   glassBlur: (json['glassBlur'] as num?)?.toDouble() ?? 12.0,
   sakuraEnabled: json['sakuraEnabled'] as bool? ?? true,
   sakuraLevel: (json['sakuraLevel'] as num?)?.toInt() ?? 1,

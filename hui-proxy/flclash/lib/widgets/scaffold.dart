@@ -237,6 +237,10 @@ class CommonScaffoldState extends State<CommonScaffold> {
                 : appLocalizations.selectedCountTitle(
                     '${_appBarState.value.editState?.editCount ?? 0}',
                   ),
+            style: context.textTheme.titleLarge?.copyWith(
+              color: context.colorScheme.onSurface.withValues(alpha: 0.98),
+              fontWeight: FontWeight.w600,
+            ),
           );
   }
 
