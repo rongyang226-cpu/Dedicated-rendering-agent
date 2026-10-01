@@ -103,14 +103,6 @@ class _HomeShell extends ConsumerWidget {
         ColoredBox(
           color: (dark ? Colors.black : Colors.white).withValues(alpha: mask),
         ),
-        HuiSakuraLayer(
-          key: const ValueKey('hui-sakura-layer'),
-          // Stop repainting the animated wallpaper beneath dialogs and routes.
-          enabled:
-              visual.sakuraEnabled &&
-              (ModalRoute.of(context)?.isCurrent ?? true),
-          level: visual.sakuraLevel,
-        ),
         _HuiEntrance(
           child: Material(
             color: Colors.transparent,
@@ -156,6 +148,15 @@ class _HomeShell extends ConsumerWidget {
             ),
           ),
         ),
+        // Draw petals above glass. Moving petals behind every BackdropFilter
+        // invalidated the blurred cards on every animation frame.
+        HuiSakuraLayer(
+          key: const ValueKey('hui-sakura-layer'),
+          enabled:
+              visual.sakuraEnabled &&
+              (ModalRoute.of(context)?.isCurrent ?? true),
+          level: visual.sakuraLevel,
+        ),
       ],
     );
   }
@@ -174,16 +175,21 @@ class _HuiEntranceState extends State<_HuiEntrance>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 360),
-  )..forward();
+    duration: const Duration(milliseconds: 240),
+  );
   late final Animation<double> _fade = CurvedAnimation(
     parent: _controller,
     curve: Curves.easeOutCubic,
   );
-  late final Animation<Offset> _slide = Tween<Offset>(
-    begin: const Offset(0, 0.018),
-    end: Offset.zero,
-  ).animate(_fade);
+
+  @override
+  void initState() {
+    super.initState();
+    // Start after the first frame so startup work cannot consume the entrance.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.forward();
+    });
+  }
 
   @override
   void dispose() {
@@ -193,10 +199,8 @@ class _HuiEntranceState extends State<_HuiEntrance>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
-    );
+    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
+    return FadeTransition(opacity: _fade, child: widget.child);
   }
 }
 

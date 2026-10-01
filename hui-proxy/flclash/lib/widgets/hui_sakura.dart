@@ -25,8 +25,22 @@ class _HuiSakuraLayerState extends State<HuiSakuraLayer>
       vsync: this,
       duration: const Duration(seconds: 26),
     );
-    if (widget.enabled) {
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    final canAnimate =
+        widget.enabled &&
+        !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
+    if (canAnimate && !_controller.isAnimating) {
       _controller.repeat();
+    } else if (!canAnimate && _controller.isAnimating) {
+      _controller.stop();
     }
   }
 
@@ -37,7 +51,7 @@ class _HuiSakuraLayerState extends State<HuiSakuraLayer>
       _petals = _makePetals(widget.level);
     }
     if (oldWidget.enabled != widget.enabled) {
-      widget.enabled ? _controller.repeat() : _controller.stop();
+      _syncAnimation();
     }
   }
 
@@ -63,7 +77,7 @@ class _HuiSakuraLayerState extends State<HuiSakuraLayer>
         frequency: (1 + random.nextInt(2)).toDouble(),
         rotation: random.nextDouble() * math.pi * 2,
         rotationSpeed: (random.nextInt(5) - 2).toDouble(),
-        opacity: 0.24 + random.nextDouble() * 0.42,
+        opacity: 0.14 + random.nextDouble() * 0.26,
         depth: 0.58 + random.nextDouble() * 0.58,
         driftCycles: random.nextInt(3) - 1,
       );
