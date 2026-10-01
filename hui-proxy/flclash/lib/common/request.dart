@@ -17,6 +17,16 @@ const subscriptionMaxRedirects = 8;
 
 String subscriptionFindProxy(Uri _) => 'DIRECT';
 
+// Dart's HttpClient rejects non-ASCII HTTP header values before any network I/O.
+// The displayed app name is Chinese, and custom global UAs may be as well.
+String subscriptionUserAgent(String candidate) {
+  final value = candidate.trim();
+  if (value.isEmpty || value.runes.any((code) => code < 0x20 || code > 0x7e)) {
+    return browserUa;
+  }
+  return value;
+}
+
 class Request {
   late final Dio dio;
   late final Dio _clashDio;
@@ -85,9 +95,11 @@ class Request {
         options: Options(
           responseType: ResponseType.bytes,
           headers: {
-            'User-Agent': userAgent?.trim().isNotEmpty == true
-                ? userAgent!.trim()
-                : globalState.ua,
+            'User-Agent': subscriptionUserAgent(
+              userAgent?.trim().isNotEmpty == true
+                  ? userAgent!
+                  : globalState.ua,
+            ),
           },
         ),
       );

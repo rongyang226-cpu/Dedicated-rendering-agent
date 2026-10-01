@@ -44,7 +44,7 @@ void main() {
       setGlobalUa('');
 
       expect(globalState.ua, _packageInfo.ua);
-      expect(globalState.ua, contains('绘/v1.2.3'));
+      expect(globalState.ua, contains('Hui/v1.2.3'));
     });
 
     test('prefers the configured global user agent', () {

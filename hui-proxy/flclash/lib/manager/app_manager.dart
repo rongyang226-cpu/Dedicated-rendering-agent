@@ -109,6 +109,8 @@ class AppEnvManager extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The corner ribbon overlaps Android's edge-to-edge status icons.
+    if (defaultTargetPlatform == TargetPlatform.android) return child;
     if (kDebugMode) {
       if (globalState.isPre) {
         return Banner(

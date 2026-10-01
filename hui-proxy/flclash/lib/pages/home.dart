@@ -105,7 +105,10 @@ class _HomeShell extends ConsumerWidget {
         ),
         HuiSakuraLayer(
           key: const ValueKey('hui-sakura-layer'),
-          enabled: visual.sakuraEnabled,
+          // Stop repainting the animated wallpaper beneath dialogs and routes.
+          enabled:
+              visual.sakuraEnabled &&
+              (ModalRoute.of(context)?.isCurrent ?? true),
           level: visual.sakuraLevel,
         ),
         _HuiEntrance(

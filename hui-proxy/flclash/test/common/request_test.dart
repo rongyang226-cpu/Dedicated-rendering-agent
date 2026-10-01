@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:fl_clash/common/constant.dart';
 import 'package:fl_clash/common/exception.dart';
 import 'package:fl_clash/common/request.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,12 @@ void main() {
         subscriptionFindProxy(Uri.parse('https://example.com/sub')),
         'DIRECT',
       );
+    });
+
+    test('keeps subscription User-Agent valid for Dart HTTP headers', () {
+      expect(subscriptionUserAgent('绘/v0.35.1'), browserUa);
+      expect(subscriptionUserAgent('Hui/v0.35.1'), 'Hui/v0.35.1');
+      expect(subscriptionUserAgent('bad\nheader'), browserUa);
     });
 
     test('has bounded timeouts and redirects', () {
@@ -46,11 +53,12 @@ void main() {
         }
         await request.response.close();
       });
-      client.userAgent = 'HuiTransportTest';
+      client.userAgent = '绘/v0.35.1';
       final response = await client.getFileResponseForUrl(
         'http://127.0.0.1:${server.port}/redirect?token=test',
       );
       expect(String.fromCharCodes(response.data!), 'proxies: []');
+      expect(subscriptionUserAgent(client.userAgent!), browserUa);
     },
   );
   SubscriptionException statusError(int status) {
