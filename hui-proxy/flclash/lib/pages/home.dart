@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'dart:ui';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/manager/app_manager.dart';
@@ -61,63 +59,6 @@ class _HomeShell extends ConsumerWidget {
     ref.read(currentPageLabelProvider.notifier).toPage(pageLabel);
   }
 
-  Widget _buildBackground(ThemeProps visual) {
-    final customPath = visual.backgroundImagePath.trim();
-    final customFile = customPath.isEmpty ? null : File(customPath);
-    final hasCustom = customFile?.existsSync() ?? false;
-    final image = hasCustom
-        ? FileImage(customFile!) as ImageProvider
-        : const AssetImage('assets/images/hui_background.webp');
-    Widget result = DecoratedBox(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: image,
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
-          filterQuality: FilterQuality.high,
-        ),
-      ),
-    );
-    final brightness = visual.backgroundBrightness.clamp(0.55, 1.25);
-    if ((brightness - 1).abs() > 0.01) {
-      result = ColorFiltered(
-        colorFilter: ColorFilter.matrix([
-          brightness,
-          0,
-          0,
-          0,
-          0,
-          0,
-          brightness,
-          0,
-          0,
-          0,
-          0,
-          0,
-          brightness,
-          0,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-        ]),
-        child: result,
-      );
-    }
-    final blur = visual.backgroundBlur.clamp(0.0, 12.0);
-    if (blur > 0.1) {
-      result = ClipRect(
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Transform.scale(scale: 1.035, child: result),
-        ),
-      );
-    }
-    return RepaintBoundary(child: result);
-  }
-
   Widget _buildMobileNavigation({
     required BuildContext context,
     required WidgetRef ref,
@@ -158,7 +99,7 @@ class _HomeShell extends ConsumerWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _buildBackground(visual),
+        HuiBackground(visual: visual),
         ColoredBox(
           color: (dark ? Colors.black : Colors.white).withValues(alpha: mask),
         ),
@@ -167,50 +108,91 @@ class _HomeShell extends ConsumerWidget {
           enabled: visual.sakuraEnabled,
           level: visual.sakuraLevel,
         ),
-        Material(
-          color: Colors.transparent,
-          child: Column(
-            children: [
-              Flexible(
-                child: FocusTraversalGroup(
-                  policy: PageTraversalPolicy(),
-                  child: MediaQuery.removePadding(
-                    removeTop: false,
-                    removeBottom: isMobile,
-                    removeLeft: isMobile,
-                    removeRight: isMobile,
-                    context: context,
-                    child: child,
+        _HuiEntrance(
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              children: [
+                Flexible(
+                  child: FocusTraversalGroup(
+                    policy: PageTraversalPolicy(),
+                    child: MediaQuery.removePadding(
+                      removeTop: false,
+                      removeBottom: isMobile,
+                      removeLeft: isMobile,
+                      removeRight: isMobile,
+                      context: context,
+                      child: child,
+                    ),
                   ),
                 ),
-              ),
-              AnimatedVisibility.bottomNavigation(
-                visible: isMobile,
-                child: MediaQuery.removePadding(
-                  removeTop: true,
-                  removeBottom: false,
-                  removeLeft: true,
-                  removeRight: true,
-                  context: context,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: _buildMobileNavigation(
-                        context: context,
-                        ref: ref,
-                        state: state,
-                        navigationItems: navigationItems,
-                        visual: visual,
+                AnimatedVisibility.bottomNavigation(
+                  visible: isMobile,
+                  child: MediaQuery.removePadding(
+                    removeTop: true,
+                    removeBottom: false,
+                    removeLeft: true,
+                    removeRight: true,
+                    context: context,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: _buildMobileNavigation(
+                          context: context,
+                          ref: ref,
+                          state: state,
+                          navigationItems: navigationItems,
+                          visual: visual,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _HuiEntrance extends StatefulWidget {
+  const _HuiEntrance({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_HuiEntrance> createState() => _HuiEntranceState();
+}
+
+class _HuiEntranceState extends State<_HuiEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 360),
+  )..forward();
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutCubic,
+  );
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.018),
+    end: Offset.zero,
+  ).animate(_fade);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }

@@ -59,7 +59,8 @@ class Request {
     );
     _subscriptionDio.httpClientAdapter = IOHttpClientAdapter(
       createHttpClient: () {
-        final client = HttpClient()..connectionTimeout = subscriptionConnectTimeout;
+        final client = HttpClient()
+          ..connectionTimeout = subscriptionConnectTimeout;
         client.findProxy = subscriptionFindProxy;
         final read = _read;
         if (read != null) {
@@ -167,6 +168,16 @@ class Request {
         description.contains('tls')) {
       return 'SSL/TLS 连接失败';
     }
+    if (description.contains('connection refused')) {
+      return '服务器拒绝连接（检查订阅地址和端口）';
+    }
+    if (description.contains('network is unreachable') ||
+        description.contains('no route to host')) {
+      return '网络无法到达订阅服务器（检查当前网络和 IPv6）';
+    }
+    if (description.contains('connection reset')) {
+      return '连接被服务器中断';
+    }
     return '无法连接服务器';
   }
 
@@ -176,12 +187,15 @@ class Request {
     Object raw,
   ) {
     final cause = raw is DioException ? raw.error ?? raw : raw;
+    final socketError = cause is SocketException
+        ? cause.osError?.errorCode
+        : null;
     commonPrint.log(
       'SubscriptionFetchError url=$safeUrl stage=${mapped.stage} '
       'httpCode=${mapped.httpCode ?? '-'} '
       'contentType=${mapped.contentType ?? '-'} '
       'responseLength=${mapped.responseLength ?? '-'} '
-      'exception=${cause.runtimeType}',
+      'exception=${cause.runtimeType} socketErrno=${socketError ?? '-'}',
       logLevel: LogLevel.warning,
     );
   }

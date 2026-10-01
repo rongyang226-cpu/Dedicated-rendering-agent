@@ -1,5 +1,6 @@
 import 'package:animations/animations.dart';
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/widgets/hui_background.dart';
 import 'package:material_ui/material_ui.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -85,8 +86,8 @@ class CommonRoute<T> extends PageRoute<T> {
         animation: animation,
         secondaryAnimation: secondaryAnimation,
         transitionType: SharedAxisTransitionType.horizontal,
-        fillColor: context.colorScheme.surface,
-        child: result,
+        fillColor: Colors.transparent,
+        child: HuiPageBackground(child: result),
       ),
     );
   }

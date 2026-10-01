@@ -115,7 +115,7 @@ class AddProfileView extends ConsumerWidget {
         ListItem(
           leading: const Icon(Icons.content_paste_rounded),
           title: Text(appLocalizations.clipboardImport),
-          subtitle: Text(appLocalizations.urlDesc),
+          subtitle: const Text('从剪贴板读取订阅地址'),
           onTap: () => _handleAddProfileFromClipboard(ref),
         ),
         ListItem(

@@ -18,7 +18,10 @@ void main() {
 
   group('subscription transport policy', () {
     test('always uses system DIRECT for subscription fetches', () {
-      expect(subscriptionFindProxy(Uri.parse('https://example.com/sub')), 'DIRECT');
+      expect(
+        subscriptionFindProxy(Uri.parse('https://example.com/sub')),
+        'DIRECT',
+      );
     });
 
     test('has bounded timeouts and redirects', () {
@@ -75,7 +78,10 @@ void main() {
         type: DioExceptionType.connectionError,
         error: const SocketException('Failed host lookup: no.such.host'),
       );
-      expect(client.mapSubscriptionDioException(error).userMessage, '无法解析服务器地址');
+      expect(
+        client.mapSubscriptionDioException(error).userMessage,
+        '无法解析服务器地址',
+      );
     });
 
     test('TLS handshake failure', () {
@@ -84,7 +90,10 @@ void main() {
         type: DioExceptionType.connectionError,
         error: const HandshakeException('CERTIFICATE_VERIFY_FAILED'),
       );
-      expect(client.mapSubscriptionDioException(error).userMessage, 'SSL/TLS 连接失败');
+      expect(
+        client.mapSubscriptionDioException(error).userMessage,
+        'SSL/TLS 连接失败',
+      );
     });
 
     test('connection refused', () {
@@ -93,7 +102,22 @@ void main() {
         type: DioExceptionType.connectionError,
         error: const SocketException('Connection refused'),
       );
-      expect(client.mapSubscriptionDioException(error).userMessage, '无法连接服务器');
+      expect(
+        client.mapSubscriptionDioException(error).userMessage,
+        '服务器拒绝连接（检查订阅地址和端口）',
+      );
+    });
+
+    test('unreachable network', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionError,
+        error: const SocketException('Network is unreachable'),
+      );
+      expect(
+        client.mapSubscriptionDioException(error).userMessage,
+        '网络无法到达订阅服务器（检查当前网络和 IPv6）',
+      );
     });
   });
 }

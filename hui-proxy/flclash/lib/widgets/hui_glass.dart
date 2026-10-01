@@ -42,8 +42,10 @@ class HuiGlassSurface extends StatelessWidget {
       return _buildSurface(context, 12.0);
     }
     return Consumer(
-      builder: (context, ref, _) =>
-          _buildSurface(context, ref.watch(themeSettingProvider).glassBlur),
+      builder: (context, ref, _) => _buildSurface(
+        context,
+        ref.watch(themeSettingProvider.select((value) => value.glassBlur)),
+      ),
     );
   }
 
@@ -57,7 +59,9 @@ class HuiGlassSurface extends StatelessWidget {
     final topAlpha =
         (dark ? (strong ? 0.20 : 0.13) : (strong ? 0.48 : 0.34)) * alphaScale;
     final edgeAlpha = dark ? 0.26 : 0.68;
-    final blur = (glassBlur * blurFactor).clamp(0.0, 24.0);
+    // Many cards blur the animated background at once. Keep the maximum
+    // kernel bounded when the user raises the strength slider.
+    final blur = (glassBlur * blurFactor * 0.6).clamp(0.0, 12.0);
     final tintColor = tint ?? scheme.surface;
 
     Widget content = DecoratedBox(

@@ -5,6 +5,7 @@ import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/widgets/pop_scope.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 import 'chip.dart';
 import 'inherited.dart';
@@ -313,6 +314,15 @@ class CommonScaffoldState extends State<CommonScaffold> {
                       return _buildAppBarWrap(
                         AppBar(
                           backgroundColor: Colors.transparent,
+                          systemOverlayStyle: SystemUiOverlayStyle(
+                            statusBarColor: Colors.transparent,
+                            statusBarIconBrightness: dark
+                                ? Brightness.light
+                                : Brightness.dark,
+                            statusBarBrightness: dark
+                                ? Brightness.dark
+                                : Brightness.light,
+                          ),
                           surfaceTintColor: Colors.transparent,
                           scrolledUnderElevation: 0,
                           forceMaterialTransparency: true,
