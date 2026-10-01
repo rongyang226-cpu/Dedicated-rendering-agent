@@ -9,6 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import 'card.dart';
 import 'input.dart';
 import 'hui_glass.dart';
+import 'hui_background.dart';
 import 'open_container.dart';
 import 'scaffold.dart';
 import 'sheet.dart';
@@ -391,7 +392,7 @@ class ListItem<T> extends StatelessWidget {
           },
           onClosed: onChanged,
           openBuilder: (_, action) {
-            return child;
+            return HuiPageBackground(child: child);
           },
         );
       case final _NextAction nextDelegate:

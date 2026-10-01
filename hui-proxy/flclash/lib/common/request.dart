@@ -104,7 +104,7 @@ class Request {
     } catch (error) {
       final mapped = SubscriptionException(
         stage: 'http_request',
-        userMessage: '无法连接服务器',
+        userMessage: '无法连接服务器（${error.runtimeType}）',
         detail: error.runtimeType.toString(),
         cause: error,
       );
@@ -140,8 +140,9 @@ class Request {
         DioExceptionType.badCertificate => 'SSL/TLS 连接失败',
         DioExceptionType.connectionError => _connectionErrorMessage(
           error.error,
+          type: error.type,
         ),
-        _ => _connectionErrorMessage(error.error),
+        _ => _connectionErrorMessage(error.error, type: error.type),
       };
     }
     return SubscriptionException(
@@ -155,10 +156,21 @@ class Request {
     );
   }
 
-  String _connectionErrorMessage(Object? cause) {
+  String _connectionErrorMessage(
+    Object? cause, {
+    required DioExceptionType type,
+  }) {
+    final errno = cause is SocketException ? cause.osError?.errorCode : null;
+    if (errno == 111) return '服务器拒绝连接（检查订阅地址和端口）';
+    if (errno == 101 || errno == 113) {
+      return '网络无法到达订阅服务器（检查当前网络和 IPv6）';
+    }
+    if (errno == 110) return '连接服务器超时';
+    if (errno == 104) return '连接被服务器中断';
     final description = '${cause.runtimeType} ${cause ?? ''}'.toLowerCase();
     if (description.contains('failed host lookup') ||
         description.contains('unknownhost') ||
+        description.contains('no address associated with hostname') ||
         description.contains('name or service not known') ||
         description.contains('nodename nor servname')) {
       return '无法解析服务器地址';
@@ -178,7 +190,10 @@ class Request {
     if (description.contains('connection reset')) {
       return '连接被服务器中断';
     }
-    return '无法连接服务器';
+    // A small, non-sensitive diagnostic survives when the platform gives an
+    // unrecognized error. Never show the raw exception: it may contain a URL.
+    final code = errno == null ? '' : '，系统错误码 $errno';
+    return '无法连接服务器（${type.name} / ${cause.runtimeType}$code）';
   }
 
   void _logSubscriptionFailure(
@@ -195,6 +210,7 @@ class Request {
       'httpCode=${mapped.httpCode ?? '-'} '
       'contentType=${mapped.contentType ?? '-'} '
       'responseLength=${mapped.responseLength ?? '-'} '
+      'dioType=${raw is DioException ? raw.type.name : '-'} '
       'exception=${cause.runtimeType} socketErrno=${socketError ?? '-'}',
       logLevel: LogLevel.warning,
     );

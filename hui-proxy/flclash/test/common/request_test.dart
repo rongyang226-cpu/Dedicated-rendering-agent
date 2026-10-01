@@ -6,8 +6,6 @@ import 'package:fl_clash/common/request.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   late Request client;
   late RequestOptions options;
 
@@ -31,6 +29,30 @@ void main() {
       expect(subscriptionMaxRedirects, 8);
     });
   });
+  test(
+    'downloads bytes through a redirect before the core is attached',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((request) async {
+        if (request.uri.path == '/redirect') {
+          request.response
+            ..statusCode = HttpStatus.found
+            ..headers.set(HttpHeaders.locationHeader, '/subscription');
+        } else {
+          request.response
+            ..statusCode = HttpStatus.ok
+            ..write('proxies: []');
+        }
+        await request.response.close();
+      });
+      client.userAgent = 'HuiTransportTest';
+      final response = await client.getFileResponseForUrl(
+        'http://127.0.0.1:${server.port}/redirect?token=test',
+      );
+      expect(String.fromCharCodes(response.data!), 'proxies: []');
+    },
+  );
   SubscriptionException statusError(int status) {
     final response = Response<Object?>(
       requestOptions: options,
@@ -119,5 +141,19 @@ void main() {
         '网络无法到达订阅服务器（检查当前网络和 IPv6）',
       );
     });
+    test(
+      'unknown transport failure reports safe type without URL or token',
+      () {
+        final error = DioException(
+          requestOptions: options,
+          type: DioExceptionType.unknown,
+          error: StateError('https://example.com/sub?token=secret'),
+        );
+        final message = client.mapSubscriptionDioException(error).userMessage;
+        expect(message, contains('unknown / StateError'));
+        expect(message, isNot(contains('example.com')));
+        expect(message, isNot(contains('secret')));
+      },
+    );
   });
 }

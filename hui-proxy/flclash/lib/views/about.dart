@@ -124,10 +124,14 @@ class AboutView extends ConsumerWidget {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          'assets/images/icon.png',
-                          width: 64,
-                          height: 64,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'assets/images/icon.png',
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       Column(

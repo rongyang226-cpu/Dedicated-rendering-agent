@@ -420,8 +420,8 @@ class _OpenContainerRoute<T> extends ModalRoute<T> {
   ) {
     _colorTween = _getColorTween(
       transitionType: transitionType,
-      closedColor: Theme.of(context).colorScheme.surface,
-      openColor: Theme.of(context).colorScheme.surface,
+      closedColor: Colors.transparent,
+      openColor: Colors.transparent,
       middleColor: middleColor,
     );
     return Align(
@@ -432,6 +432,7 @@ class _OpenContainerRoute<T> extends ModalRoute<T> {
           if (animation.isCompleted) {
             return SizedBox.expand(
               child: Material(
+                color: Colors.transparent,
                 child: Builder(
                   key: _openBuilderKey,
                   builder: (BuildContext context) {

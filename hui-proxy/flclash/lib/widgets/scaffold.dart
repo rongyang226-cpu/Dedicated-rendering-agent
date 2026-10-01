@@ -279,7 +279,7 @@ class CommonScaffoldState extends State<CommonScaffold> {
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 11, sigmaY: 11),
+          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
           child: Stack(
             alignment: Alignment.bottomCenter,
             children: [
@@ -290,16 +290,16 @@ class CommonScaffoldState extends State<CommonScaffold> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withValues(alpha: dark ? 0.08 : 0.24),
+                        Colors.white.withValues(alpha: dark ? 0.06 : 0.10),
                         Theme.of(context).colorScheme.surface.withValues(
-                          alpha: dark ? 0.13 : 0.20,
+                          alpha: dark ? 0.08 : 0.08,
                         ),
                       ],
                     ),
                     border: Border(
                       bottom: BorderSide(
                         color: Colors.white.withValues(
-                          alpha: dark ? 0.12 : 0.42,
+                          alpha: dark ? 0.12 : 0.30,
                         ),
                         width: 0.7,
                       ),
