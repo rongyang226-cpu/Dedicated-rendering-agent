@@ -141,6 +141,17 @@ void main() {
         '网络无法到达订阅服务器（检查当前网络和 IPv6）',
       );
     });
+    test('format failure is not misreported as an offline device', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.unknown,
+        error: const FormatException('https://example.com/sub?token=secret'),
+      );
+      final message = client.mapSubscriptionDioException(error).userMessage;
+      expect(message, contains('格式异常'));
+      expect(message, isNot(contains('secret')));
+      expect(message, isNot(contains('example.com')));
+    });
     test(
       'unknown transport failure reports safe type without URL or token',
       () {

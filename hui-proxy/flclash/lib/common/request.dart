@@ -160,6 +160,11 @@ class Request {
     Object? cause, {
     required DioExceptionType type,
   }) {
+    if (cause is FormatException) {
+      // Dio can report URI or HTTP framing errors as unknown. Neither is an
+      // offline-device diagnosis, and the raw message may include a token.
+      return '订阅地址或服务器响应格式异常（请检查 URL 特殊字符）';
+    }
     final errno = cause is SocketException ? cause.osError?.errorCode : null;
     if (errno == 111) return '服务器拒绝连接（检查订阅地址和端口）';
     if (errno == 101 || errno == 113) {

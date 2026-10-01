@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/widgets/pop_scope.dart';
@@ -277,83 +275,54 @@ class CommonScaffoldState extends State<CommonScaffold> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: dark ? 0.06 : 0.10),
-                        Theme.of(context).colorScheme.surface.withValues(
-                          alpha: dark ? 0.08 : 0.08,
-                        ),
-                      ],
-                    ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.12 : 0.30,
-                        ),
-                        width: 0.7,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          widget.appBar ??
+              ValueListenableBuilder<AppBarState>(
+                valueListenable: _appBarState,
+                builder: (_, state, _) {
+                  return _buildAppBarWrap(
+                    AppBar(
+                      backgroundColor: Colors.transparent,
+                      systemOverlayStyle: SystemUiOverlayStyle(
+                        statusBarColor: Colors.transparent,
+                        statusBarIconBrightness: dark
+                            ? Brightness.light
+                            : Brightness.dark,
+                        statusBarBrightness: dark
+                            ? Brightness.dark
+                            : Brightness.light,
+                      ),
+                      surfaceTintColor: Colors.transparent,
+                      scrolledUnderElevation: 0,
+                      forceMaterialTransparency: true,
+                      automaticallyImplyLeading: backAction != null
+                          ? false
+                          : true,
+                      animateColor: true,
+                      centerTitle: widget.centerTitle ?? false,
+                      leading: _buildLeading(backAction),
+                      title: _buildTitle(state.searchState),
+                      actions: _buildActions(
+                        state.searchState != null,
+                        state.actions.isNotEmpty
+                            ? state.actions
+                            : widget.actions ?? [],
                       ),
                     ),
-                  ),
-                ),
-              ),
-              widget.appBar ??
-                  ValueListenableBuilder<AppBarState>(
-                    valueListenable: _appBarState,
-                    builder: (_, state, _) {
-                      return _buildAppBarWrap(
-                        AppBar(
-                          backgroundColor: Colors.transparent,
-                          systemOverlayStyle: SystemUiOverlayStyle(
-                            statusBarColor: Colors.transparent,
-                            statusBarIconBrightness: dark
-                                ? Brightness.light
-                                : Brightness.dark,
-                            statusBarBrightness: dark
-                                ? Brightness.dark
-                                : Brightness.light,
-                          ),
-                          surfaceTintColor: Colors.transparent,
-                          scrolledUnderElevation: 0,
-                          forceMaterialTransparency: true,
-                          automaticallyImplyLeading: backAction != null
-                              ? false
-                              : true,
-                          animateColor: true,
-                          centerTitle: widget.centerTitle ?? false,
-                          leading: _buildLeading(backAction),
-                          title: _buildTitle(state.searchState),
-                          actions: _buildActions(
-                            state.searchState != null,
-                            state.actions.isNotEmpty
-                                ? state.actions
-                                : widget.actions ?? [],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-              ValueListenableBuilder(
-                valueListenable: _loadingNotifier,
-                builder: (_, value, _) {
-                  return value == true
-                      ? const LinearProgressIndicator()
-                      : Container();
+                  );
                 },
               ),
-            ],
+          ValueListenableBuilder(
+            valueListenable: _loadingNotifier,
+            builder: (_, value, _) {
+              return value == true
+                  ? const LinearProgressIndicator()
+                  : Container();
+            },
           ),
-        ),
+        ],
       ),
     );
   }
