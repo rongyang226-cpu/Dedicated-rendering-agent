@@ -9,6 +9,9 @@ import 'dart:ui';
 final currentAppLocalizations = AppLocalizations.current;
 
 String? networkErrorMessage(Object error, AppLocalizations appLocalizations) {
+  if (error is SubscriptionException) {
+    return error.userMessage;
+  }
   if (error case CoreMethodException(:final code)) {
     return switch (code) {
       'request_bad_response' => appLocalizations.networkException,

@@ -144,6 +144,9 @@ void main() {
     tester,
   ) async {
     final container = await pumpApp(tester);
+    container
+        .read(appSettingProvider.notifier)
+        .update((state) => state.copyWith(autoCheckUpdate: true));
 
     final shown = container
         .read(commonActionProvider.notifier)

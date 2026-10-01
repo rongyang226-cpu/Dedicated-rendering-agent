@@ -1,6 +1,8 @@
 import 'package:fl_clash/common/common.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'hui_glass.dart';
+
 class CommonChip extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -46,15 +48,17 @@ class CommonChip extends StatelessWidget {
         ],
       ),
     );
-    return Material(
-      color: colorScheme.surfaceContainerHighest,
-      shape: AppShape.sm.copyWith(
-        side: BorderSide(color: colorScheme.outlineVariant),
+    return HuiGlassSurface(
+      borderRadius: BorderRadius.circular(12),
+      blurFactor: 0.42,
+      opacity: 0.70,
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        child: onPressed == null
+            ? content
+            : InkWell(onTap: onPressed, child: content),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: onPressed == null
-          ? content
-          : InkWell(onTap: onPressed, child: content),
     );
   }
 }
@@ -67,13 +71,10 @@ class MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        shape: AppShape.sm.copyWith(
-          side: BorderSide(color: colorScheme.outlineVariant),
-        ),
-      ),
+    return HuiGlassSurface(
+      borderRadius: BorderRadius.circular(10),
+      blurFactor: 0.36,
+      opacity: 0.64,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: Text(

@@ -136,13 +136,13 @@ void main() {
     expect(find.byType(NavigationRail), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.search));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(TextField), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'needle');
     expect(query, 'needle');
 
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(closeCount, 0, reason: 'back must not fall through to app close');
     expect(find.byType(TextField), findsNothing);

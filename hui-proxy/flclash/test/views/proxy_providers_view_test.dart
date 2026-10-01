@@ -183,16 +183,14 @@ void main() {
       matching: find.byType(DecoratedBox),
     );
     final decoration =
-        tester.widget<DecoratedBox>(decoratedBox).decoration as ShapeDecoration;
+        tester.widget<DecoratedBox>(decoratedBox).decoration as BoxDecoration;
     final padding = tester.widget<Padding>(
-      find.descendant(of: countChip, matching: find.byType(Padding)),
+      find.descendant(of: countChip, matching: find.byType(Padding)).last,
     );
     final colorScheme = Theme.of(tester.element(countChip)).colorScheme;
-    expect(decoration.color, colorScheme.surfaceContainerHighest);
-    expect(
-      decoration.shape,
-      AppShape.sm.copyWith(side: BorderSide(color: colorScheme.outlineVariant)),
-    );
+    expect(decoration.gradient, isA<LinearGradient>());
+    expect(decoration.borderRadius, BorderRadius.circular(10));
+    expect(decoration.border, isNotNull);
     expect(
       padding.padding,
       const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

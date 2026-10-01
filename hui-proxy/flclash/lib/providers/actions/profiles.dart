@@ -3,6 +3,7 @@ part of '../action.dart';
 @Riverpod(keepAlive: true)
 class ProfilesAction extends _$ProfilesAction {
   CoreController get _core => ref.read(coreHandlerProvider);
+  bool _addingProfileUrl = false;
 
   @override
   void build() {}
@@ -117,21 +118,38 @@ class ProfilesAction extends _$ProfilesAction {
   }
 
   Future<void> addProfileFormURL(String url) async {
-    if (globalState.navigatorKey.currentState?.canPop() ?? false) {
-      globalState.navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    final normalizedUrl = url.trim();
+    final uri = Uri.tryParse(normalizedUrl);
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'http' && uri.scheme != 'https')) {
+      dialogs.showNotifier('请输入有效的 HTTP/HTTPS 订阅地址', level: MessageLevel.error);
+      return;
     }
-    ref.read(currentPageLabelProvider.notifier).value = PageLabel.profiles;
-    final profile = await globalState.loadingRun(
-      tag: LoadingTag.profiles,
-      () async {
-        return Profile.normal(
-          url: url,
-        ).update(validate: (path) => _core.validateConfig(path));
-      },
-      title: currentAppLocalizations.addProfile,
-    );
-    if (profile != null) {
-      putProfile(profile);
+    if (_addingProfileUrl) {
+      dialogs.showNotifier('订阅正在下载，请稍候');
+      return;
+    }
+    _addingProfileUrl = true;
+    try {
+      if (globalState.navigatorKey.currentState?.canPop() ?? false) {
+        globalState.navigatorKey.currentState?.popUntil(
+          (route) => route.isFirst,
+        );
+      }
+      ref.read(currentPageLabelProvider.notifier).value = PageLabel.profiles;
+      final profile = await globalState.loadingRun(
+        tag: LoadingTag.profiles,
+        () async {
+          return Profile.normal(
+            url: normalizedUrl,
+          ).update(validate: (path) => _core.validateConfig(path));
+        },
+        title: currentAppLocalizations.addProfile,
+      );
+      if (profile != null) putProfile(profile);
+    } finally {
+      _addingProfileUrl = false;
     }
   }
 

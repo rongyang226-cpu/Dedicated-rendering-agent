@@ -9,9 +9,18 @@ import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/state.dart';
 
+const subscriptionConnectTimeout = Duration(seconds: 12);
+const subscriptionSendTimeout = Duration(seconds: 15);
+const subscriptionReceiveTimeout = Duration(seconds: 30);
+const subscriptionFollowRedirects = true;
+const subscriptionMaxRedirects = 8;
+
+String subscriptionFindProxy(Uri _) => 'DIRECT';
+
 class Request {
   late final Dio dio;
   late final Dio _clashDio;
+  late final Dio _subscriptionDio;
   String? userAgent;
 
   ProviderReader? _read;
@@ -29,29 +38,152 @@ class Request {
         client.findProxy = (Uri uri) {
           client.userAgent = globalState.ua;
           final read = _read;
-          if (read == null) {
-            return 'DIRECT';
-          }
+          if (read == null) return 'DIRECT';
           return FlClashHttpOverrides.findProxyForReader(read, uri);
         };
+        return client;
+      },
+    );
+    _subscriptionDio = Dio(
+      BaseOptions(
+        connectTimeout: subscriptionConnectTimeout,
+        sendTimeout: subscriptionSendTimeout,
+        receiveTimeout: subscriptionReceiveTimeout,
+        followRedirects: subscriptionFollowRedirects,
+        maxRedirects: subscriptionMaxRedirects,
+        headers: const {
+          'Accept':
+              'application/yaml, text/yaml, text/plain, application/octet-stream, */*',
+        },
+      ),
+    );
+    _subscriptionDio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () {
+        final client = HttpClient()..connectionTimeout = subscriptionConnectTimeout;
+        client.findProxy = subscriptionFindProxy;
+        final read = _read;
+        if (read != null) {
+          client.badCertificateCallback = (certificate, host, port) =>
+              FlClashHttpOverrides.allowBadCertificateForReader(
+                read,
+                certificate,
+                host,
+                port,
+              );
+        }
         return client;
       },
     );
   }
 
   Future<Response<Uint8List>> getFileResponseForUrl(String url) async {
+    final safeUrl = redactUrlForLog(url);
     try {
-      return await _clashDio.get<Uint8List>(
+      final response = await _subscriptionDio.get<Uint8List>(
         url,
-        options: Options(responseType: ResponseType.bytes),
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            'User-Agent': userAgent?.trim().isNotEmpty == true
+                ? userAgent!.trim()
+                : globalState.ua,
+          },
+        ),
       );
-    } catch (e) {
       commonPrint.log(
-        'getFileResponseForUrl error ${compactError(e)}',
-        logLevel: LogLevel.warning,
+        'SubscriptionFetchSuccess url=$safeUrl httpCode=${response.statusCode} '
+        'contentType=${response.headers.value('content-type') ?? '-'} '
+        'responseLength=${response.data?.length ?? 0}',
       );
-      rethrow;
+      return response;
+    } on DioException catch (error) {
+      final mapped = mapSubscriptionDioException(error);
+      _logSubscriptionFailure(safeUrl, mapped, error);
+      throw mapped;
+    } catch (error) {
+      final mapped = SubscriptionException(
+        stage: 'http_request',
+        userMessage: '无法连接服务器',
+        detail: error.runtimeType.toString(),
+        cause: error,
+      );
+      _logSubscriptionFailure(safeUrl, mapped, error);
+      throw mapped;
     }
+  }
+
+  SubscriptionException mapSubscriptionDioException(DioException error) {
+    final status = error.response?.statusCode;
+    final contentType = error.response?.headers.value('content-type');
+    final data = error.response?.data;
+    final responseLength = switch (data) {
+      final Uint8List bytes => bytes.length,
+      final List<int> bytes => bytes.length,
+      final String text => text.length,
+      _ => null,
+    };
+    String userMessage;
+    if (status != null) {
+      userMessage = switch (status) {
+        403 => '服务器拒绝请求（HTTP 403）',
+        404 => '订阅不存在（HTTP 404）',
+        429 => '请求过于频繁（HTTP 429）',
+        >= 500 && <= 599 => '服务器错误（HTTP $status）',
+        _ => '服务器拒绝请求（HTTP $status）',
+      };
+    } else {
+      userMessage = switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout => '连接服务器超时',
+        DioExceptionType.badCertificate => 'SSL/TLS 连接失败',
+        DioExceptionType.connectionError => _connectionErrorMessage(
+          error.error,
+        ),
+        _ => _connectionErrorMessage(error.error),
+      };
+    }
+    return SubscriptionException(
+      stage: 'http_request',
+      userMessage: userMessage,
+      detail: error.error?.runtimeType.toString() ?? error.type.name,
+      httpCode: status,
+      contentType: contentType,
+      responseLength: responseLength,
+      cause: error.error ?? error,
+    );
+  }
+
+  String _connectionErrorMessage(Object? cause) {
+    final description = '${cause.runtimeType} ${cause ?? ''}'.toLowerCase();
+    if (description.contains('failed host lookup') ||
+        description.contains('unknownhost') ||
+        description.contains('name or service not known') ||
+        description.contains('nodename nor servname')) {
+      return '无法解析服务器地址';
+    }
+    if (description.contains('handshake') ||
+        description.contains('certificate') ||
+        description.contains('tls')) {
+      return 'SSL/TLS 连接失败';
+    }
+    return '无法连接服务器';
+  }
+
+  void _logSubscriptionFailure(
+    String safeUrl,
+    SubscriptionException mapped,
+    Object raw,
+  ) {
+    final cause = raw is DioException ? raw.error ?? raw : raw;
+    commonPrint.log(
+      'SubscriptionFetchError url=$safeUrl stage=${mapped.stage} '
+      'httpCode=${mapped.httpCode ?? '-'} '
+      'contentType=${mapped.contentType ?? '-'} '
+      'responseLength=${mapped.responseLength ?? '-'} '
+      'exception=${cause.runtimeType}',
+      logLevel: LogLevel.warning,
+    );
   }
 
   Future<Response<String>> getTextResponseForUrl(String url) async {

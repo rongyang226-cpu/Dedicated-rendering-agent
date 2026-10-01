@@ -13,6 +13,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
+bool _isSubscriptionUrl(String value) {
+  final uri = Uri.tryParse(value.trim());
+  return uri != null &&
+      uri.host.isNotEmpty &&
+      (uri.scheme == 'http' || uri.scheme == 'https');
+}
+
 class AddProfileView extends ConsumerWidget {
   final BuildContext context;
 
@@ -27,7 +34,7 @@ class AddProfileView extends ConsumerWidget {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final url = data?.text?.trim() ?? '';
     if (!currentContext.mounted) return;
-    if (url.isEmpty || !url.isUrl) {
+    if (url.isEmpty || !_isSubscriptionUrl(url)) {
       currentContext.showNotifier(
         currentContext.appLocalizations.urlTip('').trim(),
         level: MessageLevel.warning,
@@ -82,7 +89,7 @@ class AddProfileView extends ConsumerWidget {
           if (value == null || value.isEmpty) {
             return appLocalizations.emptyTip('').trim();
           }
-          if (!value.isUrl) {
+          if (!_isSubscriptionUrl(value)) {
             return appLocalizations.urlTip('').trim();
           }
           return null;

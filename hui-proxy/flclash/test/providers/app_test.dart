@@ -502,9 +502,12 @@ void main() {
         await Future.delayed(commonDuration + const Duration(milliseconds: 50));
 
         notifier.startCheck();
-        await Future.delayed(
-          commonDuration + const Duration(milliseconds: 120),
-        );
+        final deadline = DateTime.now().add(const Duration(seconds: 5));
+        while (container.read(networkDetectionProvider).ipInfo?.ip !=
+                '2.2.2.2' &&
+            DateTime.now().isBefore(deadline)) {
+          await Future.delayed(const Duration(milliseconds: 20));
+        }
 
         expect(container.read(networkDetectionProvider).ipInfo?.ip, '2.2.2.2');
         expect(container.read(networkDetectionProvider).isLoading, false);

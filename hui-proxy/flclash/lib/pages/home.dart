@@ -125,23 +125,11 @@ class _HomeShell extends ConsumerWidget {
     required List<NavigationItem> navigationItems,
     required ThemeProps visual,
   }) {
-    final dark = Theme.brightnessOf(context) == Brightness.dark;
-    final blur = visual.glassBlur.clamp(0.0, 20.0);
-    final body = DecoratedBox(
-      decoration: BoxDecoration(
-        color: dark ? const Color(0x46202024) : const Color(0x62FFFFFF),
-        border: Border.all(
-          color: dark ? const Color(0x34FFFFFF) : const Color(0x70FFFFFF),
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.18 : 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
+    return HuiGlassSurface(
+      borderRadius: BorderRadius.circular(30),
+      blurFactor: 1.0,
+      opacity: 0.88,
+      strong: true,
       child: NavigationBarTheme(
         data: _NavigationBarDefaultsM3(context),
         child: NavigationBar(
@@ -155,11 +143,6 @@ class _HomeShell extends ConsumerWidget {
           selectedIndex: state.currentIndex,
         ),
       ),
-    );
-    if (blur <= 0.1) return body;
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-      child: body,
     );
   }
 

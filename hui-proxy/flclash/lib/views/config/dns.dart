@@ -383,23 +383,29 @@ class _DnsListViewState extends State<DnsListView> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: SegmentedButton<bool>(
-            segments: [
-              ButtonSegment(
-                value: false,
-                icon: const Icon(Icons.tune_rounded),
-                label: Text(context.appLocalizations.basicConfig),
-              ),
-              ButtonSegment(
-                value: true,
-                icon: const Icon(Icons.code_rounded),
-                label: Text(context.appLocalizations.advancedConfig),
-              ),
-            ],
-            selected: {_advanced},
-            onSelectionChanged: (value) {
-              setState(() => _advanced = value.first);
-            },
+          child: HuiGlassSurface(
+            borderRadius: BorderRadius.circular(18),
+            blurFactor: 0.5,
+            opacity: 0.74,
+            padding: const EdgeInsets.all(3),
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  icon: const Icon(Icons.tune_rounded),
+                  label: Text(context.appLocalizations.basicConfig),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: const Icon(Icons.code_rounded),
+                  label: Text(context.appLocalizations.advancedConfig),
+                ),
+              ],
+              selected: {_advanced},
+              onSelectionChanged: (value) {
+                setState(() => _advanced = value.first);
+              },
+            ),
           ),
         ),
         Expanded(

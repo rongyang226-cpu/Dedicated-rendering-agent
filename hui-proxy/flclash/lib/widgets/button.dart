@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'builder.dart';
 import 'card.dart';
+import 'hui_glass.dart';
 
 class CommonFloatingActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -28,25 +29,33 @@ class CommonFloatingActionButton extends StatelessWidget {
       ),
       child: FloatingActionButtonExtendedBuilder(
         builder: (isExtended) {
-          return FloatingActionButton.extended(
-            heroTag: null,
-            icon: icon,
-            onPressed: onPressed,
-            isExtended: true,
-            label: AnimatedSize(
-              alignment: Alignment.centerLeft,
-              duration: midDuration,
-              curve: Curves.easeOutBack,
-              child: AnimatedOpacity(
+          return HuiGlassSurface(
+            borderRadius: BorderRadius.circular(24),
+            blurFactor: 0.70,
+            opacity: 0.86,
+            strong: true,
+            child: FloatingActionButton.extended(
+              heroTag: null,
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              icon: icon,
+              onPressed: onPressed,
+              isExtended: true,
+              label: AnimatedSize(
+                alignment: Alignment.centerLeft,
                 duration: midDuration,
-                opacity: isExtended ? 1.0 : 0.4,
-                curve: Curves.linear,
-                child: isExtended
-                    ? Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(label, softWrap: false),
-                      )
-                    : const SizedBox.shrink(),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  duration: midDuration,
+                  opacity: isExtended ? 1.0 : 0.4,
+                  curve: Curves.linear,
+                  child: isExtended
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Text(label, softWrap: false),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ),
             ),
           );

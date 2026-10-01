@@ -70,5 +70,42 @@ void main() {
       final savedFile = await profile.file;
       expect(await savedFile.readAsString(), 'proxies: []');
     });
+
+    test('failed update keeps the previous valid config untouched', () async {
+      final profile = Profile.normal(label: 'existing');
+      final savedFile = await profile.file;
+      await savedFile.writeAsString('proxies: []\nrules: [MATCH,DIRECT]\n');
+
+      await expectLater(
+        profile.saveFile(
+          Uint8List.fromList(utf8.encode('bad: [')),
+          validate: (_) async => 'invalid config',
+        ),
+        throwsA(isA<MessageException>()),
+      );
+
+      expect(
+        await savedFile.readAsString(),
+        'proxies: []\nrules: [MATCH,DIRECT]\n',
+      );
+    });
+
+    test('subscription validation failure is classified for users', () async {
+      final profile = Profile.normal(label: 'subscription');
+      await expectLater(
+        profile.saveFile(
+          Uint8List.fromList(utf8.encode('proxies: []')),
+          validate: (_) async => 'proxy 0: unsupported type',
+          subscriptionSource: true,
+        ),
+        throwsA(
+          isA<SubscriptionException>().having(
+            (e) => e.userMessage,
+            'userMessage',
+            'Mihomo 配置验证失败',
+          ),
+        ),
+      );
+    });
   });
 }

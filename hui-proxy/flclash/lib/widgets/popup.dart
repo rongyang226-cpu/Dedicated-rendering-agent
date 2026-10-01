@@ -4,6 +4,8 @@ import 'dart:ui' show lerpDouble;
 import 'package:fl_clash/common/common.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'hui_glass.dart';
+
 typedef PopupAnchorResolver = Rect? Function();
 
 typedef PopupOpen = void Function({Offset offset});
@@ -576,16 +578,22 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     return Card(
       elevation: elevation,
       margin: EdgeInsets.zero,
-      color: context.colorScheme.surfaceContainer,
+      color: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       shape: AppShape.all(radius),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
-        child: Padding(
-          padding: const EdgeInsets.all(_cardInset),
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: IntrinsicWidth(child: child),
+      child: HuiGlassSurface(
+        borderRadius: BorderRadius.circular(radius),
+        blurFactor: 0.78,
+        opacity: 0.90,
+        strong: true,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
+          child: Padding(
+            padding: const EdgeInsets.all(_cardInset),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: IntrinsicWidth(child: child),
+            ),
           ),
         ),
       ),

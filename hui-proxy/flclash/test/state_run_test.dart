@@ -6,6 +6,7 @@ import 'package:fl_clash/manager/status_manager.dart';
 import 'package:fl_clash/providers/app.dart';
 import 'package:fl_clash/providers/database.dart';
 import 'package:fl_clash/state.dart';
+import 'package:fl_clash/widgets/dialog.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -119,7 +120,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(CommonDialog), findsOneWidget);
       expect(find.textContaining('loud failure'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());

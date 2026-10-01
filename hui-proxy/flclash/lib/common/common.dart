@@ -43,6 +43,7 @@ export 'scroll.dart';
 export 'shape.dart';
 export 'snowflake.dart';
 export 'string.dart';
+export 'subscription.dart';
 export 'system.dart';
 export 'task.dart';
 export 'task_pool.dart';

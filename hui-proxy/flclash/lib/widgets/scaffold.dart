@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/widgets/pop_scope.dart';
@@ -92,7 +94,9 @@ class CommonScaffoldState extends State<CommonScaffold> {
     return Theme(
       data: theme.copyWith(
         appBarTheme: theme.appBarTheme.copyWith(
-          backgroundColor: colorScheme.surface.withValues(alpha: 0.72),
+          backgroundColor: colorScheme.surface.withValues(alpha: 0.18),
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
           iconTheme: theme.primaryIconTheme.copyWith(color: Colors.grey),
           titleTextStyle: theme.textTheme.titleLarge,
           toolbarTextStyle: theme.textTheme.bodyMedium,
@@ -269,43 +273,77 @@ class CommonScaffoldState extends State<CommonScaffold> {
   }
 
   PreferredSizeWidget _buildAppBar(VoidCallback? backAction) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          widget.appBar ??
-              ValueListenableBuilder<AppBarState>(
-                valueListenable: _appBarState,
-                builder: (_, state, _) {
-                  return _buildAppBarWrap(
-                    AppBar(
-                      automaticallyImplyLeading: backAction != null
-                          ? false
-                          : true,
-                      animateColor: true,
-                      centerTitle: widget.centerTitle ?? false,
-                      leading: _buildLeading(backAction),
-                      title: _buildTitle(state.searchState),
-                      actions: _buildActions(
-                        state.searchState != null,
-                        state.actions.isNotEmpty
-                            ? state.actions
-                            : widget.actions ?? [],
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 11, sigmaY: 11),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: dark ? 0.08 : 0.24),
+                        Theme.of(context).colorScheme.surface.withValues(
+                          alpha: dark ? 0.13 : 0.20,
+                        ),
+                      ],
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(
+                          alpha: dark ? 0.12 : 0.42,
+                        ),
+                        width: 0.7,
                       ),
                     ),
-                  );
+                  ),
+                ),
+              ),
+              widget.appBar ??
+                  ValueListenableBuilder<AppBarState>(
+                    valueListenable: _appBarState,
+                    builder: (_, state, _) {
+                      return _buildAppBarWrap(
+                        AppBar(
+                          backgroundColor: Colors.transparent,
+                          surfaceTintColor: Colors.transparent,
+                          scrolledUnderElevation: 0,
+                          forceMaterialTransparency: true,
+                          automaticallyImplyLeading: backAction != null
+                              ? false
+                              : true,
+                          animateColor: true,
+                          centerTitle: widget.centerTitle ?? false,
+                          leading: _buildLeading(backAction),
+                          title: _buildTitle(state.searchState),
+                          actions: _buildActions(
+                            state.searchState != null,
+                            state.actions.isNotEmpty
+                                ? state.actions
+                                : widget.actions ?? [],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ValueListenableBuilder(
+                valueListenable: _loadingNotifier,
+                builder: (_, value, _) {
+                  return value == true
+                      ? const LinearProgressIndicator()
+                      : Container();
                 },
               ),
-          ValueListenableBuilder(
-            valueListenable: _loadingNotifier,
-            builder: (_, value, _) {
-              return value == true
-                  ? const LinearProgressIndicator()
-                  : Container();
-            },
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

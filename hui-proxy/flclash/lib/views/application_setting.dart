@@ -104,7 +104,7 @@ class ApplicationSettingView extends StatelessWidget {
       body: ListView.separated(
         padding: const EdgeInsets.only(bottom: 20),
         itemBuilder: (_, index) => items[index],
-        separatorBuilder: (_, _) => const Divider(height: 0),
+        separatorBuilder: (_, _) => const SizedBox(height: 2),
         itemCount: items.length,
       ),
     );

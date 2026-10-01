@@ -1,35 +1,99 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:fl_clash/common/exception.dart';
 import 'package:fl_clash/common/request.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('getTextResponseForUrl propagates the typed DioException', () async {
-    // flutter_test's mocked HttpClient answers every request with HTTP 400,
-    // which Dio surfaces as a badResponse DioException.
-    await expectLater(
-      request.getTextResponseForUrl('http://127.0.0.1/anything'),
-      throwsA(
-        isA<DioException>().having(
-          (e) => e.type,
-          'type',
-          DioExceptionType.badResponse,
-        ),
-      ),
-    );
+  late Request client;
+  late RequestOptions options;
+
+  setUp(() {
+    client = Request();
+    options = RequestOptions(path: 'https://example.com/sub?token=secret');
   });
 
-  test('getFileResponseForUrl propagates the typed DioException', () async {
-    await expectLater(
-      request.getFileResponseForUrl('http://127.0.0.1/anything'),
-      throwsA(
-        isA<DioException>().having(
-          (e) => e.type,
-          'type',
-          DioExceptionType.badResponse,
-        ),
+  group('subscription transport policy', () {
+    test('always uses system DIRECT for subscription fetches', () {
+      expect(subscriptionFindProxy(Uri.parse('https://example.com/sub')), 'DIRECT');
+    });
+
+    test('has bounded timeouts and redirects', () {
+      expect(subscriptionConnectTimeout, const Duration(seconds: 12));
+      expect(subscriptionReceiveTimeout, const Duration(seconds: 30));
+      expect(subscriptionFollowRedirects, isTrue);
+      expect(subscriptionMaxRedirects, 8);
+    });
+  });
+  SubscriptionException statusError(int status) {
+    final response = Response<Object?>(
+      requestOptions: options,
+      statusCode: status,
+      headers: Headers.fromMap({
+        Headers.contentTypeHeader: ['text/html'],
+      }),
+      data: 'error',
+    );
+    return client.mapSubscriptionDioException(
+      DioException(
+        requestOptions: options,
+        response: response,
+        type: DioExceptionType.badResponse,
       ),
     );
+  }
+
+  group('HTTP status classification', () {
+    test('403', () {
+      expect(statusError(403).userMessage, '服务器拒绝请求（HTTP 403）');
+    });
+    test('404', () {
+      expect(statusError(404).userMessage, '订阅不存在（HTTP 404）');
+    });
+    test('429', () {
+      expect(statusError(429).userMessage, '请求过于频繁（HTTP 429）');
+    });
+    test('5xx', () {
+      expect(statusError(500).userMessage, '服务器错误（HTTP 500）');
+    });
+  });
+  group('network exception classification', () {
+    test('timeout', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionTimeout,
+      );
+      expect(client.mapSubscriptionDioException(error).userMessage, '连接服务器超时');
+    });
+
+    test('DNS lookup failure', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionError,
+        error: const SocketException('Failed host lookup: no.such.host'),
+      );
+      expect(client.mapSubscriptionDioException(error).userMessage, '无法解析服务器地址');
+    });
+
+    test('TLS handshake failure', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionError,
+        error: const HandshakeException('CERTIFICATE_VERIFY_FAILED'),
+      );
+      expect(client.mapSubscriptionDioException(error).userMessage, 'SSL/TLS 连接失败');
+    });
+
+    test('connection refused', () {
+      final error = DioException(
+        requestOptions: options,
+        type: DioExceptionType.connectionError,
+        error: const SocketException('Connection refused'),
+      );
+      expect(client.mapSubscriptionDioException(error).userMessage, '无法连接服务器');
+    });
   });
 }

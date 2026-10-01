@@ -35,6 +35,19 @@ String redactSensitiveText(String input) {
   return output;
 }
 
+String redactUrlForLog(String input) {
+  final uri = Uri.tryParse(input.trim());
+  if (uri == null || uri.host.isEmpty) {
+    return redactSensitiveText(input);
+  }
+  final port = uri.hasPort ? ':${uri.port}' : '';
+  final queryKeys = uri.queryParametersAll.keys.toList()..sort();
+  final query = queryKeys.isEmpty
+      ? ''
+      : '?${queryKeys.map((key) => '$key=****').join('&')}';
+  return '${uri.scheme}://${uri.host}$port/…$query';
+}
+
 String compactError(Object error) {
   if (error is DioException) {
     final statusCode = error.response?.statusCode;

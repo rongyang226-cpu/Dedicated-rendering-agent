@@ -180,29 +180,80 @@ extension ProfileExtension on Profile {
     final response = await request.getFileResponseForUrl(url);
     final disposition = response.headers.value('content-disposition');
     final userinfo = response.headers.value('subscription-userinfo');
-    return copyWith(
-      label: label.takeFirstValid([
-        getFileNameForDisposition(disposition),
-        id.toString(),
-      ]),
-      subscriptionInfo: SubscriptionInfo.formHString(userinfo),
-    ).saveFile(response.data ?? Uint8List.fromList([]), validate: validate);
+    try {
+      final payload = normalizeSubscriptionPayload(
+        response.data ?? Uint8List.fromList([]),
+        contentType: response.headers.value('content-type'),
+      );
+      return await copyWith(
+        label: label.takeFirstValid([
+          getFileNameForDisposition(disposition),
+          id.toString(),
+        ]),
+        subscriptionInfo: SubscriptionInfo.formHString(userinfo),
+      ).saveFile(payload, validate: validate, subscriptionSource: true);
+    } on SubscriptionException catch (error) {
+      _logSubscriptionError(error);
+      rethrow;
+    } on FileSystemException catch (error) {
+      final mapped = SubscriptionException(
+        stage: 'save_config',
+        userMessage: '配置保存失败',
+        detail: error.toString(),
+        cause: error,
+      );
+      _logSubscriptionError(mapped);
+      throw mapped;
+    }
   }
 
   Future<Profile> saveFile(
     Uint8List bytes, {
     required ValidateConfig validate,
+    bool subscriptionSource = false,
   }) async {
     final path = await appPath.tempFilePath;
     final tempFile = File(path);
-    await tempFile.safeWriteAsBytes(bytes);
-    final message = await validate(path);
-    if (message.isNotEmpty) {
-      throw MessageException(message);
+    try {
+      await tempFile.safeWriteAsBytes(bytes);
+      String message;
+      try {
+        message = await validate(path);
+      } catch (error) {
+        if (!subscriptionSource) rethrow;
+        throw SubscriptionException(
+          stage: 'mihomo_validate',
+          userMessage: 'Mihomo 配置验证失败',
+          detail: error.toString(),
+          cause: error,
+        );
+      }
+      if (message.isNotEmpty) {
+        if (subscriptionSource) {
+          throw SubscriptionException(
+            stage: 'mihomo_validate',
+            userMessage: 'Mihomo 配置验证失败',
+            detail: message,
+          );
+        }
+        throw MessageException(message);
+      }
+      final mFile = await file;
+      await tempFile.copy(mFile.path);
+      return copyWith(lastUpdateDate: DateTime.now());
+    } finally {
+      if (await tempFile.exists()) await tempFile.safeDelete();
     }
-    final mFile = await file;
-    await tempFile.copy(mFile.path);
-    await tempFile.safeDelete();
-    return copyWith(lastUpdateDate: DateTime.now());
+  }
+
+  void _logSubscriptionError(SubscriptionException error) {
+    commonPrint.log(
+      'SubscriptionFetchError url=${redactUrlForLog(url)} stage=${error.stage} '
+      'httpCode=${error.httpCode ?? '-'} contentType=${error.contentType ?? '-'} '
+      'responseLength=${error.responseLength ?? '-'} '
+      'exception=${error.cause?.runtimeType ?? error.runtimeType} '
+      'message=${redactSensitiveText(error.detail)}',
+      logLevel: LogLevel.warning,
+    );
   }
 }

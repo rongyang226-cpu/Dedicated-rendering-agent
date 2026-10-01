@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'fade_box.dart';
+import 'hui_glass.dart';
 import 'text.dart';
 
 class Info {
@@ -160,12 +161,12 @@ class CommonCard extends StatelessWidget {
       if (isSelected) {
         return colorScheme.secondaryContainer.opacity80;
       }
-      return colorScheme.surface.withValues(alpha: 0.54);
+      return colorScheme.surface.withValues(alpha: 0.10);
     }
     if (isSelected) {
-      return colorScheme.primaryContainer.withValues(alpha: 0.64);
+      return colorScheme.primaryContainer.withValues(alpha: 0.18);
     }
-    return colorScheme.surface.withValues(alpha: 0.46);
+    return colorScheme.surface.withValues(alpha: 0.08);
   }
 
   Color? _buildForegroundColor(BuildContext context) {
@@ -277,8 +278,17 @@ class CommonCard extends StatelessWidget {
                 _buildButton(context, childWidget, focusNode),
           )
         : _buildButton(context, childWidget, null);
+    final glassButton = HuiGlassSurface(
+      borderRadius: BorderRadius.circular(radius ?? AppCorner.md),
+      blurFactor: 0.72,
+      opacity: 0.82,
+      strong: type == CommonCardType.filled,
+      selected: isSelected,
+      tint: isError ? context.colorScheme.error : null,
+      child: button,
+    );
     final card = !enterActionsOnRight
-        ? button
+        ? glassButton
         : Focus(
             canRequestFocus: false,
             onKeyEvent: (_, event) {
@@ -297,7 +307,7 @@ class CommonCard extends StatelessWidget {
                   ? KeyEventResult.handled
                   : KeyEventResult.ignored;
             },
-            child: button,
+            child: glassButton,
           );
 
     return switch (enterAnimated) {
@@ -365,8 +375,10 @@ class SettingsBlock extends StatelessWidget {
       child: Column(
         children: [
           InfoHeader(info: Info(label: title)),
-          Card(
-            color: context.colorScheme.surface.withValues(alpha: 0.48),
+          HuiGlassSurface(
+            borderRadius: BorderRadius.circular(22),
+            blurFactor: 0.62,
+            opacity: 0.78,
             child: Column(children: settings),
           ),
         ],

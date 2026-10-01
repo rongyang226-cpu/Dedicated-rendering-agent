@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'scaffold.dart';
+import 'hui_glass.dart';
 import 'side_sheet.dart';
 
 @immutable
@@ -54,12 +55,19 @@ Future<T?> showSheet<T>({
       context: context,
       isScrollControlled: props.isScrollControlled,
       builder: (_) {
-        return SheetProvider(
-          type: SheetType.bottomSheet,
-          child: builder(context),
+        return HuiGlassSurface(
+          strong: true,
+          blurFactor: 1.05,
+          opacity: 0.96,
+          tint: props.backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          child: SheetProvider(
+            type: SheetType.bottomSheet,
+            child: builder(context),
+          ),
         );
       },
-      backgroundColor: props.backgroundColor,
+      backgroundColor: Colors.transparent,
       showDragHandle: false,
       useSafeArea: props.useSafeArea,
     ),
@@ -67,13 +75,20 @@ Future<T?> showSheet<T>({
       useSafeArea: props.useSafeArea,
       isScrollControlled: props.isScrollControlled,
       context: context,
-      backgroundColor: props.backgroundColor,
+      backgroundColor: Colors.transparent,
       constraints: BoxConstraints(maxWidth: props.maxWidth ?? 360),
       filter: props.blur ? commonFilter : null,
       builder: (_) {
-        return SheetProvider(
-          type: SheetType.sideSheet,
-          child: builder(context),
+        return HuiGlassSurface(
+          strong: true,
+          blurFactor: 1.0,
+          opacity: 0.94,
+          tint: props.backgroundColor,
+          borderRadius: BorderRadius.circular(28),
+          child: SheetProvider(
+            type: SheetType.sideSheet,
+            child: builder(context),
+          ),
         );
       },
     ),
@@ -96,10 +111,17 @@ Future<T?> showExtend<T>(
       context: context,
       constraints: BoxConstraints(maxWidth: props.maxWidth ?? 360),
       filter: props.blur ? commonFilter : null,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SheetProvider(
-          type: SheetType.sideSheet,
-          child: builder(context),
+        return HuiGlassSurface(
+          strong: true,
+          blurFactor: 1.0,
+          opacity: 0.94,
+          borderRadius: BorderRadius.circular(28),
+          child: SheetProvider(
+            type: SheetType.sideSheet,
+            child: builder(context),
+          ),
         );
       },
     ),
@@ -207,12 +229,13 @@ class _AdaptiveSheetScaffoldState extends State<AdaptiveSheetScaffold> {
       filled: isBottomSheet,
     );
     final popAsSuffix = useCloseIcon && actions.isEmpty;
-    final backgroundColor = isBottomSheet
-        ? context.colorScheme.surfaceContainerLow
-        : context.colorScheme.surface;
+    final backgroundColor = context.colorScheme.surface.withValues(
+      alpha: isBottomSheet ? 0.12 : 0.18,
+    );
     final appBar = AppBar(
-      backgroundColor: backgroundColor,
-      forceMaterialTransparency: isBottomSheet,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      forceMaterialTransparency: true,
       automaticallyImplyLeading: false,
       leading: popAsSuffix ? null : Center(child: popButton),
       centerTitle: centerTitle,

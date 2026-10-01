@@ -8,6 +8,8 @@ import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
+
+import 'hui_glass.dart';
 part 'tab_segment.dart';
 part 'tab_render.dart';
 
@@ -17,8 +19,6 @@ const EdgeInsetsGeometry _kHorizontalItemPadding = EdgeInsets.symmetric(
 );
 
 const double _kThumbInset = 1;
-
-const Radius _kCornerRadius = Radius.circular(AppCorner.sm + _kThumbInset);
 
 const Radius _kThumbRadius = Radius.circular(AppCorner.sm);
 
@@ -379,15 +379,12 @@ class _CommonTabBarState<T extends Object> extends State<CommonTabBar<T>>
 
     return UnconstrainedBox(
       constrainedAxis: Axis.horizontal,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
+      child: HuiGlassSurface(
+        borderRadius: BorderRadius.circular(AppCorner.sm + _kThumbInset),
+        blurFactor: 0.55,
+        opacity: 0.78,
+        tint: widget.backgroundColor,
         padding: widget.padding.resolve(Directionality.of(context)),
-        decoration: ShapeDecoration(
-          shape: const RoundedSuperellipseBorder(
-            borderRadius: BorderRadius.all(_kCornerRadius),
-          ),
-          color: widget.backgroundColor,
-        ),
         child: AnimatedBuilder(
           animation: thumbScaleAnimation,
           builder: (BuildContext context, Widget? child) {
@@ -395,7 +392,7 @@ class _CommonTabBarState<T extends Object> extends State<CommonTabBar<T>>
               proportionalWidth: widget.proportionalWidth,
               key: segmentedControlRenderWidgetKey,
               highlightedIndex: highlightedIndex,
-              thumbColor: widget.thumbColor,
+              thumbColor: widget.thumbColor.withValues(alpha: 0.52),
               thumbScale: thumbScaleAnimation.value,
               state: this,
               children: children,

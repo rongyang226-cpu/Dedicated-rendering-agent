@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'card.dart';
 import 'input.dart';
+import 'hui_glass.dart';
 import 'open_container.dart';
 import 'scaffold.dart';
 import 'sheet.dart';
@@ -328,11 +329,11 @@ class ListItem<T> extends StatelessWidget {
     Widget? trailing,
     Widget? leading,
   }) {
-    return ListTile(
+    final tile = ListTile(
       key: key,
       dense: dense,
       visualDensity: visualDensity,
-      tileColor: color,
+      tileColor: Colors.transparent,
       titleTextStyle: titleTextStyle,
       subtitleTextStyle: subtitleTextStyle,
       leading: leading ?? this.leading,
@@ -345,6 +346,14 @@ class ListItem<T> extends StatelessWidget {
       onTap: onTap,
       trailing: trailing ?? this.trailing,
       contentPadding: padding,
+    );
+    return HuiGlassSurface(
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      borderRadius: BorderRadius.circular(20),
+      blurFactor: 0.52,
+      opacity: 0.72,
+      tint: color,
+      child: tile,
     );
   }
 
@@ -551,7 +560,7 @@ List<Widget> generateSection({
   bool separated = true,
 }) {
   final genItems = separated
-      ? items.separated(const Divider(height: 0))
+      ? items.separated(const SizedBox(height: 2))
       : items;
   return [
     if (items.isNotEmpty && title != null)
@@ -624,7 +633,7 @@ List<Widget> generateInfoSection({
   bool separated = true,
 }) {
   final genItems = separated
-      ? items.separated(const Divider(height: 0))
+      ? items.separated(const SizedBox(height: 2))
       : items;
   return [
     if (items.isNotEmpty) InfoHeader(info: info, actions: actions),

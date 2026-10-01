@@ -16,6 +16,7 @@ export 'fade_box.dart';
 export 'float_layout.dart';
 export 'focus.dart';
 export 'grid.dart';
+export 'hui_glass.dart';
 export 'icon.dart';
 export 'inherited.dart';
 export 'input.dart';

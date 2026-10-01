@@ -100,6 +100,7 @@ class _LogsViewState extends ConsumerState<LogsView> {
 
   @override
   void dispose() {
+    throttler.cancel(FunctionTag.logs);
     _listController.dispose();
     _scrollController.dispose();
     super.dispose();

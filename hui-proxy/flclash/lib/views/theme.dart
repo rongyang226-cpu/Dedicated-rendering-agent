@@ -242,37 +242,49 @@ class _HuiVisualItem extends ConsumerWidget {
                     .update((state) => state.copyWith(glassBlur: value));
               },
             ),
-            SwitchListTile.adaptive(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              title: const Text('樱花动画'),
-              subtitle: const Text('独立粒子层，页面切换不会重新生成'),
-              value: visual.sakuraEnabled,
-              onChanged: (value) {
-                ref
-                    .read(themeSettingProvider.notifier)
-                    .update((state) => state.copyWith(sakuraEnabled: value));
-              },
+            HuiGlassSurface(
+              margin: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+              borderRadius: BorderRadius.circular(20),
+              blurFactor: 0.52,
+              opacity: 0.72,
+              child: SwitchListTile.adaptive(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                title: const Text('樱花动画'),
+                subtitle: const Text('独立粒子层，页面切换不会重新生成'),
+                value: visual.sakuraEnabled,
+                onChanged: (value) {
+                  ref
+                      .read(themeSettingProvider.notifier)
+                      .update((state) => state.copyWith(sakuraEnabled: value));
+                },
+              ),
             ),
             if (visual.sakuraEnabled)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(value: 0, label: Text('低')),
-                      ButtonSegment(value: 1, label: Text('中')),
-                      ButtonSegment(value: 2, label: Text('高')),
-                    ],
-                    selected: {visual.sakuraLevel.clamp(0, 2)},
-                    onSelectionChanged: (values) {
-                      ref
-                          .read(themeSettingProvider.notifier)
-                          .update(
-                            (state) =>
-                                state.copyWith(sakuraLevel: values.first),
-                          );
-                    },
+                child: HuiGlassSurface(
+                  borderRadius: BorderRadius.circular(18),
+                  blurFactor: 0.48,
+                  opacity: 0.70,
+                  padding: const EdgeInsets.all(3),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 0, label: Text('低')),
+                        ButtonSegment(value: 1, label: Text('中')),
+                        ButtonSegment(value: 2, label: Text('高')),
+                      ],
+                      selected: {visual.sakuraLevel.clamp(0, 2)},
+                      onSelectionChanged: (values) {
+                        ref
+                            .read(themeSettingProvider.notifier)
+                            .update(
+                              (state) =>
+                                  state.copyWith(sakuraLevel: values.first),
+                            );
+                      },
+                    ),
                   ),
                 ),
               ),
