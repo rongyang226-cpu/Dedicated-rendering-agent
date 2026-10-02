@@ -13,13 +13,18 @@ class HuiSakuraLayer extends StatefulWidget {
 }
 
 class _HuiSakuraLayerState extends State<HuiSakuraLayer>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _controller;
   late List<_Petal> _petals;
+  bool _isForeground = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _isForeground =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _petals = _makePetals(widget.level);
     _controller = AnimationController(
       vsync: this,
@@ -36,6 +41,7 @@ class _HuiSakuraLayerState extends State<HuiSakuraLayer>
   void _syncAnimation() {
     final canAnimate =
         widget.enabled &&
+        _isForeground &&
         !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
     if (canAnimate && !_controller.isAnimating) {
       _controller.repeat();
@@ -56,7 +62,14 @@ class _HuiSakuraLayerState extends State<HuiSakuraLayer>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isForeground = state == AppLifecycleState.resumed;
+    _syncAnimation();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }

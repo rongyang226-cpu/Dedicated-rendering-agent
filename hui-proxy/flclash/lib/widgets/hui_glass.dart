@@ -57,10 +57,10 @@ class HuiGlassSurface extends StatelessWidget {
     // The wallpaper is deliberately vivid, so glass needs a real tint layer.
     // Blur alone smears detail but does not create enough text contrast.
     final surfaceAlpha =
-        (dark ? (strong ? 0.54 : 0.40) : (strong ? 0.70 : 0.56)) * alphaScale;
+        (dark ? (strong ? 0.54 : 0.38) : (strong ? 0.61 : 0.45)) * alphaScale;
     final topAlpha =
-        (dark ? (strong ? 0.10 : 0.07) : (strong ? 0.16 : 0.12)) * alphaScale;
-    final edgeAlpha = dark ? 0.22 : 0.36;
+        (dark ? (strong ? 0.19 : 0.15) : (strong ? 0.29 : 0.25)) * alphaScale;
+    final edgeAlpha = dark ? 0.36 : 0.58;
     // Many cards blur the animated background at once. Keep the maximum
     // kernel bounded when the user raises the strength slider.
     final blur = (glassBlur * blurFactor * 0.6).clamp(0.0, 12.0);
@@ -73,11 +73,13 @@ class HuiGlassSurface extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             Colors.white.withValues(alpha: topAlpha.clamp(0.0, 1.0)),
+            Colors.white.withValues(alpha: (topAlpha * 0.48).clamp(0.0, 1.0)),
             tintColor.withValues(alpha: surfaceAlpha.clamp(0.0, 1.0)),
             scheme.surface.withValues(
-              alpha: (surfaceAlpha * 0.88).clamp(0.0, 1.0),
+              alpha: (surfaceAlpha * 0.75).clamp(0.0, 1.0),
             ),
           ],
+          stops: const [0.0, 0.12, 0.52, 1.0],
         ),
         borderRadius: radius,
         border: Border.all(

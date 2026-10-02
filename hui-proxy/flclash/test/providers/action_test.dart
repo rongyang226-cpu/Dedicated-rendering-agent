@@ -491,6 +491,34 @@ void main() {
         await action.setRunning(false);
       });
 
+      test(
+        'pauses UI traffic polling in background and resumes on return',
+        () async {
+          final container = ProviderContainer(
+            overrides: [
+              initProvider.overrideWithBuild((_, _) => true),
+              commonActionProvider.overrideWith(_RaceCommonAction.new),
+              setupActionProvider.overrideWith(_RaceSetupAction.new),
+            ],
+          );
+          addTearDown(container.dispose);
+          final action =
+              container.read(setupActionProvider.notifier) as _RaceSetupAction;
+          final commonAction =
+              container.read(commonActionProvider.notifier)
+                  as _RaceCommonAction;
+
+          await action.setRunning(true);
+          action.setAppForeground(false);
+          final beforeBackground = commonAction.updateTrafficCount;
+          await Future<void>.delayed(const Duration(milliseconds: 1100));
+          expect(commonAction.updateTrafficCount, beforeBackground);
+          action.setAppForeground(true);
+          expect(commonAction.updateTrafficCount, beforeBackground + 1);
+          await action.setRunning(false);
+        },
+      );
+
       test('serializes listener changes while latest start owns UI', () async {
         final stopCompleter = Completer<bool>();
         final container = ProviderContainer(

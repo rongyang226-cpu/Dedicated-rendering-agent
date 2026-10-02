@@ -19,6 +19,7 @@ class SetupAction extends _$SetupAction {
   CoreController get _core => ref.read(coreHandlerProvider);
 
   Timer? _runtimeTimer;
+  bool _isAppForeground = true;
   final _setupScheduler = SerialTaskScheduler();
   final _listenerScheduler = SerialTaskScheduler();
   _RunRequest? _latestRunRequest;
@@ -57,17 +58,32 @@ class SetupAction extends _$SetupAction {
     }
   }
 
+  /// UI statistics do not need to wake the process while the VPN service
+  /// continues routing in the background.
+  void setAppForeground(bool foreground) {
+    if (_isAppForeground == foreground) return;
+    _isAppForeground = foreground;
+    _syncRuntimeTimer();
+  }
+
   void _setLocalRunning(bool running) {
-    _runtimeTimer?.cancel();
-    _runtimeTimer = null;
     if (!running) {
       _startTime = null;
       debouncer.cancel(FunctionTag.applyProfile);
+    } else {
+      _startTime ??= DateTime.now();
+    }
+    _syncRuntimeTimer();
+  }
+
+  void _syncRuntimeTimer() {
+    _runtimeTimer?.cancel();
+    _runtimeTimer = null;
+    if (_startTime == null) {
       _updateRunTime();
       return;
     }
-
-    _startTime ??= DateTime.now();
+    if (!_isAppForeground) return;
     _refreshRunningState();
     _runtimeTimer = Timer.periodic(
       const Duration(seconds: 1),
