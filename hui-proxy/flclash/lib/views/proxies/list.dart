@@ -313,24 +313,26 @@ class _ProxiesListViewState extends ConsumerState<ProxiesListView> {
                   padding: const EdgeInsets.only(top: 16),
                   child: ScrollConfiguration(
                     behavior: const HiddenBarScrollBehavior(),
-                    child: CustomScrollView(
-                      key: proxiesListStoreKey,
-                      controller: _controller,
-                      slivers: [
-                        for (final group in state.groups)
-                          _buildGroup(
-                            context,
-                            group: group,
-                            currentUnfoldSet: state.currentUnfoldSet,
-                            columns: columns,
-                            cardType: state.proxyCardType,
+                    child: BackdropGroup(
+                      child: CustomScrollView(
+                        key: proxiesListStoreKey,
+                        controller: _controller,
+                        slivers: [
+                          for (final group in state.groups)
+                            _buildGroup(
+                              context,
+                              group: group,
+                              currentUnfoldSet: state.currentUnfoldSet,
+                              columns: columns,
+                              cardType: state.proxyCardType,
+                            ),
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 16 + BottomInsetScope.of(context),
+                            ),
                           ),
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: 16 + BottomInsetScope.of(context),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

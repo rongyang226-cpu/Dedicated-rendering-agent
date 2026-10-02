@@ -113,8 +113,12 @@ class CoreLib extends CoreHandlerInterface {
   @override
   Future<bool> startListener() async {
     final listenerStarted = await super.startListener();
+    if (!listenerStarted) return false;
     final serviceStarted = await _service?.start() ?? false;
-    return listenerStarted && serviceStarted;
+    if (!serviceStarted) {
+      await super.stopListener();
+    }
+    return serviceStarted;
   }
 
   @override

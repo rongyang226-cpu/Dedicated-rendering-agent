@@ -229,6 +229,16 @@ void main() {
       expect(await lib.startListener(), isFalse);
     });
 
+    test('a failed core listener never starts the VPN service', () async {
+      await lib.start();
+      service.onInvokeMethod = (_) =>
+          const CoreMethodResponse(id: '1', result: false);
+      service.calls.clear();
+
+      expect(await lib.startListener(), isFalse);
+      expect(service.calls, ['invokeMethod:startListener']);
+    });
+
     test('stopListener stops the service before the core listener', () async {
       await lib.start();
       service.onInvokeMethod = (_) =>

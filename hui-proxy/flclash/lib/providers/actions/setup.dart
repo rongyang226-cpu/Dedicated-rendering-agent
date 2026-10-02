@@ -197,7 +197,11 @@ class SetupAction extends _$SetupAction {
       if (request.running && ref.read(suspendProvider)) {
         return;
       }
-      await setCoreRunning(request.running);
+      if (!await setCoreRunning(request.running)) {
+        throw StateError(
+          request.running ? '代理启动失败：本地监听端口可能被占用，请检查混合端口设置' : '代理停止失败，请重试',
+        );
+      }
     });
   }
 

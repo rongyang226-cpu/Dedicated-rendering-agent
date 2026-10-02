@@ -53,6 +53,14 @@ func handleStartListener() bool {
 	defer configMu.Unlock()
 	isRunning.Store(true)
 	updateListeners(currentConfig)
+	// Mihomo logs a bind failure but does not return it. Never report the VPN
+	// as started when its configured local mixed proxy failed to listen.
+	if currentConfig != nil && currentConfig.General.MixedPort != 0 &&
+		listener.GetPorts().MixedPort != currentConfig.General.MixedPort {
+		isRunning.Store(false)
+		listener.StopListener()
+		return false
+	}
 	resolver.ResetConnection()
 	return true
 }

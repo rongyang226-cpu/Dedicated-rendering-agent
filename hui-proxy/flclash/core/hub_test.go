@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"slices"
@@ -436,6 +437,27 @@ func TestLookupProxyFollowsAProviderUpdate(t *testing.T) {
 	}
 	if got := lookupProxy("old-node"); got != nil {
 		t.Errorf("lookupProxy(old-node) = %v after the refresh dropped it, want nil", got)
+	}
+}
+
+// A failed bind must not make the UI report an active VPN listener.
+func TestHandleStartListenerRejectsOccupiedMixedPort(t *testing.T) {
+	occupied, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer occupied.Close()
+	port := occupied.Addr().(*net.TCPAddr).Port
+	withCurrentConfig(t, &config.Config{General: &config.General{
+		Inbound: config.Inbound{MixedPort: port},
+	}})
+	defer handleStopListener()
+
+	if handleStartListener() {
+		t.Fatal("started a listener on an occupied mixed port")
+	}
+	if isRunning.Load() {
+		t.Fatal("isRunning stayed true after the mixed port bind failed")
 	}
 }
 

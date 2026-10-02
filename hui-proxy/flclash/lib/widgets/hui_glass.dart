@@ -21,6 +21,7 @@ class HuiGlassSurface extends StatelessWidget {
     this.selected = false,
     this.tint,
     this.useBlur = true,
+    this.groupBlur = false,
   });
 
   final Widget child;
@@ -33,6 +34,7 @@ class HuiGlassSurface extends StatelessWidget {
   final bool selected;
   final Color? tint;
   final bool useBlur;
+  final bool groupBlur;
   @override
   Widget build(BuildContext context) {
     try {
@@ -108,10 +110,10 @@ class HuiGlassSurface extends StatelessWidget {
     );
 
     if (useBlur && blur > 0.1) {
-      content = BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: content,
-      );
+      final filter = ImageFilter.blur(sigmaX: blur, sigmaY: blur);
+      content = groupBlur
+          ? BackdropFilter.grouped(filter: filter, child: content)
+          : BackdropFilter(filter: filter, child: content);
     }
     return RepaintBoundary(
       child: Container(

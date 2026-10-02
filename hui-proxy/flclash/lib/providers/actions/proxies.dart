@@ -28,6 +28,8 @@ class ProxiesAction extends _$ProxiesAction {
   final List<_DelayTestJob> _delayTestJobs = [];
 
   final Map<String, String> _pendingSelectedRollback = {};
+  Future<void>? _updatingGroups;
+  bool _groupsRefreshPending = false;
 
   @override
   void build() {
@@ -71,9 +73,27 @@ class ProxiesAction extends _$ProxiesAction {
     return ref.read(currentProfileProvider)?.selectedMap[groupName] ?? '';
   }
 
-  Future<void> updateGroups() async {
+  Future<void> updateGroups() {
+    if (_updatingGroups != null) {
+      // A selection or provider may change during a fetch. Recheck once
+      // afterwards so the last state is never lost to coalescing.
+      _groupsRefreshPending = true;
+      return _updatingGroups!;
+    }
+    return _updatingGroups = _loadGroupsUntilCurrent().whenComplete(() {
+      _updatingGroups = null;
+    });
+  }
+
+  Future<void> _loadGroupsUntilCurrent() async {
+    do {
+      _groupsRefreshPending = false;
+      await _loadGroups();
+    } while (_groupsRefreshPending);
+  }
+
+  Future<void> _loadGroups() async {
     try {
-      commonPrint.log('updateGroups');
       ref.read(groupsProvider.notifier).value = await retry(
         task: () async {
           final sortType = ref.read(

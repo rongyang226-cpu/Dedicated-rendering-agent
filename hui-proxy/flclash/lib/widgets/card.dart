@@ -99,6 +99,7 @@ class CommonCard extends StatelessWidget {
     this.isError = false,
     this.enterActionsOnRight = false,
     this.skipTraversal = false,
+    this.groupBlur = false,
     required this.child,
   }) : isSelected = isSelected ?? false;
 
@@ -107,6 +108,7 @@ class CommonCard extends StatelessWidget {
   final bool skipTraversal;
   final bool isSelected;
   final bool isError;
+  final bool groupBlur;
   final void Function()? onPressed;
   final void Function()? onLongPress;
   final Widget? selectWidget;
@@ -282,6 +284,7 @@ class CommonCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius ?? AppCorner.md),
       blurFactor: 0.72,
       opacity: 0.82,
+      groupBlur: groupBlur,
       strong: type == CommonCardType.filled,
       selected: isSelected,
       tint: isError ? context.colorScheme.error : null,

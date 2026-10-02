@@ -71,15 +71,25 @@ class _CoreContainerState extends ConsumerState<CoreManager>
     super.onDelay(delay);
     final proxiesAction = ref.read(proxiesActionProvider.notifier);
     proxiesAction.setDelay(delay);
-    debouncer.call(FunctionTag.updateDelay, () async {
-      proxiesAction.updateGroupsDebounce();
-    }, duration: const Duration(milliseconds: 5000));
+    // Each card watches its own delay. Rebuild the full group list only when
+    // the selected sort order actually depends on the new delay value.
+    if (ref.read(proxiesStyleSettingProvider).sortType ==
+        ProxiesSortType.delay) {
+      debouncer.call(FunctionTag.updateDelay, () async {
+        proxiesAction.updateGroupsDebounce();
+      }, duration: const Duration(milliseconds: 5000));
+    }
   }
 
   @override
   void onLog(Log log) {
     ref.read(logsProvider.notifier).add(log);
-    if (log.logLevel == LogLevel.error) {
+    // Mihomo keeps the first successful response when an optional second
+    // HTTP delay probe fails. Keep its diagnostic log without a false alarm.
+    final optionalDelayProbeFailed = log.payload.contains(
+      'failed to get the second response from http://',
+    );
+    if (log.logLevel == LogLevel.error && !optionalDelayProbeFailed) {
       throttler.call(
         FunctionTag.coreErrorNotifier,
         () => dialogs.showNotifier(log.payload, level: MessageLevel.error),
