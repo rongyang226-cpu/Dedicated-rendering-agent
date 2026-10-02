@@ -4,6 +4,17 @@ import 'package:fl_clash/providers/config.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Marks a static grid whose glass cards do not overlap.
+class HuiGlassGroupScope extends InheritedWidget {
+  const HuiGlassGroupScope({super.key, required super.child});
+
+  static bool enabled(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<HuiGlassGroupScope>() != null;
+
+  @override
+  bool updateShouldNotify(HuiGlassGroupScope oldWidget) => false;
+}
+
 /// Shared liquid-glass surface for Hui.
 ///
 /// Keep this component cheap enough to be reused by cards, list rows, dialogs

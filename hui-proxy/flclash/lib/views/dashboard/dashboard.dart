@@ -246,11 +246,15 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
                                 },
                               ),
                             )
-                          : Grid(
-                              crossAxisCount: columns,
-                              crossAxisSpacing: spacing,
-                              mainAxisSpacing: spacing,
-                              children: children,
+                          : BackdropGroup(
+                              child: HuiGlassGroupScope(
+                                child: Grid(
+                                  crossAxisCount: columns,
+                                  crossAxisSpacing: spacing,
+                                  mainAxisSpacing: spacing,
+                                  children: children,
+                                ),
+                              ),
                             );
                     },
                   ),

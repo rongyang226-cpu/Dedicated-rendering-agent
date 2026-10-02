@@ -198,8 +198,13 @@ class SetupAction extends _$SetupAction {
         return;
       }
       if (!await setCoreRunning(request.running)) {
-        throw StateError(
-          request.running ? '代理启动失败：本地监听端口可能被占用，请检查混合端口设置' : '代理停止失败，请重试',
+        throw CoreMethodException(
+          code: request.running
+              ? 'listener_start_failed'
+              : 'listener_stop_failed',
+          message: request.running
+              ? '代理启动失败：7890 等本地端口可能被其他代理占用；请关闭其他代理应用，或在设置中更改混合端口后重试'
+              : '代理停止失败，请重试',
         );
       }
     });

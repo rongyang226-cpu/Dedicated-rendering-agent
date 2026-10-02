@@ -89,7 +89,14 @@ class _CoreContainerState extends ConsumerState<CoreManager>
     final optionalDelayProbeFailed = log.payload.contains(
       'failed to get the second response from http://',
     );
-    if (log.logLevel == LogLevel.error && !optionalDelayProbeFailed) {
+    // The start action already shows a local-port error with a recovery hint.
+    // Keep Mihomo's full bind failure in logs without a second red banner.
+    final mixedPortBindFailed =
+        log.payload.contains('Start Mixed(http+socks) server error:') &&
+        log.payload.contains('bind: address already in use');
+    if (log.logLevel == LogLevel.error &&
+        !optionalDelayProbeFailed &&
+        !mixedPortBindFailed) {
       throttler.call(
         FunctionTag.coreErrorNotifier,
         () => dialogs.showNotifier(log.payload, level: MessageLevel.error),

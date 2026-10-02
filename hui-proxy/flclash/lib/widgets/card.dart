@@ -284,7 +284,7 @@ class CommonCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius ?? AppCorner.md),
       blurFactor: 0.72,
       opacity: 0.82,
-      groupBlur: groupBlur,
+      groupBlur: groupBlur || HuiGlassGroupScope.enabled(context),
       strong: type == CommonCardType.filled,
       selected: isSelected,
       tint: isError ? context.colorScheme.error : null,
